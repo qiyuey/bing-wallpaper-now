@@ -40,7 +40,7 @@ function App() {
   // 打开下载目录
   const handleOpenFolder = async () => {
     try {
-      const folderPath = await invoke<string>("get_default_wallpaper_directory");
+      const folderPath = await invoke<string>("get_wallpaper_directory");
       console.log("Opening folder:", folderPath);
 
       // 确保目录存在
