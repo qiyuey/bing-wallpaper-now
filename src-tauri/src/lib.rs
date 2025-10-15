@@ -8,13 +8,13 @@ use models::{AppSettings, BingImageEntry, LocalWallpaper};
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-use tokio::sync::Mutex;
-use tauri_plugin_autostart::ManagerExt;
 use tauri::{
     menu::{MenuBuilder, MenuItemBuilder},
     tray::{TrayIconBuilder, TrayIconEvent},
     Manager, Runtime,
 };
+use tauri_plugin_autostart::ManagerExt;
+use tokio::sync::Mutex;
 
 // 全局状态管理
 struct AppState {
@@ -114,17 +114,23 @@ async fn update_settings(
     // 处理开机自启动设置
     let autostart_manager = app.autolaunch();
     if new_settings.launch_at_startup {
-        autostart_manager.enable().map_err(|e| format!("启用开机自启动失败: {}", e))?;
+        autostart_manager
+            .enable()
+            .map_err(|e| format!("启用开机自启动失败: {}", e))?;
     } else {
-        autostart_manager.disable().map_err(|e| format!("禁用开机自启动失败: {}", e))?;
+        autostart_manager
+            .disable()
+            .map_err(|e| format!("禁用开机自启动失败: {}", e))?;
     }
 
     *settings = new_settings.clone();
 
     // 如果保存目录改变了,更新状态
+    let mut wallpaper_dir = state.wallpaper_directory.lock().await;
     if let Some(ref new_dir) = new_settings.save_directory {
-        let mut wallpaper_dir = state.wallpaper_directory.lock().await;
         *wallpaper_dir = PathBuf::from(new_dir);
+    } else {
+        *wallpaper_dir = storage::get_default_wallpaper_directory().map_err(|e| e.to_string())?;
     }
 
     Ok(())
@@ -157,12 +163,24 @@ async fn get_default_wallpaper_directory() -> Result<String, String> {
 
 /// 确保壁纸目录存在
 #[tauri::command]
-async fn ensure_wallpaper_directory_exists() -> Result<(), String> {
-    let wallpaper_dir = storage::get_default_wallpaper_directory()
-        .map_err(|e| e.to_string())?;
+async fn ensure_wallpaper_directory_exists(
+    state: tauri::State<'_, AppState>,
+) -> Result<(), String> {
+    let wallpaper_dir = {
+        let dir = state.wallpaper_directory.lock().await;
+        dir.clone()
+    };
+
     storage::ensure_wallpaper_directory(&wallpaper_dir)
         .await
         .map_err(|e| e.to_string())
+}
+
+/// 获取当前壁纸目录（用户自定义或默认）
+#[tauri::command]
+async fn get_wallpaper_directory(state: tauri::State<'_, AppState>) -> Result<String, String> {
+    let wallpaper_dir = state.wallpaper_directory.lock().await;
+    Ok(wallpaper_dir.to_string_lossy().to_string())
 }
 
 /// 显示主窗口
@@ -205,7 +223,8 @@ fn setup_tray<R: Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<()> {
                     // 获取 AppState 进行防抖检查
                     if let Some(state) = app.try_state::<AppState>() {
                         let now = Instant::now();
-                        let mut last_click = tauri::async_runtime::block_on(state.last_tray_click.lock());
+                        let mut last_click =
+                            tauri::async_runtime::block_on(state.last_tray_click.lock());
 
                         // 防抖：如果距离上次点击少于 300ms，则忽略
                         if let Some(last) = *last_click {
@@ -233,19 +252,17 @@ fn setup_tray<R: Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<()> {
                 }
             }
         })
-        .on_menu_event(|app, event| {
-            match event.id().as_ref() {
-                "show" => {
-                    if let Some(window) = app.get_webview_window("main") {
-                        let _ = window.show();
-                        let _ = window.set_focus();
-                    }
+        .on_menu_event(|app, event| match event.id().as_ref() {
+            "show" => {
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.show();
+                    let _ = window.set_focus();
                 }
-                "quit" => {
-                    app.exit(0);
-                }
-                _ => {}
             }
+            "quit" => {
+                app.exit(0);
+            }
+            _ => {}
         })
         .build(app)?;
 
@@ -255,8 +272,8 @@ fn setup_tray<R: Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<()> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     // 初始化应用状态
-    let default_dir = storage::get_default_wallpaper_directory()
-        .unwrap_or_else(|_| PathBuf::from("."));
+    let default_dir =
+        storage::get_default_wallpaper_directory().unwrap_or_else(|_| PathBuf::from("."));
 
     let app_state = AppState {
         settings: Arc::new(Mutex::new(AppSettings::default())),
@@ -284,6 +301,7 @@ pub fn run() {
             cleanup_wallpapers,
             get_current_wallpaper,
             get_default_wallpaper_directory,
+            get_wallpaper_directory,
             ensure_wallpaper_directory_exists,
             show_main_window,
         ])

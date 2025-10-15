@@ -5,8 +5,7 @@ use tokio::fs;
 
 /// 获取默认的壁纸存储目录
 pub fn get_default_wallpaper_directory() -> Result<PathBuf> {
-    let pictures_dir = dirs::picture_dir()
-        .context("Failed to get pictures directory")?;
+    let pictures_dir = dirs::picture_dir().context("Failed to get pictures directory")?;
 
     Ok(pictures_dir.join("Bing Wallpaper Now"))
 }

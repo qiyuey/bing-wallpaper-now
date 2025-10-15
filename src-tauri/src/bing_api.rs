@@ -12,7 +12,10 @@ const BING_BASE_URL: &str = "https://www.bing.com";
 pub async fn fetch_bing_images(count: u8, idx: u8) -> Result<Vec<BingImageEntry>> {
     let count = count.min(8); // Bing API 限制最多8张
 
-    let url = format!("{}?format=js&n={}&idx={}&mkt=zh-CN", BING_API_URL, count, idx);
+    let url = format!(
+        "{}?format=js&n={}&idx={}&mkt=zh-CN",
+        BING_API_URL, count, idx
+    );
 
     let response = reqwest::get(&url)
         .await
@@ -24,12 +27,16 @@ pub async fn fetch_bing_images(count: u8, idx: u8) -> Result<Vec<BingImageEntry>
         .context("Failed to parse Bing API response")?;
 
     // 为每个图片条目添加完整的 URL
-    let images = archive.images.into_iter().map(|mut img| {
-        if !img.url.starts_with("http") {
-            img.url = format!("{}{}", BING_BASE_URL, img.url);
-        }
-        img
-    }).collect();
+    let images = archive
+        .images
+        .into_iter()
+        .map(|mut img| {
+            if !img.url.starts_with("http") {
+                img.url = format!("{}{}", BING_BASE_URL, img.url);
+            }
+            img
+        })
+        .collect();
 
     Ok(images)
 }

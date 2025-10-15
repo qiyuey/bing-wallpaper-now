@@ -18,8 +18,7 @@ pub fn set_wallpaper(image_path: &Path) -> Result<()> {
 
 /// 获取当前的桌面壁纸路径
 pub fn get_current_wallpaper() -> Result<String> {
-    wallpaper::get()
-        .map_err(|e| anyhow::anyhow!("Failed to get current wallpaper: {}", e))
+    wallpaper::get().map_err(|e| anyhow::anyhow!("Failed to get current wallpaper: {}", e))
 }
 
 #[cfg(test)]
