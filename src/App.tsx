@@ -3,28 +3,27 @@ import "./App.css";
 import { useBingWallpapers } from "./hooks/useBingWallpapers";
 import { WallpaperGrid } from "./components/WallpaperGrid";
 import { Settings } from "./components/Settings";
-import { BingImageEntry } from "./types";
+import { LocalWallpaper } from "./types";
 import { invoke } from "@tauri-apps/api/core";
 import { openPath } from "@tauri-apps/plugin-opener";
 
 function App() {
   const {
-    bingImages,
+    localWallpapers,
     loading,
     error,
     fetchBingImages,
-    downloadAndSetWallpaper,
+    fetchLocalWallpapers,
+    setDesktopWallpaper,
   } = useBingWallpapers();
 
   const [showSettings, setShowSettings] = useState(false);
 
   // 处理设置壁纸
-  const handleSetWallpaper = async (image: BingImageEntry) => {
+  const handleSetWallpaper = async (wallpaper: LocalWallpaper) => {
     try {
-      console.log("Setting wallpaper...", image);
-      console.log("Downloading and setting wallpaper from Bing...");
-      const result = await downloadAndSetWallpaper(image);
-      console.log("Download result:", result);
+      console.log("Setting wallpaper...", wallpaper);
+      await setDesktopWallpaper(wallpaper.file_path);
       alert("壁纸已设置成功!");
     } catch (err) {
       console.error("Failed to set wallpaper:", err);
@@ -33,7 +32,12 @@ function App() {
   };
 
   // 刷新壁纸列表
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
+    // 先刷新本地列表（快速响应）
+    fetchLocalWallpapers();
+
+    // 然后在后台获取并下载新壁纸（不阻塞）
+    // fetchBingImages 内部会自动下载并刷新本地列表
     fetchBingImages();
   };
 
@@ -89,7 +93,7 @@ function App() {
 
       <main className="app-main">
         <WallpaperGrid
-          images={bingImages}
+          wallpapers={localWallpapers}
           onSetWallpaper={handleSetWallpaper}
           loading={loading}
         />

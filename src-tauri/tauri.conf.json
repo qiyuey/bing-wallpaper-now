@@ -22,7 +22,14 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": null,
+      "assetProtocol": {
+        "enable": true,
+        "scope": [
+          "$PICTURE/**",
+          "$HOME/Pictures/**"
+        ]
+      }
     }
   },
   "bundle": {

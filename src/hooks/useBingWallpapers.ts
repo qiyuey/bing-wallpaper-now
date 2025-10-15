@@ -24,8 +24,10 @@ export function useBingWallpapers() {
       setBingImages(images);
       setLoading(false);
 
-      // 在后台异步下载所有获取到的壁纸（不阻塞UI）
-      autoDownloadWallpapers(images);
+      // 在后台异步下载所有获取到的壁纸（完全不阻塞，使用 Promise 后台执行）
+      autoDownloadWallpapers(images).catch((err) => {
+        console.log("Background download error:", err);
+      });
     } catch (err) {
       setError(err as string);
       setLoading(false);
@@ -34,17 +36,31 @@ export function useBingWallpapers() {
 
   /**
    * 自动下载壁纸（静默下载，不影响UI）
+   * 下载完成后自动刷新本地列表
    */
   const autoDownloadWallpapers = async (images: BingImageEntry[]) => {
     // 静默下载，不显示加载状态
+    let downloadedCount = 0;
     for (const image of images) {
       try {
         await invoke<LocalWallpaper>("download_wallpaper", {
           imageEntry: image,
         });
+        downloadedCount++;
       } catch (err) {
         // 静默失败，不影响用户体验
         console.log(`Auto-download failed for ${image.title}:`, err);
+      }
+    }
+
+    // 如果有下载成功的，刷新本地列表
+    if (downloadedCount > 0) {
+      try {
+        const wallpapers = await invoke<LocalWallpaper[]>("get_local_wallpapers");
+        setLocalWallpapers(wallpapers);
+        console.log(`Background downloaded ${downloadedCount} wallpapers`);
+      } catch (err) {
+        console.log("Failed to refresh local wallpapers after download:", err);
       }
     }
   };
@@ -133,10 +149,13 @@ export function useBingWallpapers() {
     }
   };
 
-  // 初始加载
+  // 初始加载 - 优先加载本地列表，后台获取远程
   useEffect(() => {
-    fetchBingImages();
+    // 先快速加载本地壁纸（如果有）
     fetchLocalWallpapers();
+
+    // 然后在后台获取并下载新壁纸（不阻塞页面显示）
+    fetchBingImages();
   }, []);
 
   return {

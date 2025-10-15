@@ -1,14 +1,14 @@
 import { WallpaperCard } from "./WallpaperCard";
-import { BingImageEntry } from "../types";
+import { LocalWallpaper } from "../types";
 
 interface WallpaperGridProps {
-  images: BingImageEntry[];
-  onSetWallpaper: (image: BingImageEntry) => void;
+  wallpapers: LocalWallpaper[];
+  onSetWallpaper: (wallpaper: LocalWallpaper) => void;
   loading?: boolean;
 }
 
 export function WallpaperGrid({
-  images,
+  wallpapers,
   onSetWallpaper,
   loading = false,
 }: WallpaperGridProps) {
@@ -20,7 +20,7 @@ export function WallpaperGrid({
     );
   }
 
-  if (images.length === 0) {
+  if (wallpapers.length === 0) {
     return (
       <div className="wallpaper-grid-empty">
         <p>暂无壁纸</p>
@@ -30,12 +30,12 @@ export function WallpaperGrid({
 
   return (
     <div className="wallpaper-grid">
-      {images.map((image) => {
+      {wallpapers.map((wallpaper) => {
         return (
           <WallpaperCard
-            key={image.hsh}
-            image={image}
-            onSetWallpaper={() => onSetWallpaper(image)}
+            key={wallpaper.id}
+            wallpaper={wallpaper}
+            onSetWallpaper={() => onSetWallpaper(wallpaper)}
           />
         );
       })}

@@ -5,6 +5,8 @@
   "windows": ["main"],
   "permissions": [
     "core:default",
+    "core:path:default",
+    "core:image:default",
     "opener:default",
     {
       "identifier": "opener:allow-open-path",

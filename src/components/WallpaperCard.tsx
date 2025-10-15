@@ -1,31 +1,33 @@
-import { BingImageEntry } from "../types";
+import { LocalWallpaper } from "../types";
 import { openUrl } from "@tauri-apps/plugin-opener";
+import { convertFileSrc } from "@tauri-apps/api/core";
 
 interface WallpaperCardProps {
-  image: BingImageEntry;
+  wallpaper: LocalWallpaper;
   onSetWallpaper: () => void;
 }
 
 export function WallpaperCard({
-  image,
+  wallpaper,
   onSetWallpaper,
 }: WallpaperCardProps) {
   // 处理图片点击，打开版权链接
   const handleImageClick = async () => {
-    if (image.copyrightlink) {
+    if (wallpaper.copyright_link) {
       try {
-        await openUrl(image.copyrightlink);
+        await openUrl(wallpaper.copyright_link);
       } catch (err) {
         console.error("Failed to open link:", err);
       }
     }
   };
+
   // 解析标题和副标题
-  // 主标题：image.title（如"蓝与白的梦境"）
+  // 主标题：wallpaper.title（如"蓝与白的梦境"）
   // 副标题：copyright 中不包含括号的部分（如"伊亚镇，圣托里尼岛，希腊"）
   const parseTitleAndSubtitle = () => {
-    const title = image.title;
-    const copyright = image.copyright;
+    const title = wallpaper.title;
+    const copyright = wallpaper.copyright;
 
     // 从 copyright 中提取括号外的内容作为副标题
     const match = copyright.match(/^([^(]+?)(?:\s*\(([^)]+)\))?$/);
@@ -39,6 +41,9 @@ export function WallpaperCard({
 
   const { title, subtitle } = parseTitleAndSubtitle();
 
+  // 将本地文件路径转换为前端可访问的 URL
+  const imageUrl = convertFileSrc(wallpaper.file_path);
+
   return (
     <div className="wallpaper-card">
       <div
@@ -48,7 +53,7 @@ export function WallpaperCard({
         title="点击查看详情"
       >
         <img
-          src={image.url}
+          src={imageUrl}
           alt={title}
           className="wallpaper-image"
           loading="lazy"
