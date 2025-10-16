@@ -309,11 +309,222 @@ make check
 4. 前端构建
 5. Rust 全目标测试
 6. 可选网络测试（受 `BING_TEST` 控制）
-7. 产物上传（dist / 可选打包）
+7. cargo-deny 扫描（安全公告 / 许可证 / 重复 / 版本策略）
+8. 产物上传（dist / 条件打包）
 
 通过上述流程确保：
 - 没有未格式化的 Rust 代码
 - 没有静态分析警告
 - 类型与构建可持续
+- 许可证符合白名单策略
+- 依赖不存在已披露的高危安全漏洞（RustSec）
 - 网络不稳定不会拖慢默认 CI（测试被忽略）
+
+### 前端 ESLint（可选）
+
+目前仓库包含占位的 `.eslintrc.cjs`。启用步骤：
+```bash
+npm i -D eslint @typescript-eslint/parser @typescript-eslint/eslint-plugin eslint-plugin-react eslint-plugin-react-hooks eslint-plugin-import
+# 可选 Prettier 集成:
+npm i -D prettier eslint-config-prettier eslint-plugin-prettier
+```
+
+运行：
+```bash
+npx eslint "src/**/*.{ts,tsx}"
+```
+
+可将下列命令加入 CI：
+```yaml
+- name: ESLint
+  run: npx eslint "src/**/*.{ts,tsx}"
+```
+
+### cargo-deny 使用
+
+配置文件位置：`src-tauri/deny.toml`  
+（质量与安全相关配置已开始集中，相关 lint/格式化/覆盖率脚本逐步进入 `.config/` 目录）
+
+本地运行：
+```bash
+cargo install --locked cargo-deny
+cargo deny check
+```
+
+### 集中化质量与配置 (.config)
+
+集中化目标：所有质量、脚本、格式化与度量相关内容不再散落在根目录，统一进入 `.config/` 及其子目录，便于：
+- 结构清晰（根目录只保留核心源码与顶级说明）
+- 渐进增强（新增工具时只需扩展子目录）
+- CI/脚本复用（路径稳定、可直接引用）
+
+当前子目录规划与状态：
+- `.config/eslint/`：ESLint 主配置（已迁移 `.eslintrc.cjs`）
+- `.config/prettier/`：Prettier 配置与忽略文件（已创建 `.prettierrc` / `.prettierignore`）
+- `.config/scripts/`：复用脚本（质量检查、覆盖率、lint 聚合等）
+- `.config/quality/`：质量基线与覆盖率策略说明（待补充文档）
+- （可以新增：`.config/security/`、`.config/release/` 等）
+
+当前已启用：
+- `src-tauri/deny.toml`（安全与许可证策略）
+- `.editorconfig`（跨语言基础格式约束）
+- `.config/eslint/.eslintrc.cjs`（前端 lint 规则）
+- `.config/prettier/.prettierrc` / `.prettierignore`（格式化策略）
+- `.config/scripts/check-rust.sh`（Rust 基础质量门槛脚本）
+- `.config/scripts/lint-frontend.sh`（前端 ESLint 运行脚本）
+- `.config/scripts/coverage-rust.sh` / `.config/scripts/coverage-frontend.sh`（覆盖率采集脚本，占位实现）
+
+后续扩展建议：
+- 在 `.config/quality/README.md` 中补充：最低覆盖率阈值、允许的临时豁免策略
+- 将 CI 步骤升级：新增 ESLint、Prettier 校验、覆盖率上传（Codecov 或 Badges）
+- 增加 SBOM（例如使用 `cargo auditable` 或 CycloneDX）与发布签名策略
+
+### Prettier 使用（前端格式化）
+
+安装依赖：
+```bash
+npm i -D prettier eslint-config-prettier eslint-plugin-prettier
+```
+
+在 ESLint 中启用（示例，需修改 `.config/eslint/.eslintrc.cjs`）：
+```js
+extends: [
+  "eslint:recommended",
+  "plugin:react/recommended",
+  "plugin:react-hooks/recommended",
+  "plugin:@typescript-eslint/recommended",
+  "plugin:import/recommended",
+  "plugin:import/typescript",
+  "plugin:prettier/recommended",
+],
+```
+
+手动运行 Prettier：
+```bash
+npx prettier --config .config/prettier/.prettierrc --write "src/**/*.{ts,tsx,css,md}"
+```
+
+### 覆盖率统计
+
+#### Rust 覆盖率 (tarpaulin)
+
+安装：
+```bash
+cargo install cargo-tarpaulin
+```
+
+脚本（示例调用，脚本已放置）：
+```bash
+./.config/scripts/coverage-rust.sh
+```
+
+脚本可扩展为：
+- 基线：行覆盖率 < 70% 即失败（可在脚本中添加解析并退出非零状态）
+- 后续：区分单元测试与集成测试、生成 `coverage-report.xml` 供 CI 上传
+
+#### 前端覆盖率 (Vitest + c8)
+
+安装：
+```bash
+npm i -D vitest @vitest/coverage-v8
+```
+
+运行（占位脚本）：
+```bash
+./.config/scripts/coverage-frontend.sh
+```
+
+示例 `vitest.config.ts` 增补（待创建）：
+```ts
+export default {
+  test: {
+    coverage: {
+      provider: "v8",
+      reportsDirectory: "coverage-frontend",
+      reporter: ["text", "lcov"],
+      lines: 70,
+      functions: 70,
+      branches: 60,
+      statements: 70,
+    },
+  },
+};
+```
+
+### 前端 Lint 与格式化脚本
+
+NPM 脚本（已更新）：
+```bash
+npm run lint:frontend
+npm run lint          # 聚合 Rust + 前端
+```
+
+若需在 CI 启用 ESLint 与 Prettier，可在工作流添加步骤：
+```yaml
+- name: ESLint
+  run: npm run lint:frontend
+
+- name: Prettier (check only)
+  run: npx prettier --config .config/prettier/.prettierrc --check "src/**/*.{ts,tsx,css,md}"
+```
+
+### 覆盖率集成到 CI（示例建议）
+
+新增一个非阻断 job：
+```yaml
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - uses: dtolnay/rust-toolchain@stable
+      - run: npm ci
+      - run: cargo install cargo-tarpaulin
+      - run: ./.config/scripts/coverage-rust.sh
+      - run: npm i -D vitest @vitest/coverage-v8
+      - run: ./.config/scripts/coverage-frontend.sh
+      # 可选：上传到 Codecov 或生成 badge
+```
+
+### 质量基线建议初版
+
+| 维度 | 初始阈值 | 后续目标 |
+| ---- | -------- | -------- |
+| Rust 行覆盖率 | 70% | 80%+ |
+| 前端行覆盖率 | 60% | 75%+ |
+| Clippy 警告 | 0 | 0（保持） |
+| TypeScript 编译错误 | 0 | 0 |
+| 许可证违规 | 0 | 0 |
+| RustSec 高危通告 | 0 | 0 |
+
+如需我补充 `.config/quality/README.md` 具体清单或生成初始 Vitest 配置文件，继续告诉我即可。  
+
+主要检查：
+- 安全公告（advisories）：阻止已知漏洞库
+- 许可证（licenses）：只允许 MIT / Apache-2.0 等
+- 重复版本与潜在膨胀（duplicate）
+- 不允许通配版本（wildcard-version）
+- 可筛除未维护 / 含不安全标记库
+
+CI 中已包含安装与运行步骤，可通过以下方式启用网络测试与升级策略：
+```bash
+# 仅在需要真实网络测试时手动开启
+BING_TEST=1 cargo test -- --ignored
+```
+
+若需临时忽略特定安全公告，在 `deny.toml` 中添加：
+```toml
+[advisories]
+ignore = ["RUSTSEC-YYYY-XXXX"] # 并在 PR / commit 说明理由
+```
+
+### 进一步建议
+- 将 ESLint 与 Prettier 集成后添加格式校验
+- 加入 `cargo clippy --all-targets --all-features`
+- 添加覆盖率（Rust: tarpaulin；前端：vitest + c8）
+- 对 Release 增加代码签名与 SBOM 输出
 

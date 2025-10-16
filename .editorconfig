@@ -1,0 +1,28 @@
+# EditorConfig for bing-wallpaper-now
+# Ensures consistent formatting across editors/IDEs.
+root = true
+
+[*]
+charset = utf-8
+indent_style = space
+indent_size = 2
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Rust code style
+[*.rs]
+indent_size = 4
+
+# TOML manifests & config
+[*.toml]
+indent_size = 2
+
+# Frontend sources & markup
+[*.{js,ts,jsx,tsx,css,scss,html,json,yml,yaml}]
+indent_size = 2
+
+# Markdown: keep deliberate trailing spaces (e.g. for line breaks)
+[*.md]
+trim_trailing_whitespace = false
+indent_size = 2

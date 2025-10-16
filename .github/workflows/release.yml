@@ -66,6 +66,12 @@ jobs:
           args: build
           # 可在此添加签名或发布参数 (sign, identifier 等)
 
+      - name: Cargo deny (advisories/licenses)
+        working-directory: src-tauri
+        run: |
+          cargo install --locked cargo-deny || echo "cargo-deny already installed"
+          cargo deny check
+
       - name: Upload Bundles Artifact
         uses: actions/upload-artifact@v4
         with:
