@@ -24,27 +24,30 @@ jobs:
         with:
           node-version: 18
 
-      - name: Cache Cargo (registry + git)
+      - name: Cache Cargo (registry + git + target)
         uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-          key: ${{ runner.os }}-cargo-${{ hashFiles('src-tauri/Cargo.lock') }}
+            src-tauri/target
+          key: ${{ runner.os }}-cargo-all-${{ hashFiles('src-tauri/Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-cargo-
+            ${{ runner.os }}-cargo-all-
 
-      - name: Cache Node modules
+      - name: Cache pnpm store
         uses: actions/cache@v4
         with:
-          path: |
-            node_modules
-            ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+          path: ~/.pnpm-store
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('package.json') }}
           restore-keys: |
-            ${{ runner.os }}-node-
+            ${{ runner.os }}-pnpm-
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
+      - name: Install sccache
+        run: cargo install sccache
+      - name: Configure sccache
+        run: echo "RUSTC_WRAPPER=$(which sccache)" >> $GITHUB_ENV
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
         run: |
@@ -54,8 +57,10 @@ jobs:
             libayatana-appindicator3-dev \
             librsvg2-dev \
             patchelf
-      - name: Install Node dependencies
-        run: npm ci --prefer-offline --no-audit
+      - name: Enable corepack & install dependencies (pnpm)
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile || pnpm install
       - name: TypeScript typecheck
         run: npm run typecheck
       - name: Frontend build
@@ -98,28 +103,31 @@ jobs:
         with:
           node-version: 18
 
-      - name: Cache Cargo (registry + git)
+      - name: Cache Cargo (registry + git + target)
         uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-          key: ${{ runner.os }}-cargo-${{ hashFiles('src-tauri/Cargo.lock') }}
+            src-tauri/target
+          key: ${{ runner.os }}-cargo-all-${{ hashFiles('src-tauri/Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-cargo-
+            ${{ runner.os }}-cargo-all-
 
-      - name: Cache Node modules
+      - name: Cache pnpm store
         uses: actions/cache@v4
         with:
-          path: |
-            node_modules
-            ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+          path: ~/.pnpm-store
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('package.json') }}
           restore-keys: |
-            ${{ runner.os }}-node-
+            ${{ runner.os }}-pnpm-
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
+      - name: Install sccache
+        run: cargo install sccache
+      - name: Configure sccache
+        run: echo "RUSTC_WRAPPER=$(which sccache)" >> $GITHUB_ENV
 
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
@@ -131,8 +139,10 @@ jobs:
             librsvg2-dev \
             patchelf
 
-      - name: Install Node dependencies
-        run: npm ci --prefer-offline --no-audit
+      - name: Enable corepack & install dependencies (pnpm)
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile || pnpm install
 
       - name: Download dist artifact
         uses: actions/download-artifact@v4
