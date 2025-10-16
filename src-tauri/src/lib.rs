@@ -4,7 +4,10 @@ mod models;
 mod storage;
 mod wallpaper_manager;
 
-use models::{AppSettings, BingImageEntry, LocalWallpaper};
+use log::{debug, error, info, trace, warn};
+
+use futures::stream::{FuturesUnordered, StreamExt};
+use models::{AppSettings, LocalWallpaper};
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -14,69 +17,24 @@ use tauri::{
     AppHandle, Manager, Runtime,
 };
 use tauri_plugin_autostart::ManagerExt;
-use tokio::sync::Mutex;
+use tokio::sync::{watch, Mutex};
 
-// 全局状态管理
+/// 全局状态管理
 struct AppState {
     settings: Arc<Mutex<AppSettings>>,
     wallpaper_directory: Arc<Mutex<PathBuf>>,
     last_tray_click: Arc<Mutex<Option<Instant>>>,
     current_wallpaper_path: Arc<Mutex<Option<PathBuf>>>,
+    settings_tx: watch::Sender<AppSettings>,
+    settings_rx: watch::Receiver<AppSettings>,
+    auto_update_handle: Arc<Mutex<tauri::async_runtime::JoinHandle<()>>>,
+    update_in_progress: Arc<Mutex<bool>>,
 }
 
-/// 获取必应壁纸列表
-#[tauri::command]
-async fn fetch_bing_images(count: u8) -> Result<Vec<BingImageEntry>, String> {
-    bing_api::fetch_bing_images(count, 0)
-        .await
-        .map_err(|e| e.to_string())
-}
+// (removed) fetch_bing_images command; image retrieval now handled by background auto-update logic.
 
 /// 下载壁纸
-#[tauri::command]
-async fn download_wallpaper(
-    image_entry: BingImageEntry,
-    state: tauri::State<'_, AppState>,
-) -> Result<LocalWallpaper, String> {
-    let wallpaper_dir = state.wallpaper_directory.lock().await;
-
-    // 确保目录存在
-    storage::ensure_wallpaper_directory(&wallpaper_dir)
-        .await
-        .map_err(|e| e.to_string())?;
-
-    // 检查文件是否已存在
-    let save_path = storage::get_wallpaper_path(&wallpaper_dir, &image_entry.startdate);
-    let metadata_path = save_path.with_extension("json");
-
-    // 如果文件已存在，直接返回已有的壁纸信息
-    if save_path.exists() && metadata_path.exists() {
-        if let Ok(metadata_content) = tokio::fs::read_to_string(&metadata_path).await {
-            if let Ok(wallpaper) = serde_json::from_str::<LocalWallpaper>(&metadata_content) {
-                return Ok(wallpaper);
-            }
-        }
-    }
-
-    // 获取高分辨率图片 URL
-    let image_url = bing_api::get_wallpaper_url(&image_entry.urlbase, "UHD");
-
-    // 下载图片
-    download_manager::download_image(&image_url, &save_path)
-        .await
-        .map_err(|e| e.to_string())?;
-
-    // 创建本地壁纸记录
-    let mut wallpaper = LocalWallpaper::from(image_entry);
-    wallpaper.file_path = save_path.to_string_lossy().to_string();
-
-    // 保存元数据
-    storage::save_wallpaper_metadata(&wallpaper, &wallpaper_dir)
-        .await
-        .map_err(|e| e.to_string())?;
-
-    Ok(wallpaper)
-}
+// (removed obsolete download_wallpaper command)
 
 /// 设置桌面壁纸
 #[tauri::command]
@@ -84,12 +42,32 @@ async fn set_desktop_wallpaper(
     file_path: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), String> {
-    let path = PathBuf::from(file_path);
-    wallpaper_manager::set_wallpaper(&path).map_err(|e| e.to_string())?;
+    let path = PathBuf::from(&file_path);
+
+    // 路径校验：必须位于当前壁纸目录内，防止设置任意系统文件为壁纸
+    let base_dir = {
+        let dir = state.wallpaper_directory.lock().await;
+        dir.clone()
+    };
+    let base_dir_can = base_dir
+        .canonicalize()
+        .map_err(|e| format!("无法解析壁纸目录: {e}"))?;
+    let target_can = path
+        .canonicalize()
+        .map_err(|e| format!("无法解析目标路径: {e}"))?;
+
+    if !target_can.starts_with(&base_dir_can) {
+        return Err("目标文件不在壁纸目录下，拒绝设置".into());
+    }
+    if !target_can.is_file() {
+        return Err("目标文件不存在或不是普通文件".into());
+    }
+
+    wallpaper_manager::set_wallpaper(&target_can).map_err(|e| e.to_string())?;
 
     // 保存当前壁纸路径
     let mut current_path = state.current_wallpaper_path.lock().await;
-    *current_path = Some(path);
+    *current_path = Some(target_can);
 
     Ok(())
 }
@@ -112,7 +90,7 @@ async fn get_settings(state: tauri::State<'_, AppState>) -> Result<AppSettings, 
     Ok(settings.clone())
 }
 
-/// 更新应用设置
+/// 更新应用设置（动态广播）
 #[tauri::command]
 async fn update_settings(
     new_settings: AppSettings,
@@ -121,9 +99,14 @@ async fn update_settings(
 ) -> Result<(), String> {
     let mut settings = state.settings.lock().await;
 
-    // 处理开机自启动设置
+    // 修正 interval，防止 0
+    let mut normalized = new_settings.clone();
+    if normalized.update_interval_hours == 0 {
+        normalized.update_interval_hours = 1;
+    }
+
     let autostart_manager = app.autolaunch();
-    if new_settings.launch_at_startup {
+    if normalized.launch_at_startup {
         autostart_manager
             .enable()
             .map_err(|e| format!("启用开机自启动失败: {}", e))?;
@@ -133,15 +116,25 @@ async fn update_settings(
             .map_err(|e| format!("禁用开机自启动失败: {}", e))?;
     }
 
-    *settings = new_settings.clone();
+    *settings = normalized.clone();
+    drop(settings);
 
-    // 如果保存目录改变了,更新状态
-    let mut wallpaper_dir = state.wallpaper_directory.lock().await;
-    if let Some(ref new_dir) = new_settings.save_directory {
-        *wallpaper_dir = PathBuf::from(new_dir);
-    } else {
-        *wallpaper_dir = storage::get_default_wallpaper_directory().map_err(|e| e.to_string())?;
+    // 更新壁纸目录
+    {
+        let mut wallpaper_dir = state.wallpaper_directory.lock().await;
+        if let Some(ref new_dir) = normalized.save_directory {
+            *wallpaper_dir = PathBuf::from(new_dir);
+        } else {
+            *wallpaper_dir =
+                storage::get_default_wallpaper_directory().map_err(|e| e.to_string())?;
+        }
     }
+
+    // 广播设置变化
+    state
+        .settings_tx
+        .send(normalized)
+        .map_err(|e| format!("广播设置失败: {e}"))?;
 
     Ok(())
 }
@@ -158,18 +151,10 @@ async fn cleanup_wallpapers(state: tauri::State<'_, AppState>) -> Result<usize, 
 }
 
 /// 获取当前桌面壁纸路径
-#[tauri::command]
-async fn get_current_wallpaper() -> Result<String, String> {
-    wallpaper_manager::get_current_wallpaper().map_err(|e| e.to_string())
-}
+// (removed obsolete get_current_wallpaper command)
 
 /// 获取默认壁纸目录
-#[tauri::command]
-async fn get_default_wallpaper_directory() -> Result<String, String> {
-    storage::get_default_wallpaper_directory()
-        .map(|p| p.to_string_lossy().to_string())
-        .map_err(|e| e.to_string())
-}
+// (removed obsolete get_default_wallpaper_directory command)
 
 /// 确保壁纸目录存在
 #[tauri::command]
@@ -203,100 +188,213 @@ async fn show_main_window(app: tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-/// 启动自动更新任务
-/// 根据设置中的 auto_update 和 update_interval_hours 定期更新壁纸
-fn start_auto_update_task(app: AppHandle) {
-    tauri::async_runtime::spawn(async move {
-        loop {
-            // 等待一小段时间后检查设置
-            tokio::time::sleep(Duration::from_secs(60)).await;
+/// 单次更新循环：下载、保存、清理、可选应用最新壁纸（含重试与共享客户端）
+async fn run_update_cycle(app: &AppHandle) {
+    let state = app.state::<AppState>();
 
-            // 获取应用状态
-            let state = app.state::<AppState>();
-            let settings = state.settings.lock().await;
+    // 并发保护：若已有更新在进行，直接跳过
+    {
+        let mut flag = state.update_in_progress.lock().await;
+        if *flag {
+            trace!(target: "auto_update", "已有更新在进行中，跳过本次触发");
+            return;
+        }
+        *flag = true;
+    }
 
-            // 检查是否启用了自动更新
-            if !settings.auto_update {
-                continue;
+    // 取消 scopeguard，改为在所有返回路径手动重置，在函数末尾统一释放
+
+    let settings_snapshot = {
+        let s = state.settings.lock().await;
+        s.clone()
+    };
+    trace!(target: "auto_update", "开始一次更新循环");
+
+    if !settings_snapshot.auto_update {
+        // 未开启自动更新，重置标志后返回
+        let mut flag = state.update_in_progress.lock().await;
+        *flag = false;
+        return;
+    }
+
+    let dir = {
+        let d = state.wallpaper_directory.lock().await;
+        d.clone()
+    };
+
+    if let Err(e) = storage::ensure_wallpaper_directory(&dir).await {
+        error!(target: "auto_update", "创建目录失败: {e}");
+        // 失败时重置标志
+        let mut flag = state.update_in_progress.lock().await;
+        *flag = false;
+        return;
+    }
+
+    // 重试获取 Bing 图片（指数退避）
+    let mut images_opt = None;
+    for attempt in 0..3 {
+        match bing_api::fetch_bing_images(8, 0).await {
+            Ok(v) => {
+                images_opt = Some(v);
+                break;
             }
+            Err(e) => {
+                let backoff = 1 << attempt;
+                warn!(target: "auto_update",
+                    "获取 Bing 图片失败(第 {} 次): {}，{}s 后重试",
+                    attempt + 1,
+                    e,
+                    backoff
+                );
+                tokio::time::sleep(Duration::from_secs(backoff)).await;
+            }
+        }
+    }
 
-            let interval_hours = settings.update_interval_hours;
-            drop(settings); // 释放锁
+    let images = match images_opt {
+        Some(v) => v,
+        None => {
+            error!(target: "auto_update", "多次重试仍失败，跳过本次循环");
+            let mut flag = state.update_in_progress.lock().await;
+            *flag = false;
+            return;
+        }
+    };
+    debug!(target: "auto_update", "获取到 {} 张图片用于本次处理", images.len());
 
-            println!(
-                "[Auto Update] Checking for updates every {} hours",
-                interval_hours
-            );
-
-            // 转换小时为秒
-            let interval_duration = Duration::from_secs(interval_hours * 3600);
-
-            // 等待指定的时间间隔
-            tokio::time::sleep(interval_duration).await;
-
-            // 执行自动更新
-            println!("[Auto Update] Starting automatic wallpaper update");
-
-            // 获取壁纸目录
-            let wallpaper_dir = state.wallpaper_directory.lock().await.clone();
-
-            // 获取新壁纸
-            match bing_api::fetch_bing_images(8, 0).await {
-                Ok(images) => {
-                    println!("[Auto Update] Fetched {} images from Bing", images.len());
-
-                    // 后台下载所有壁纸
-                    for image in images {
-                        let save_path =
-                            storage::get_wallpaper_path(&wallpaper_dir, &image.startdate);
-
-                        // 跳过已存在的壁纸
-                        if save_path.exists() {
-                            continue;
+    let mut tasks = FuturesUnordered::new();
+    for image in images {
+        let dir_clone = dir.clone();
+        tasks.push(async move {
+            let save_path = storage::get_wallpaper_path(&dir_clone, &image.startdate);
+            if save_path.exists() {
+                return Ok::<(), anyhow::Error>(());
+            }
+            let url = bing_api::get_wallpaper_url(&image.urlbase, "UHD");
+            // 使用 download_manager 并加入简单重试 + 退避
+            let mut attempt = 0;
+            loop {
+                match download_manager::download_image(&url, &save_path).await {
+                    Ok(_) => break,
+                    Err(e) => {
+                        attempt += 1;
+                        if attempt >= 3 {
+                            anyhow::bail!("下载失败: {}", e);
                         }
-
-                        // 确保目录存在
-                        if let Err(e) = storage::ensure_wallpaper_directory(&wallpaper_dir).await {
-                            println!("[Auto Update] Failed to ensure directory: {}", e);
-                            continue;
-                        }
-
-                        // 下载壁纸
-                        let image_url = bing_api::get_wallpaper_url(&image.urlbase, "UHD");
-                        match download_manager::download_image(&image_url, &save_path).await {
-                            Ok(_) => {
-                                // 保存元数据
-                                let mut wallpaper = LocalWallpaper::from(image);
-                                wallpaper.file_path = save_path.to_string_lossy().to_string();
-
-                                if let Err(e) =
-                                    storage::save_wallpaper_metadata(&wallpaper, &wallpaper_dir)
-                                        .await
-                                {
-                                    println!("[Auto Update] Failed to save metadata: {}", e);
-                                } else {
-                                    println!("[Auto Update] Downloaded: {}", wallpaper.title);
-                                }
-                            }
-                            Err(e) => {
-                                println!("[Auto Update] Failed to download image: {}", e);
-                            }
-                        }
+                        let backoff = 1 << (attempt - 1);
+                        tokio::time::sleep(Duration::from_secs(backoff)).await;
                     }
-
-                    println!("[Auto Update] Update completed");
                 }
-                Err(e) => {
-                    println!("[Auto Update] Failed to fetch images: {}", e);
+            }
+            let mut w = LocalWallpaper::from(image);
+            w.file_path = save_path.to_string_lossy().to_string();
+            storage::save_wallpaper_metadata(&w, &dir_clone).await?;
+            Ok(())
+        });
+    }
+
+    while let Some(result) = tasks.next().await {
+        if let Err(e) = result {
+            warn!(target: "auto_update", "下载错误: {e}");
+        }
+    }
+
+    // 清理旧文件
+    if let Err(e) =
+        storage::cleanup_old_wallpapers(&dir, settings_snapshot.keep_image_count as usize).await
+    {
+        warn!(target: "auto_update", "清理旧壁纸失败: {e}");
+    }
+
+    // 自动应用最新壁纸（受 auto_apply_latest 控制）
+    if settings_snapshot.auto_apply_latest {
+        if let Ok(list) = storage::get_local_wallpapers(&dir).await {
+            if let Some(first) = list.first() {
+                let path = PathBuf::from(&first.file_path);
+                if let Err(e) = wallpaper_manager::set_wallpaper(&path) {
+                    error!(target: "auto_update", "设置壁纸失败: {e}");
+                } else {
+                    let mut current_path = state.current_wallpaper_path.lock().await;
+                    *current_path = Some(path);
                 }
             }
         }
+    }
+
+    info!(target: "auto_update", "完成一次更新循环");
+    // 末尾重置 update_in_progress
+    {
+        let mut flag = state.update_in_progress.lock().await;
+        *flag = false;
+    }
+}
+
+/// 手动强制执行一次更新
+#[tauri::command]
+async fn force_update(app: tauri::AppHandle) -> Result<(), String> {
+    trace!(target: "auto_update", "收到手动强制更新指令");
+    // 直接调用 run_update_cycle，内部已做并发保护
+    run_update_cycle(&app).await;
+    Ok(())
+}
+
+/// 启动自动更新任务（响应设置变更，可取消）
+fn start_auto_update_task(app: AppHandle) {
+    let state = app.state::<AppState>();
+    let mut rx = state.settings_rx.clone();
+
+    // 如已有旧任务，先取消（不需要获取 runtime handle）
+    tauri::async_runtime::block_on(async {
+        let mut h = state.auto_update_handle.lock().await;
+        h.abort();
+        let app_clone = app.clone();
+        let new_handle = tauri::async_runtime::spawn(async move {
+            // 初始立即执行一次
+            run_update_cycle(&app_clone).await;
+            // 动态循环
+            loop {
+                // 读取当前设置确定间隔
+                let state_ref = app_clone.state::<AppState>();
+                let interval_hours = {
+                    let s_guard = state_ref.settings.lock().await;
+                    s_guard.update_interval_hours.max(1)
+                };
+                let sleep_dur = Duration::from_secs(interval_hours * 3600);
+                tokio::select! {
+                    _ = tokio::time::sleep(sleep_dur) => {
+                        run_update_cycle(&app_clone).await;
+                    }
+                    changed = rx.changed() => {
+                        if changed.is_err() {
+                            error!(target: "auto_update", "settings watch channel closed");
+                            break;
+                        }
+                        let latest = rx.borrow().clone();
+                        if !latest.auto_update {
+                            info!(target: "auto_update", "自动更新已关闭，等待重新开启...");
+                            loop {
+                                if rx.changed().await.is_err() { break; }
+                                let s = rx.borrow().clone();
+                                if s.auto_update {
+                                    info!(target: "auto_update", "自动更新重新开启，立即执行一次");
+                                    run_update_cycle(&app_clone).await;
+                                    break;
+                                }
+                            }
+                        } else {
+                            info!(target: "auto_update", "设置改变，立即执行更新");
+                            run_update_cycle(&app_clone).await;
+                        }
+                    }
+                }
+            }
+        });
+        *h = new_handle;
     });
 }
 
 /// 设置系统托盘
 fn setup_tray<R: Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<()> {
-    // 创建托盘菜单（只包含显示窗口和退出）
     let show_item = MenuItemBuilder::with_id("show", "显示窗口").build(app)?;
     let quit_item = MenuItemBuilder::with_id("quit", "退出").build(app)?;
 
@@ -306,45 +404,35 @@ fn setup_tray<R: Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<()> {
         .item(&quit_item)
         .build()?;
 
-    // 使用默认窗口图标作为托盘图标
     let icon = app.default_window_icon().unwrap().clone();
 
-    // 创建托盘图标
     let _tray = TrayIconBuilder::new()
         .menu(&menu)
         .icon(icon)
         .tooltip("Bing Wallpaper Now")
-        .show_menu_on_left_click(false) // 左键点击不显示菜单
+        .show_menu_on_left_click(false)
         .on_tray_icon_event(|tray, event| {
             if let TrayIconEvent::Click { button, .. } = event {
                 if button == tauri::tray::MouseButton::Left {
-                    // 左键点击切换窗口显示/隐藏
                     let app = tray.app_handle();
-
-                    // 获取 AppState 进行防抖检查
                     if let Some(state) = app.try_state::<AppState>() {
                         let now = Instant::now();
                         let mut last_click =
                             tauri::async_runtime::block_on(state.last_tray_click.lock());
 
-                        // 防抖：如果距离上次点击少于 300ms，则忽略
                         if let Some(last) = *last_click {
                             if now.duration_since(last) < Duration::from_millis(300) {
                                 return;
                             }
                         }
 
-                        // 更新最后点击时间
                         *last_click = Some(now);
-                        drop(last_click); // 显式释放锁
+                        drop(last_click);
 
-                        // 切换窗口显示状态
                         if let Some(window) = app.get_webview_window("main") {
                             if window.is_visible().unwrap_or(false) {
-                                // 如果窗口可见，则隐藏
                                 let _ = window.hide();
                             } else {
-                                // 如果窗口隐藏，则显示并聚焦
                                 let _ = window.show();
                                 let _ = window.set_focus();
                             }
@@ -372,15 +460,22 @@ fn setup_tray<R: Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<()> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    // 初始化应用状态
     let default_dir =
         storage::get_default_wallpaper_directory().unwrap_or_else(|_| PathBuf::from("."));
 
+    // 初始设置
+    let initial_settings = AppSettings::default();
+    let (tx, rx) = watch::channel(initial_settings.clone());
+
     let app_state = AppState {
-        settings: Arc::new(Mutex::new(AppSettings::default())),
+        settings: Arc::new(Mutex::new(initial_settings)),
         wallpaper_directory: Arc::new(Mutex::new(default_dir)),
         last_tray_click: Arc::new(Mutex::new(None)),
         current_wallpaper_path: Arc::new(Mutex::new(None)),
+        settings_tx: tx,
+        settings_rx: rx,
+        auto_update_handle: Arc::new(Mutex::new(tauri::async_runtime::spawn(async {}))),
+        update_in_progress: Arc::new(Mutex::new(false)),
     };
 
     tauri::Builder::default()
@@ -392,35 +487,31 @@ pub fn run() {
         ))
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(
+            tauri_plugin_log::Builder::default()
+                .level(log::LevelFilter::Info)
+                .build(),
+        )
         .manage(app_state)
         .invoke_handler(tauri::generate_handler![
-            fetch_bing_images,
-            download_wallpaper,
             set_desktop_wallpaper,
             get_local_wallpapers,
             get_settings,
             update_settings,
             cleanup_wallpapers,
-            get_current_wallpaper,
-            get_default_wallpaper_directory,
             get_wallpaper_directory,
             ensure_wallpaper_directory_exists,
             show_main_window,
+            force_update,
         ])
         .setup(|app| {
-            // 初始化壁纸管理器的 Space 切换观察者（仅 macOS）
             wallpaper_manager::initialize_observer();
-
-            // 设置系统托盘
             setup_tray(app.handle())?;
-
-            // 启动自动更新任务
+            // 使用 tauri-plugin-log 进行标准化日志输出（已在 Builder 中初始化）
             start_auto_update_task(app.handle().clone());
-
             Ok(())
         })
         .on_window_event(|window, event| {
-            // 处理窗口关闭事件，隐藏而不是退出
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 window.hide().unwrap();
                 api.prevent_close();

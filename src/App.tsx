@@ -3,6 +3,7 @@ import "./App.css";
 import { useBingWallpapers } from "./hooks/useBingWallpapers";
 import { WallpaperGrid } from "./components/WallpaperGrid";
 import { Settings } from "./components/Settings";
+
 import { LocalWallpaper } from "./types";
 import { invoke } from "@tauri-apps/api/core";
 import { openPath } from "@tauri-apps/plugin-opener";
@@ -12,9 +13,9 @@ function App() {
     localWallpapers,
     loading,
     error,
-    fetchBingImages,
     fetchLocalWallpapers,
     setDesktopWallpaper,
+    forceUpdate,
   } = useBingWallpapers();
 
   const [showSettings, setShowSettings] = useState(false);
@@ -33,12 +34,14 @@ function App() {
 
   // 刷新壁纸列表
   const handleRefresh = async () => {
-    // 先刷新本地列表（快速响应）
-    fetchLocalWallpapers();
-
-    // 然后在后台获取并下载新壁纸（不阻塞）
-    // fetchBingImages 内部会自动下载并刷新本地列表
-    fetchBingImages();
+    // 刷新本地列表
+    await fetchLocalWallpapers();
+    // 触发后端一次立即更新（下载/清理/自动应用）
+    try {
+      await forceUpdate();
+    } catch (err) {
+      console.log("Force update failed:", err);
+    }
   };
 
   // 打开下载目录
@@ -64,8 +67,18 @@ function App() {
         <h1>必应壁纸</h1>
         <div className="header-actions">
           <button onClick={handleRefresh} className="btn btn-icon" title="刷新">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16" />
             </svg>
           </button>
           <button
@@ -73,17 +86,38 @@ function App() {
             className="btn btn-icon"
             title="打开下载目录"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
             </svg>
           </button>
+
           <button
             onClick={() => setShowSettings(true)}
             className="btn btn-icon"
             title="设置"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
             </svg>
           </button>
         </div>

@@ -185,20 +185,10 @@ fn set_wallpaper_for_all_screens(image_path: &Path) -> Result<()> {
     Ok(())
 }
 
-/// 获取当前的桌面壁纸路径
-pub fn get_current_wallpaper() -> Result<String> {
-    wallpaper::get().map_err(|e| anyhow::anyhow!("Failed to get current wallpaper: {}", e))
-}
+/// (已移除 get_current_wallpaper 函数以消除未使用警告)
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
-    #[test]
-    #[ignore] // 这个测试会实际修改系统壁纸,所以默认忽略
-    fn test_get_current_wallpaper() {
-        let result = get_current_wallpaper();
-        assert!(result.is_ok());
-        println!("Current wallpaper: {}", result.unwrap());
-    }
+    // get_current_wallpaper 已移除，测试删除以避免引用不存在的函数
+    // 保留空模块占位，后续可添加新的单元测试。
 }

@@ -13,6 +13,7 @@ export function Settings({ onClose }: SettingsProps) {
 
   const [formData, setFormData] = useState<AppSettings>({
     auto_update: true,
+    auto_apply_latest: true,
     update_interval_hours: 24,
     save_directory: null,
     keep_image_count: 50,
@@ -98,11 +99,22 @@ export function Settings({ onClose }: SettingsProps) {
               <input
                 type="checkbox"
                 checked={formData.auto_update}
-                onChange={(e) =>
-                  handleChange("auto_update", e.target.checked)
-                }
+                onChange={(e) => handleChange("auto_update", e.target.checked)}
               />
               <span>自动更新壁纸</span>
+            </label>
+          </div>
+
+          <div className="settings-section">
+            <label className="settings-label checkbox-label">
+              <input
+                type="checkbox"
+                checked={formData.auto_apply_latest}
+                onChange={(e) =>
+                  handleChange("auto_apply_latest", e.target.checked)
+                }
+              />
+              <span>自动应用最新壁纸</span>
             </label>
           </div>
 
@@ -117,7 +129,7 @@ export function Settings({ onClose }: SettingsProps) {
                 onChange={(e) =>
                   handleChange(
                     "update_interval_hours",
-                    parseInt(e.target.value) || 24
+                    parseInt(e.target.value) || 24,
                   )
                 }
                 className="settings-input"
@@ -136,7 +148,7 @@ export function Settings({ onClose }: SettingsProps) {
                 onChange={(e) =>
                   handleChange(
                     "keep_image_count",
-                    parseInt(e.target.value) || 50
+                    parseInt(e.target.value) || 50,
                   )
                 }
                 className="settings-input"
@@ -160,15 +172,16 @@ export function Settings({ onClose }: SettingsProps) {
                 </button>
               </div>
             </label>
-            {formData.save_directory && formData.save_directory !== defaultDir && (
-              <button
-                onClick={() => handleChange("save_directory", null)}
-                className="btn btn-link btn-small"
-                type="button"
-              >
-                恢复默认目录
-              </button>
-            )}
+            {formData.save_directory &&
+              formData.save_directory !== defaultDir && (
+                <button
+                  onClick={() => handleChange("save_directory", null)}
+                  className="btn btn-link btn-small"
+                  type="button"
+                >
+                  恢复默认目录
+                </button>
+              )}
           </div>
         </div>
 

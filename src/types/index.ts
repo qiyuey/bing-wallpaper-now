@@ -1,18 +1,4 @@
 /**
- * 必应图片条目
- */
-export interface BingImageEntry {
-  url: string;
-  urlbase: string;
-  copyright: string;
-  copyrightlink: string;
-  title: string;
-  startdate: string;
-  enddate: string;
-  hsh: string;
-}
-
-/**
  * 本地壁纸信息
  */
 export interface LocalWallpaper {
@@ -31,6 +17,7 @@ export interface LocalWallpaper {
  */
 export interface AppSettings {
   auto_update: boolean;
+  auto_apply_latest: boolean;
   update_interval_hours: number;
   save_directory: string | null;
   keep_image_count: number;
