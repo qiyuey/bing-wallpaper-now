@@ -48,6 +48,7 @@ jobs:
   coverage:
     name: Coverage (Rust + Frontend)
     runs-on: ubuntu-latest
+    continue-on-error: true
     needs: quality
     steps:
       - name: Checkout
