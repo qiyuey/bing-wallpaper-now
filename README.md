@@ -21,6 +21,7 @@
 ### macOS 特色功能
 - 🖥️ **多显示器支持** - 同时为所有显示器设置壁纸
 - 🎯 **全屏应用支持** - 完美处理全屏应用场景下的壁纸设置
+- 🔄 **Space 自动恢复** - 切换 Space 或退出全屏时自动恢复壁纸
 - 🎪 **原生 API** - 使用 NSWorkspace API (objc2) 实现原生体验
 
 ### 用户体验
@@ -103,6 +104,9 @@ bing-wallpaper-now/
 - 使用 `NSWorkspace` API 直接设置壁纸
 - 遍历所有 `NSScreen` 为每个显示器设置
 - 正确处理全屏应用场景
+- 监听 `NSWorkspaceActiveSpaceDidChangeNotification` 通知
+- 使用 `declare_class!` 宏创建动态观察者类
+- 自动处理 Space 切换和全屏应用场景
 
 #### 其他平台
 - 使用 `wallpaper` crate 提供跨平台支持

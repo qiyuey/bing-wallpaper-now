@@ -3,9 +3,15 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
 #[cfg(target_os = "macos")]
+use objc2::mutability::InteriorMutable;
+#[cfg(target_os = "macos")]
+use objc2::runtime::{AnyObject, NSObject};
+#[cfg(target_os = "macos")]
+use objc2::{declare_class, msg_send_id, rc::Retained, sel, ClassType, DeclaredClass};
+#[cfg(target_os = "macos")]
 use objc2_app_kit::{NSScreen, NSWorkspace};
 #[cfg(target_os = "macos")]
-use objc2_foundation::{MainThreadMarker, NSDictionary, NSString, NSURL};
+use objc2_foundation::{MainThreadMarker, NSDictionary, NSNotification, NSString, NSURL};
 
 #[cfg(target_os = "macos")]
 use once_cell::sync::Lazy;
@@ -15,20 +21,77 @@ use once_cell::sync::Lazy;
 static CURRENT_WALLPAPER: Lazy<Arc<Mutex<Option<PathBuf>>>> =
     Lazy::new(|| Arc::new(Mutex::new(None)));
 
+// 声明 WallpaperObserver 类，用于监听 Space 切换通知
+#[cfg(target_os = "macos")]
+declare_class!(
+    struct WallpaperObserver;
+
+    unsafe impl ClassType for WallpaperObserver {
+        type Super = NSObject;
+        type Mutability = InteriorMutable;
+        const NAME: &'static str = "WallpaperObserver";
+    }
+
+    impl DeclaredClass for WallpaperObserver {}
+
+    unsafe impl WallpaperObserver {
+        /// 当 Space 切换时调用此方法
+        #[method(onSpaceChanged:)]
+        fn on_space_changed(&self, _notification: *const NSNotification) {
+            // 重新应用当前壁纸
+            if let Some(path) = CURRENT_WALLPAPER.lock().unwrap().as_ref() {
+                let _ = set_wallpaper_for_all_screens(path);
+            }
+        }
+    }
+);
+
 /// 初始化 macOS 通知观察者
 /// 必须在应用启动时调用一次
 ///
-/// 注意：objc2 的动态类创建API相对复杂，Space observer功能暂时禁用
-/// 基本的壁纸设置功能不受影响
+/// 监听 NSWorkspaceActiveSpaceDidChangeNotification 通知
+/// 当用户切换 Space 或退出全屏时自动重新应用壁纸
 #[cfg(target_os = "macos")]
 pub fn initialize_observer() {
-    // Space observer 功能在 objc2 迁移中暂时禁用
-    // 基本壁纸设置功能仍然正常工作
+    unsafe {
+        setup_workspace_observer();
+    }
 }
 
 #[cfg(not(target_os = "macos"))]
 pub fn initialize_observer() {
     // 其他平台不需要初始化
+}
+
+/// 设置 Workspace 观察者
+#[cfg(target_os = "macos")]
+unsafe fn setup_workspace_observer() {
+    // 获取 NSWorkspace 和通知中心
+    let workspace = NSWorkspace::sharedWorkspace();
+    let notification_center = workspace.notificationCenter();
+
+    // 创建观察者实例
+    let observer_class = WallpaperObserver::class();
+    let observer: Retained<WallpaperObserver> =
+        msg_send_id![msg_send_id![observer_class, alloc], init];
+
+    // 注册 Space 切换通知
+    // NSWorkspaceActiveSpaceDidChangeNotification 是 macOS 系统通知名称
+    let notification_name = NSString::from_str("NSWorkspaceActiveSpaceDidChangeNotification");
+
+    // 将观察者转换为 AnyObject 引用进行注册
+    let observer_ref: &AnyObject = &observer;
+
+    notification_center.addObserver_selector_name_object(
+        observer_ref,
+        sel!(onSpaceChanged:),
+        Some(&notification_name),
+        None,
+    );
+
+    // 使用 std::mem::forget 防止观察者被释放
+    // 这样观察者会一直存活，直到程序退出
+    std::mem::forget(observer);
 }
 
 /// 设置桌面壁纸(跨平台)
