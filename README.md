@@ -230,10 +230,14 @@ MIT License
 
 已配置两个工作流（位于 `.github/workflows/`）：
 - `ci.yml`：在 push / PR 时执行
-  - Node & Rust 环境初始化
+  - Node & Rust 环境初始化与缓存
   - 前端 TypeScript 检查与构建
-  - Rust 单元测试
+  - 前端 ESLint + Prettier（已整合进多平台 Quality Gates 而非单独 job）
+  - Rust fmt + clippy（零警告策略）
+  - Rust 单元测试（网络相关测试按需启用）
   - 多平台（Ubuntu / macOS / Windows）构建与产物上传
+  - 覆盖率统计（Rust tarpaulin + 前端 Vitest，非阻断，continue-on-error）
+  - 依赖/安全与许可证检查（cargo-deny）
 - `release.yml`：当推送符合 `v*.*.*` 规则的标签时
   - 三平台打包 Tauri 应用
   - 汇总产物并创建 GitHub Release
@@ -320,25 +324,32 @@ make check
 - 依赖不存在已披露的高危安全漏洞（RustSec）
 - 网络不稳定不会拖慢默认 CI（测试被忽略）
 
-### 前端 ESLint（可选）
+### 前端 ESLint（已集成）
 
-目前仓库包含占位的 `.eslintrc.cjs`。启用步骤：
+ESLint + Prettier 已内置于 `ci.yml` 的多平台 Quality Gates（与 fmt / clippy / typecheck 一起执行）。在本地可直接运行：
+
 ```bash
-npm i -D eslint @typescript-eslint/parser @typescript-eslint/eslint-plugin eslint-plugin-react eslint-plugin-react-hooks eslint-plugin-import
-# 可选 Prettier 集成:
-npm i -D prettier eslint-config-prettier eslint-plugin-prettier
+npm run lint:frontend          # 仅 ESLint
+npm run format:check           # Prettier 检查
+npm run lint                   # Rust + 前端汇总
 ```
 
-运行：
+若需自动修复：
 ```bash
-npx eslint "src/**/*.{ts,tsx}"
+npm run lint:frontend:fix
+npm run format
 ```
 
-可将下列命令加入 CI：
-```yaml
-- name: ESLint
-  run: npx eslint "src/**/*.{ts,tsx}"
-```
+配置位置：
+- `.config/eslint/.eslintrc.cjs`
+- `.config/prettier/.prettierrc` / `.prettierignore`
+
+缓存：
+CI 使用 `--cache --cache-location .cache/eslint/` 加速重复构建。
+
+提升策略（后续可选）：
+- 严格化 import 规则或添加自定义 alias resolver
+- 引入项目级 TS Program（设置 parserOptions.project）提升类型规则精度
 
 ### cargo-deny 使用
 
