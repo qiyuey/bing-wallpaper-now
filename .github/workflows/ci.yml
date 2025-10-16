@@ -34,75 +34,16 @@ jobs:
       - name: Run Prettier check
         run: |
           npx prettier --check "**/*.{ts,tsx,js,jsx,css,scss,md,json}"
-  jobs:
-    frontend-lint:
-      name: Frontend Lint (ESLint + Prettier)
-      runs-on: ubuntu-latest
-      steps:
-        - name: Checkout
-          uses: actions/checkout@v4
-        - name: Setup Node
-          uses: actions/setup-node@v4
-          with:
-            node-version: 18
-            cache: npm
-        - name: Install dependencies
-          run: npm ci
-        - name: Install lint tooling (if missing)
-          run: |
-            npm i -D eslint prettier eslint-config-prettier eslint-plugin-prettier @typescript-eslint/parser @typescript-eslint/eslint-plugin eslint-plugin-react eslint-plugin-react-hooks eslint-plugin-import || true
-        - name: Run ESLint
-          run: |
-            npx eslint -c .config/eslint/.eslintrc.cjs "src/**/*.{ts,tsx}"
-        - name: Run Prettier check
-          run: |
-            npx prettier --check "**/*.{ts,tsx,js,jsx,css,scss,md,json}"
 
-    dependency-review:
-      name: Dependency Review
-      runs-on: ubuntu-latest
-      if: github.event_name == 'pull_request'
-      steps:
-        - name: Checkout
-          uses: actions/checkout@v4
-        - name: Dependency Review
-          uses: actions/dependency-review-action@v4
-
-    coverage:
-      name: Coverage (Rust + Frontend)
-      runs-on: ubuntu-latest
-      needs: quality
-      steps:
-        - name: Checkout
-          uses: actions/checkout@v4
-        - name: Setup Node
-          uses: actions/setup-node@v4
-          with:
-            node-version: 18
-            cache: npm
-        - name: Setup Rust
-          uses: dtolnay/rust-toolchain@stable
-        - name: Install Linux deps
-          run: |
-            sudo apt-get update
-            sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
-        - name: Install Node deps
-          run: npm ci
-        - name: Rust coverage (tarpaulin)
-          run: |
-            cargo install cargo-tarpaulin || echo "tarpaulin installed"
-            cargo tarpaulin --manifest-path src-tauri/Cargo.toml --out Xml --timeout 120 || echo "Non-zero exit tolerated"
-        - name: Frontend coverage (vitest)
-          run: |
-            npm i -D vitest @vitest/coverage-v8 || true
-            npx vitest run --coverage || echo "Vitest optional; tolerate failure"
-        - name: Upload coverage artifacts
-          uses: actions/upload-artifact@v4
-          with:
-            name: coverage-reports
-            path: |
-              coverage
-              tarpaulin-report.xml
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
 
   coverage:
     name: Coverage (Rust + Frontend)

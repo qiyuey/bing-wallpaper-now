@@ -102,7 +102,7 @@ function App() {
           justifyContent: "space-between",
         }}
       >
-        <h1 style={{ margin: 0 }}>必应壁纸</h1>
+        <h1 style={{ margin: 0 }}>Bing Wallpaper Now</h1>
         <div
           className="header-actions"
           style={{
