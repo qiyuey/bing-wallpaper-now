@@ -17,8 +17,6 @@ export interface LocalWallpaper {
  */
 export interface AppSettings {
   auto_update: boolean;
-
-  update_interval_hours: number;
   save_directory: string | null;
   keep_image_count: number;
   launch_at_startup: boolean;

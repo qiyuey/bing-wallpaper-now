@@ -52,7 +52,6 @@ impl From<BingImageEntry> for LocalWallpaper {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppSettings {
     pub auto_update: bool,
-    pub update_interval_hours: u64,
     pub save_directory: Option<String>,
     pub keep_image_count: u32,
     pub launch_at_startup: bool,
@@ -66,7 +65,6 @@ impl Default for AppSettings {
     fn default() -> Self {
         Self {
             auto_update: true,
-            update_interval_hours: 24,
             save_directory: None,
             keep_image_count: 8,
             launch_at_startup: false,

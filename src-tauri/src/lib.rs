@@ -92,9 +92,6 @@ async fn get_settings(state: tauri::State<'_, AppState>) -> Result<AppSettings, 
 
 /// 设置归一化（内部函数）
 fn normalize_settings(mut s: AppSettings) -> AppSettings {
-    if s.update_interval_hours == 0 {
-        s.update_interval_hours = 1;
-    }
     if s.keep_image_count < 8 {
         s.keep_image_count = 8;
     }
@@ -154,13 +151,11 @@ mod lib_tests {
     fn test_normalize_settings_minimums() {
         let s = AppSettings {
             auto_update: true,
-            update_interval_hours: 0,
             save_directory: None,
             keep_image_count: 3,
             launch_at_startup: false,
         };
         let n = normalize_settings(s);
-        assert_eq!(n.update_interval_hours, 1);
         assert_eq!(n.keep_image_count, 8);
     }
 }
@@ -375,15 +370,10 @@ fn start_auto_update_task(app: AppHandle) {
         let new_handle = tauri::async_runtime::spawn(async move {
             // 初始立即执行一次
             run_update_cycle(&app_clone).await;
-            // 动态循环
+            // 固定间隔循环（24h）
             loop {
-                // 读取当前设置确定间隔
-                let state_ref = app_clone.state::<AppState>();
-                let interval_hours = {
-                    let s_guard = state_ref.settings.lock().await;
-                    s_guard.update_interval_hours.max(1)
-                };
-                let sleep_dur = Duration::from_secs(interval_hours * 3600);
+                // 固定 24 小时间隔执行一次自动更新（已移除用户可配置间隔）
+                let sleep_dur = Duration::from_secs(24 * 3600);
                 tokio::select! {
                     _ = tokio::time::sleep(sleep_dur) => {
                         run_update_cycle(&app_clone).await;

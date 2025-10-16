@@ -13,7 +13,6 @@ export function Settings({ onClose }: SettingsProps) {
 
   const [formData, setFormData] = useState<AppSettings>({
     auto_update: true,
-    update_interval_hours: 24,
     save_directory: null,
     keep_image_count: 8,
     launch_at_startup: false,
@@ -101,25 +100,6 @@ export function Settings({ onClose }: SettingsProps) {
                 onChange={(e) => handleChange("auto_update", e.target.checked)}
               />
               <span>自动更新壁纸</span>
-            </label>
-          </div>
-
-          <div className="settings-section">
-            <label className="settings-label">
-              更新间隔(小时):
-              <input
-                type="number"
-                min="1"
-                max="168"
-                value={formData.update_interval_hours}
-                onChange={(e) =>
-                  handleChange(
-                    "update_interval_hours",
-                    parseInt(e.target.value) || 24,
-                  )
-                }
-                className="settings-input"
-              />
             </label>
           </div>
 
