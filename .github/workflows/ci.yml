@@ -24,16 +24,26 @@ jobs:
         with:
           node-version: 18
 
-      - name: Cache Cargo (registry + git + target)
+      - name: Cache Cargo (registry + git)
         uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            src-tauri/target
-          key: ${{ runner.os }}-cargo-all-${{ hashFiles('src-tauri/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-reg-${{ hashFiles('src-tauri/Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-cargo-all-
+            ${{ runner.os }}-cargo-reg-
+
+      - name: Cache Cargo build (debug profile)
+        uses: actions/cache@v4
+        with:
+          path: |
+            src-tauri/target/debug
+            src-tauri/target/.fingerprint
+            src-tauri/target/.cargo-lock
+          key: ${{ runner.os }}-cargo-debug-${{ hashFiles('src-tauri/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-debug-
 
       - name: Cache pnpm store
         uses: actions/cache@v4
@@ -103,16 +113,26 @@ jobs:
         with:
           node-version: 18
 
-      - name: Cache Cargo (registry + git + target)
+      - name: Cache Cargo (registry + git)
         uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            src-tauri/target
-          key: ${{ runner.os }}-cargo-all-${{ hashFiles('src-tauri/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-reg-${{ hashFiles('src-tauri/Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-cargo-all-
+            ${{ runner.os }}-cargo-reg-
+
+      - name: Cache Cargo build (release profile)
+        uses: actions/cache@v4
+        with:
+          path: |
+            src-tauri/target/release
+            src-tauri/target/.fingerprint
+            src-tauri/target/.cargo-lock
+          key: ${{ runner.os }}-cargo-release-${{ hashFiles('src-tauri/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-release-
 
       - name: Cache pnpm store
         uses: actions/cache@v4
