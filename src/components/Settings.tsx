@@ -127,7 +127,8 @@ export function Settings({ onClose }: SettingsProps) {
               保存目录:
               <div className="settings-dir-row">
                 <div className="settings-dir-info">
-                  {formData.save_directory || defaultDir || "默认目录"}
+                  {formData.save_directory ??
+                    (defaultDir ? defaultDir : "加载中...")}
                 </div>
                 <button
                   onClick={handleSelectFolder}

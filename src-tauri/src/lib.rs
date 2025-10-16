@@ -175,7 +175,12 @@ async fn cleanup_wallpapers(state: tauri::State<'_, AppState>) -> Result<usize, 
 // (removed obsolete get_current_wallpaper command)
 
 /// 获取默认壁纸目录
-// (removed obsolete get_default_wallpaper_directory command)
+#[tauri::command]
+async fn get_default_wallpaper_directory() -> Result<String, String> {
+    storage::get_default_wallpaper_directory()
+        .map_err(|e| e.to_string())
+        .map(|p| p.to_string_lossy().to_string())
+}
 
 /// 确保壁纸目录存在
 #[tauri::command]
@@ -370,10 +375,10 @@ fn start_auto_update_task(app: AppHandle) {
         let new_handle = tauri::async_runtime::spawn(async move {
             // 初始立即执行一次
             run_update_cycle(&app_clone).await;
-            // 固定间隔循环（24h）
+            // 固定间隔循环（1h），后续可根据 Bing 官方每日壁纸发布时间（通常为每日凌晨）再做精确对齐
             loop {
-                // 固定 24 小时间隔执行一次自动更新（已移除用户可配置间隔）
-                let sleep_dur = Duration::from_secs(24 * 3600);
+                // 每 1 小时自动更新；若需进一步对齐到每日零点，可在此处计算距下一次零点的 sleep_dur
+                let sleep_dur = Duration::from_secs(3600);
                 tokio::select! {
                     _ = tokio::time::sleep(sleep_dur) => {
                         run_update_cycle(&app_clone).await;
@@ -514,6 +519,7 @@ pub fn run() {
             update_settings,
             cleanup_wallpapers,
             get_wallpaper_directory,
+            get_default_wallpaper_directory,
             ensure_wallpaper_directory_exists,
             show_main_window,
             force_update,
