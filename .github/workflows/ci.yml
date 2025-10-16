@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   build:
-    name: Build & Test (basic)
+    name: Build & Test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -40,7 +40,6 @@ jobs:
           path: |
             src-tauri/target/debug
             src-tauri/target/.fingerprint
-            src-tauri/target/.cargo-lock
           key: ${{ runner.os }}-cargo-debug-${{ hashFiles('src-tauri/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-debug-
@@ -93,6 +92,9 @@ jobs:
           path: |
             test-rust.log
             test-frontend.log
+      - name: sccache stats
+        if: always()
+        run: sccache --show-stats || true
 
   bundle:
     name: Tauri Bundle (${{ matrix.os }})
@@ -129,7 +131,6 @@ jobs:
           path: |
             src-tauri/target/release
             src-tauri/target/.fingerprint
-            src-tauri/target/.cargo-lock
           key: ${{ runner.os }}-cargo-release-${{ hashFiles('src-tauri/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-release-
@@ -200,3 +201,6 @@ jobs:
         with:
           name: release-summary
           path: RELEASE_SUMMARY.md
+      - name: sccache stats
+        if: always()
+        run: sccache --show-stats || true
