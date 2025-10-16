@@ -4,7 +4,7 @@ mod models;
 mod storage;
 mod wallpaper_manager;
 
-use chrono::{DateTime, Local};
+use chrono::{DateTime, Local, TimeZone, Timelike};
 use log::{debug, error, info, trace, warn};
 
 use futures::stream::{FuturesUnordered, StreamExt};
@@ -400,9 +400,8 @@ fn start_auto_update_task(app: AppHandle) {
                 // 计算距下一次本地零点（含 5 分钟缓冲）剩余时间
                 let now = Local::now();
                 let tomorrow = now.date_naive().succ_opt().unwrap();
-                let next_midnight = Local
-                    .from_local_datetime(&tomorrow.and_hms_opt(0, 5, 0).unwrap())
-                    .unwrap();
+                let naive_next = tomorrow.and_hms_opt(0, 5, 0).unwrap();
+                let next_midnight = Local.from_local_datetime(&naive_next).unwrap();
                 let until_midnight = next_midnight - now;
 
                 // 每小时轮询，若距零点不足 1 小时则缩短睡眠以对齐零点
@@ -423,18 +422,13 @@ fn start_auto_update_task(app: AppHandle) {
                         if after_sleep_now.hour() == 0 && after_sleep_now.minute() <= 5 {
                             trace!(target:"auto_update","零点窗口内执行每日对齐更新");
                             // 记录更新前的日期
-                            let pre_date = {
-                                let last = app_clone.state::<AppState>().last_update_time.lock().await;
-                                last.map(|dt| dt.date_naive())
-                            };
                             run_update_cycle(&app_clone).await;
+                            let today = after_sleep_now.date_naive();
                             // 判断是否成功（last_update_time 是否被更新为今日）
                             let mut need_retry = {
-                                let last = app_clone.state::<AppState>().last_update_time.lock().await;
-                                match last {
-                                    Some(dt) => dt.date_naive() != after_sleep_now.date_naive(),
-                                    None => true,
-                                }
+                                let state_ref = app_clone.state::<AppState>();
+                                let guard = state_ref.last_update_time.lock().await;
+                                guard.map(|dt| dt.date_naive()) != Some(today)
                             };
                             if need_retry {
                                 warn!(target:"auto_update","零点窗口初次更新可能失败，开始快速重试");
@@ -443,14 +437,11 @@ fn start_auto_update_task(app: AppHandle) {
                                     let now_retry = Local::now();
                                     if now_retry.hour() >= 1 { break; }
                                     tokio::time::sleep(Duration::from_secs(600)).await; // 10 分钟
-                                    let before_cycle = {
-                                        let last = app_clone.state::<AppState>().last_update_time.lock().await;
-                                        last.map(|dt| dt.date_naive())
-                                    };
                                     run_update_cycle(&app_clone).await;
                                     let after_cycle_success = {
-                                        let last = app_clone.state::<AppState>().last_update_time.lock().await;
-                                        last.map(|dt| dt.date_naive()) == Some(now_retry.date_naive())
+                                        let state_ref = app_clone.state::<AppState>();
+                                        let guard = state_ref.last_update_time.lock().await;
+                                        guard.map(|dt| dt.date_naive()) == Some(now_retry.date_naive())
                                     };
                                     if after_cycle_success {
                                         info!(target:"auto_update","快速重试第 {} 次成功", attempt);
