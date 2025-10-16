@@ -1,5 +1,6 @@
 use anyhow::Result;
 use std::path::{Path, PathBuf};
+#[cfg(target_os = "macos")]
 use std::sync::{Arc, Mutex};
 
 #[cfg(target_os = "macos")]

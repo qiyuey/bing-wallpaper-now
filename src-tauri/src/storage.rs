@@ -113,10 +113,20 @@ mod tests {
 
     #[test]
     fn test_get_default_wallpaper_directory() {
-        let dir = get_default_wallpaper_directory();
-        assert!(dir.is_ok());
-        let dir = dir.unwrap();
-        assert!(dir.to_string_lossy().contains("Bing Wallpaper Now"));
+        let dir_result = get_default_wallpaper_directory();
+        assert!(
+            dir_result.is_ok(),
+            "Failed to get default wallpaper directory. OS: {:?}, HOME: {:?}, Result: {:?}",
+            std::env::consts::OS,
+            std::env::var("HOME").ok(),
+            dir_result.as_ref().err()
+        );
+        let dir = dir_result.unwrap();
+        assert!(
+            dir.to_string_lossy().contains("Bing Wallpaper Now"),
+            "Directory path {:?} does not contain expected segment 'Bing Wallpaper Now'",
+            dir
+        );
     }
 
     #[test]
