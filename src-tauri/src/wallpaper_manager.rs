@@ -2,9 +2,17 @@ use anyhow::Result;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
+// macOS 原生 API 绑定
+// 注意：cocoa 和 objc crate 存在以下已知警告：
+// 1. `unexpected cfg` - 来自 objc 0.2 内部宏，该版本的已知问题
+// 2. `deprecated` - cocoa crate 建议迁移到 objc2/objc2-foundation
+// 这些警告来自依赖库内部，无法在当前代码中解决
+// 完全解决需要重写为使用 objc2 生态系统
 #[cfg(target_os = "macos")]
+#[allow(deprecated)] // cocoa crate API 已弃用但仍然可用
 use cocoa::base::{id, nil};
 #[cfg(target_os = "macos")]
+#[allow(deprecated)]
 use cocoa::foundation::{NSDictionary, NSString};
 #[cfg(target_os = "macos")]
 use objc::{class, msg_send, sel, sel_impl};
@@ -58,6 +66,7 @@ pub fn set_wallpaper(image_path: &Path) -> Result<()> {
 
 /// 设置全局监听器，监听 Space 切换事件
 #[cfg(target_os = "macos")]
+#[allow(deprecated)] // 使用 cocoa crate 的已弃用 API
 unsafe fn setup_workspace_observer() {
     use objc::declare::ClassDecl;
     use objc::runtime::{Class, Object, Sel};
@@ -112,6 +121,7 @@ unsafe fn setup_workspace_observer() {
 /// 使用 NSWorkspace API 来设置壁纸，可以正确处理全屏应用场景
 /// 遍历所有屏幕并为每个屏幕设置壁纸
 #[cfg(target_os = "macos")]
+#[allow(deprecated)] // 使用 cocoa crate 的已弃用 API
 fn set_wallpaper_macos(image_path: &Path) -> Result<()> {
     // 保存当前壁纸路径到全局变量
     if let Ok(mut current) = CURRENT_WALLPAPER.lock() {
@@ -125,6 +135,7 @@ fn set_wallpaper_macos(image_path: &Path) -> Result<()> {
 }
 
 #[cfg(target_os = "macos")]
+#[allow(deprecated)] // 使用 cocoa crate 的已弃用 API
 fn set_wallpaper_for_all_screens(image_path: &Path) -> Result<()> {
     unsafe {
         let path_str = image_path
@@ -152,7 +163,7 @@ fn set_wallpaper_for_all_screens(image_path: &Path) -> Result<()> {
 
         // 为每个屏幕设置壁纸
         let mut errors = Vec::new();
-        let mut success_count = 0;
+        let mut _success_count = 0;
         for i in 0..screen_count {
             let screen: id = msg_send![screens, objectAtIndex: i];
 
@@ -185,7 +196,7 @@ fn set_wallpaper_for_all_screens(image_path: &Path) -> Result<()> {
                     errors.push(format!("Screen {}: Failed without error details", i));
                 }
             } else {
-                success_count += 1;
+                _success_count += 1;
             }
         }
 

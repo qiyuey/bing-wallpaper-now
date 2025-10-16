@@ -5,6 +5,11 @@ description = "A Tauri App"
 authors = ["you"]
 edition = "2021"
 
+[lints.rust]
+# objc 0.2 crate 内部宏产生 unexpected_cfgs 警告
+# 这是该 crate 版本的已知问题，在我们的代码中无法修复
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(feature, values("cargo-clippy"))'] }
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]

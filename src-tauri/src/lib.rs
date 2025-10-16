@@ -11,7 +11,7 @@ use std::time::{Duration, Instant};
 use tauri::{
     menu::{MenuBuilder, MenuItemBuilder},
     tray::{TrayIconBuilder, TrayIconEvent},
-    Manager, Runtime,
+    AppHandle, Manager, Runtime,
 };
 use tauri_plugin_autostart::ManagerExt;
 use tokio::sync::Mutex;
@@ -203,6 +203,97 @@ async fn show_main_window(app: tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+/// 启动自动更新任务
+/// 根据设置中的 auto_update 和 update_interval_hours 定期更新壁纸
+fn start_auto_update_task(app: AppHandle) {
+    tauri::async_runtime::spawn(async move {
+        loop {
+            // 等待一小段时间后检查设置
+            tokio::time::sleep(Duration::from_secs(60)).await;
+
+            // 获取应用状态
+            let state = app.state::<AppState>();
+            let settings = state.settings.lock().await;
+
+            // 检查是否启用了自动更新
+            if !settings.auto_update {
+                continue;
+            }
+
+            let interval_hours = settings.update_interval_hours;
+            drop(settings); // 释放锁
+
+            println!(
+                "[Auto Update] Checking for updates every {} hours",
+                interval_hours
+            );
+
+            // 转换小时为秒
+            let interval_duration = Duration::from_secs(interval_hours * 3600);
+
+            // 等待指定的时间间隔
+            tokio::time::sleep(interval_duration).await;
+
+            // 执行自动更新
+            println!("[Auto Update] Starting automatic wallpaper update");
+
+            // 获取壁纸目录
+            let wallpaper_dir = state.wallpaper_directory.lock().await.clone();
+
+            // 获取新壁纸
+            match bing_api::fetch_bing_images(8, 0).await {
+                Ok(images) => {
+                    println!("[Auto Update] Fetched {} images from Bing", images.len());
+
+                    // 后台下载所有壁纸
+                    for image in images {
+                        let save_path =
+                            storage::get_wallpaper_path(&wallpaper_dir, &image.startdate);
+
+                        // 跳过已存在的壁纸
+                        if save_path.exists() {
+                            continue;
+                        }
+
+                        // 确保目录存在
+                        if let Err(e) = storage::ensure_wallpaper_directory(&wallpaper_dir).await {
+                            println!("[Auto Update] Failed to ensure directory: {}", e);
+                            continue;
+                        }
+
+                        // 下载壁纸
+                        let image_url = bing_api::get_wallpaper_url(&image.urlbase, "UHD");
+                        match download_manager::download_image(&image_url, &save_path).await {
+                            Ok(_) => {
+                                // 保存元数据
+                                let mut wallpaper = LocalWallpaper::from(image);
+                                wallpaper.file_path = save_path.to_string_lossy().to_string();
+
+                                if let Err(e) =
+                                    storage::save_wallpaper_metadata(&wallpaper, &wallpaper_dir)
+                                        .await
+                                {
+                                    println!("[Auto Update] Failed to save metadata: {}", e);
+                                } else {
+                                    println!("[Auto Update] Downloaded: {}", wallpaper.title);
+                                }
+                            }
+                            Err(e) => {
+                                println!("[Auto Update] Failed to download image: {}", e);
+                            }
+                        }
+                    }
+
+                    println!("[Auto Update] Update completed");
+                }
+                Err(e) => {
+                    println!("[Auto Update] Failed to fetch images: {}", e);
+                }
+            }
+        }
+    });
+}
+
 /// 设置系统托盘
 fn setup_tray<R: Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<()> {
     // 创建托盘菜单（只包含显示窗口和退出）
@@ -322,6 +413,10 @@ pub fn run() {
 
             // 设置系统托盘
             setup_tray(app.handle())?;
+
+            // 启动自动更新任务
+            start_auto_update_task(app.handle().clone());
+
             Ok(())
         })
         .on_window_event(|window, event| {
