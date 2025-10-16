@@ -15,7 +15,7 @@ export function Settings({ onClose }: SettingsProps) {
     auto_update: true,
     update_interval_hours: 24,
     save_directory: null,
-    keep_image_count: 50,
+    keep_image_count: 8,
     launch_at_startup: false,
   });
 
@@ -128,13 +128,13 @@ export function Settings({ onClose }: SettingsProps) {
               保留壁纸数量:
               <input
                 type="number"
-                min="1"
+                min="8"
                 max="200"
                 value={formData.keep_image_count}
                 onChange={(e) =>
                   handleChange(
                     "keep_image_count",
-                    parseInt(e.target.value) || 50,
+                    parseInt(e.target.value) || 8,
                   )
                 }
                 className="settings-input"

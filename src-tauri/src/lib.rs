@@ -104,6 +104,10 @@ async fn update_settings(
     if normalized.update_interval_hours == 0 {
         normalized.update_interval_hours = 1;
     }
+    // 保留数量最少为 8
+    if normalized.keep_image_count < 8 {
+        normalized.keep_image_count = 8;
+    }
 
     let autostart_manager = app.autolaunch();
     if normalized.launch_at_startup {

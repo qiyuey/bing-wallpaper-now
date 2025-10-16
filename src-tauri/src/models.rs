@@ -68,7 +68,7 @@ impl Default for AppSettings {
             auto_update: true,
             update_interval_hours: 24,
             save_directory: None,
-            keep_image_count: 50,
+            keep_image_count: 8,
             launch_at_startup: false,
         }
     }
