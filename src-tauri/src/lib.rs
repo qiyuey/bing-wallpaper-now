@@ -191,6 +191,12 @@ async fn get_last_update_time(state: tauri::State<'_, AppState>) -> Result<Optio
     Ok(guard.map(|dt| dt.format("%Y-%m-%d %H:%M:%S").to_string()))
 }
 
+#[tauri::command]
+async fn get_update_in_progress(state: tauri::State<'_, AppState>) -> Result<bool, String> {
+    let flag = state.update_in_progress.lock().await;
+    Ok(*flag)
+}
+
 /// 确保壁纸目录存在
 #[tauri::command]
 async fn ensure_wallpaper_directory_exists(
@@ -413,11 +419,53 @@ fn start_auto_update_task(app: AppHandle) {
                 tokio::select! {
                     _ = tokio::time::sleep(sleep_dur) => {
                         let after_sleep_now = Local::now();
-                        // 若已经跨过零点缓冲（00:05 之前视为零点时段），执行更新；否则按小时例行更新
+                        // 零点窗口（00:00~00:05）内执行每日对齐更新，并在失败时快速重试
                         if after_sleep_now.hour() == 0 && after_sleep_now.minute() <= 5 {
                             trace!(target:"auto_update","零点窗口内执行每日对齐更新");
+                            // 记录更新前的日期
+                            let pre_date = {
+                                let last = app_clone.state::<AppState>().last_update_time.lock().await;
+                                last.map(|dt| dt.date_naive())
+                            };
                             run_update_cycle(&app_clone).await;
+                            // 判断是否成功（last_update_time 是否被更新为今日）
+                            let mut need_retry = {
+                                let last = app_clone.state::<AppState>().last_update_time.lock().await;
+                                match last {
+                                    Some(dt) => dt.date_naive() != after_sleep_now.date_naive(),
+                                    None => true,
+                                }
+                            };
+                            if need_retry {
+                                warn!(target:"auto_update","零点窗口初次更新可能失败，开始快速重试");
+                                // 最多重试到 01:00 或成功为止；每 10 分钟一次
+                                for attempt in 1..=6 {
+                                    let now_retry = Local::now();
+                                    if now_retry.hour() >= 1 { break; }
+                                    tokio::time::sleep(Duration::from_secs(600)).await; // 10 分钟
+                                    let before_cycle = {
+                                        let last = app_clone.state::<AppState>().last_update_time.lock().await;
+                                        last.map(|dt| dt.date_naive())
+                                    };
+                                    run_update_cycle(&app_clone).await;
+                                    let after_cycle_success = {
+                                        let last = app_clone.state::<AppState>().last_update_time.lock().await;
+                                        last.map(|dt| dt.date_naive()) == Some(now_retry.date_naive())
+                                    };
+                                    if after_cycle_success {
+                                        info!(target:"auto_update","快速重试第 {} 次成功", attempt);
+                                        need_retry = false;
+                                        break;
+                                    } else {
+                                        warn!(target:"auto_update","快速重试第 {} 次仍未获取到当日壁纸", attempt);
+                                    }
+                                }
+                                if need_retry {
+                                    warn!(target:"auto_update","快速重试结束，仍未成功获取当日壁纸，等待下一轮小时轮询");
+                                }
+                            }
                         } else {
+                            // 普通每小时轮询
                             run_update_cycle(&app_clone).await;
                         }
                     }
@@ -560,6 +608,7 @@ pub fn run() {
             get_wallpaper_directory,
             get_default_wallpaper_directory,
             get_last_update_time,
+            get_update_in_progress,
             ensure_wallpaper_directory_exists,
             show_main_window,
             force_update,

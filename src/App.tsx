@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import "./App.css";
 import { useBingWallpapers } from "./hooks/useBingWallpapers";
 import { WallpaperGrid } from "./components/WallpaperGrid";
@@ -16,10 +16,11 @@ function App() {
     fetchLocalWallpapers,
     setDesktopWallpaper,
     forceUpdate,
+    updating,
+    lastUpdateTime,
   } = useBingWallpapers();
 
   const [showSettings, setShowSettings] = useState(false);
-  const [lastUpdate, setLastUpdate] = useState<string | null>(null);
 
   // 处理设置壁纸
   const handleSetWallpaper = async (wallpaper: LocalWallpaper) => {
@@ -33,14 +34,11 @@ function App() {
     }
   };
 
-  // 刷新壁纸列表
+  // 刷新壁纸列表与触发后端更新
   const handleRefresh = async () => {
     await fetchLocalWallpapers();
     try {
       await forceUpdate();
-      // 成功后更新最后更新时间
-      const t = await invoke<string | null>("get_last_update_time");
-      setLastUpdate(t);
     } catch (err) {
       console.log("Force update failed:", err);
     }
@@ -51,11 +49,7 @@ function App() {
     try {
       const folderPath = await invoke<string>("get_wallpaper_directory");
       console.log("Opening folder:", folderPath);
-
-      // 确保目录存在
       await invoke("ensure_wallpaper_directory_exists");
-
-      // 打开目录
       await openPath(folderPath);
     } catch (err) {
       console.error("Failed to open folder:", err);
@@ -63,33 +57,62 @@ function App() {
     }
   };
 
-  // 初始化加载最后更新时间
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const t = await invoke<string | null>("get_last_update_time");
-        setLastUpdate(t);
-      } catch {
-        // 忽略错误
-      }
-    };
-    load();
-  }, []);
-
   return (
     <div className="app">
       <header className="app-header">
         <h1>必应壁纸</h1>
-        <div className="header-actions">
-          {lastUpdate && (
+        <div
+          className="header-actions"
+          style={{ display: "flex", alignItems: "center" }}
+        >
+          {updating && (
+            <div
+              className="updating-indicator"
+              style={{
+                fontSize: "12px",
+                color: "#888",
+                marginRight: "8px",
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 50 50"
+                style={{
+                  marginRight: "4px",
+                  animation: "spin 1s linear infinite",
+                }}
+              >
+                <circle
+                  cx="25"
+                  cy="25"
+                  r="20"
+                  stroke="#888"
+                  strokeWidth="4"
+                  fill="none"
+                  strokeDasharray="100"
+                  strokeDashoffset="60"
+                />
+              </svg>
+              正在更新...
+            </div>
+          )}
+          {!updating && lastUpdateTime && (
             <div
               className="last-update"
               style={{ fontSize: "12px", marginRight: "8px" }}
             >
-              上次更新: {lastUpdate}
+              上次更新: {lastUpdateTime}
             </div>
           )}
-          <button onClick={handleRefresh} className="btn btn-icon" title="刷新">
+          <button
+            onClick={handleRefresh}
+            className="btn btn-icon"
+            title="刷新"
+            disabled={updating}
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="20"
@@ -108,6 +131,7 @@ function App() {
             onClick={handleOpenFolder}
             className="btn btn-icon"
             title="打开下载目录"
+            disabled={updating}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -128,6 +152,7 @@ function App() {
             onClick={() => setShowSettings(true)}
             className="btn btn-icon"
             title="设置"
+            disabled={updating}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"

@@ -3,15 +3,18 @@ import { invoke } from "@tauri-apps/api/core";
 import { LocalWallpaper } from "../types";
 
 /**
- * 必应壁纸 Hook（精简版）
+ * 必应壁纸 Hook（扩展版）
  * 说明：
- *  - 远程 Bing 图片获取与下载现在由后端自动更新任务处理
- *  - GUI 仅关心：本地列表、设置壁纸、清理旧壁纸、手动触发一次更新
+ *  - 后端负责周期/零点更新与快速重试
+ *  - 前端轮询获取：本地壁纸列表、更新进行中状态、最后更新时间
+ *  - 提供手动触发一次更新的能力
  */
 export function useBingWallpapers() {
   const [localWallpapers, setLocalWallpapers] = useState<LocalWallpaper[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [updating, setUpdating] = useState(false);
+  const [lastUpdateTime, setLastUpdateTime] = useState<string | null>(null);
 
   /**
    * 获取本地壁纸列表
@@ -26,6 +29,20 @@ export function useBingWallpapers() {
       setError(String(err));
     } finally {
       setLoading(false);
+    }
+  };
+
+  /**
+   * 后端状态轮询：更新进行中标记 & 最后更新时间
+   */
+  const pollStatus = async () => {
+    try {
+      const inProgress = await invoke<boolean>("get_update_in_progress");
+      setUpdating(inProgress);
+      const last = await invoke<string | null>("get_last_update_time");
+      setLastUpdateTime(last);
+    } catch {
+      // 忽略错误，防止抖动
     }
   };
 
@@ -60,7 +77,7 @@ export function useBingWallpapers() {
 
   /**
    * 手动触发后台更新一次（force_update 已在后端执行拉取、下载、清理、自动应用）
-   * 成功后刷新本地列表
+   * 成功后刷新本地列表与状态
    */
   const forceUpdate = async () => {
     setLoading(true);
@@ -68,6 +85,7 @@ export function useBingWallpapers() {
     try {
       await invoke("force_update");
       await fetchLocalWallpapers();
+      await pollStatus();
     } catch (err) {
       setError(String(err));
       throw err;
@@ -76,15 +94,32 @@ export function useBingWallpapers() {
     }
   };
 
-  // 初始加载：只加载本地，后台自动更新任务会周期性增加新壁纸
+  // 初始加载：只加载本地，并获取一次状态
   useEffect(() => {
     fetchLocalWallpapers();
+    pollStatus();
+  }, []);
+
+  // 轮询后台状态（每 5 秒）
+  useEffect(() => {
+    let mounted = true;
+    const interval = setInterval(() => {
+      if (mounted) {
+        pollStatus();
+      }
+    }, 5000);
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
   }, []);
 
   return {
     localWallpapers,
     loading,
     error,
+    updating,
+    lastUpdateTime,
     fetchLocalWallpapers,
     setDesktopWallpaper,
     cleanupWallpapers,
