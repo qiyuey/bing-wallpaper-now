@@ -11,6 +11,7 @@
 ## ✨ 特性
 
 ### 核心功能
+
 - 📸 **每日壁纸** - 自动获取 Bing 每日精选壁纸（最多 8 张）
 - 🖼️ **高清下载** - 支持 UHD 超高清分辨率下载
 - 🎨 **一键设置** - 点击即可设置为桌面壁纸
@@ -19,12 +20,14 @@
 - 🗑️ **智能清理** - 根据保留数量自动清理旧壁纸
 
 ### macOS 特色功能
+
 - 🖥️ **多显示器支持** - 同时为所有显示器设置壁纸
 - 🎯 **全屏应用支持** - 完美处理全屏应用场景下的壁纸设置
 - 🔄 **Space 自动恢复** - 切换 Space 或退出全屏时自动恢复壁纸
 - 🎪 **原生 API** - 使用 NSWorkspace API (objc2) 实现原生体验
 
 ### 用户体验
+
 - 🚀 **快速响应** - 优先加载本地缓存，后台获取远程数据
 - 💾 **系统托盘** - 最小化到托盘，不占用任务栏空间
 - ⚙️ **灵活配置** - 自定义保存目录、保留数量、启动选项
@@ -100,6 +103,7 @@ bing-wallpaper-now/
 ### 壁纸设置（跨平台）
 
 #### macOS 优化实现
+
 - 使用 `objc2` 生态系统与 Objective-C API 交互
 - 使用 `NSWorkspace` API 直接设置壁纸
 - 遍历所有 `NSScreen` 为每个显示器设置
@@ -109,22 +113,25 @@ bing-wallpaper-now/
 - 自动处理 Space 切换和全屏应用场景
 
 #### 其他平台
+
 - 使用 `wallpaper` crate 提供跨平台支持
 
 ### 数据持久化
 
 每张壁纸保存为两个文件：
+
 - `{startdate}.jpg` - 壁纸图片
 - `{startdate}.json` - 元数据（标题、版权、日期等）
 
 默认保存位置：
+
 - macOS: `~/Pictures/Bing Wallpaper Now`
 - Windows: `%USERPROFILE%\Pictures\Bing Wallpaper Now`
 - Linux: `~/Pictures/Bing Wallpaper Now`
 
 ## ⚙️ 应用设置
 
-- **自动更新** - 定期自动获取新壁纸
+- **自动更新** - 定期自动获取新壁纸，并自动应用最新一张
 - **更新间隔** - 自定义更新频率（小时）
 - **保存目录** - 自定义壁纸保存位置
 - **保留数量** - 设置最多保留的壁纸数量
@@ -139,12 +146,14 @@ bing-wallpaper-now/
 ## 🛠️ 技术栈
 
 ### 前端
+
 - **框架**: React 18 + TypeScript
 - **构建工具**: Vite
 - **状态管理**: React Hooks
 - **样式**: CSS
 
 ### 后端
+
 - **框架**: Tauri 2.0
 - **语言**: Rust
 - **核心依赖**:
@@ -157,6 +166,7 @@ bing-wallpaper-now/
   - `once_cell` - 延迟初始化
 
 ### Tauri 插件
+
 - `@tauri-apps/plugin-opener` - 打开文件/链接
 - `@tauri-apps/plugin-dialog` - 原生对话框
 - `@tauri-apps/plugin-store` - 配置持久化

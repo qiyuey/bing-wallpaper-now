@@ -306,17 +306,15 @@ async fn run_update_cycle(app: &AppHandle) {
         warn!(target: "auto_update", "清理旧壁纸失败: {e}");
     }
 
-    // 自动应用最新壁纸（受 auto_apply_latest 控制）
-    if settings_snapshot.auto_apply_latest {
-        if let Ok(list) = storage::get_local_wallpapers(&dir).await {
-            if let Some(first) = list.first() {
-                let path = PathBuf::from(&first.file_path);
-                if let Err(e) = wallpaper_manager::set_wallpaper(&path) {
-                    error!(target: "auto_update", "设置壁纸失败: {e}");
-                } else {
-                    let mut current_path = state.current_wallpaper_path.lock().await;
-                    *current_path = Some(path);
-                }
+    // 自动应用最新壁纸：现在无条件执行
+    if let Ok(list) = storage::get_local_wallpapers(&dir).await {
+        if let Some(first) = list.first() {
+            let path = PathBuf::from(&first.file_path);
+            if let Err(e) = wallpaper_manager::set_wallpaper(&path) {
+                error!(target: "auto_update", "设置壁纸失败: {e}");
+            } else {
+                let mut current_path = state.current_wallpaper_path.lock().await;
+                *current_path = Some(path);
             }
         }
     }

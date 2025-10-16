@@ -13,7 +13,6 @@ export function Settings({ onClose }: SettingsProps) {
 
   const [formData, setFormData] = useState<AppSettings>({
     auto_update: true,
-    auto_apply_latest: true,
     update_interval_hours: 24,
     save_directory: null,
     keep_image_count: 50,
@@ -102,19 +101,6 @@ export function Settings({ onClose }: SettingsProps) {
                 onChange={(e) => handleChange("auto_update", e.target.checked)}
               />
               <span>自动更新壁纸</span>
-            </label>
-          </div>
-
-          <div className="settings-section">
-            <label className="settings-label checkbox-label">
-              <input
-                type="checkbox"
-                checked={formData.auto_apply_latest}
-                onChange={(e) =>
-                  handleChange("auto_apply_latest", e.target.checked)
-                }
-              />
-              <span>自动应用最新壁纸</span>
             </label>
           </div>
 
