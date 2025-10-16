@@ -21,8 +21,7 @@
 ### macOS 特色功能
 - 🖥️ **多显示器支持** - 同时为所有显示器设置壁纸
 - 🎯 **全屏应用支持** - 完美处理全屏应用场景下的壁纸设置
-- 🔄 **Space 自动恢复** - 切换 Space 或退出全屏时自动恢复壁纸
-- 🎪 **原生 API** - 使用 NSWorkspace API 实现原生体验
+- 🎪 **原生 API** - 使用 NSWorkspace API (objc2) 实现原生体验
 
 ### 用户体验
 - 🚀 **快速响应** - 优先加载本地缓存，后台获取远程数据
@@ -100,10 +99,10 @@ bing-wallpaper-now/
 ### 壁纸设置（跨平台）
 
 #### macOS 优化实现
+- 使用 `objc2` 生态系统与 Objective-C API 交互
 - 使用 `NSWorkspace` API 直接设置壁纸
 - 遍历所有 `NSScreen` 为每个显示器设置
-- 监听 `NSWorkspaceActiveSpaceDidChangeNotification` 事件
-- 自动处理 Space 切换和全屏应用场景
+- 正确处理全屏应用场景
 
 #### 其他平台
 - 使用 `wallpaper` crate 提供跨平台支持
@@ -150,7 +149,7 @@ bing-wallpaper-now/
   - `chrono` - 日期时间处理
   - `anyhow` - 错误处理
   - `wallpaper` - 跨平台壁纸设置
-  - `cocoa` / `objc` - macOS 原生 API 绑定
+  - `objc2` / `objc2-foundation` / `objc2-app-kit` - macOS 原生 API 绑定
   - `once_cell` - 延迟初始化
 
 ### Tauri 插件
