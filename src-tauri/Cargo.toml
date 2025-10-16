@@ -32,4 +32,9 @@ chrono = { version = "0.4", features = ["serde"] }
 wallpaper = "3"
 anyhow = "1"
 dirs = "5"
+once_cell = "1"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+cocoa = "0.26"
+objc = "0.2"
 

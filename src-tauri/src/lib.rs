@@ -21,6 +21,7 @@ struct AppState {
     settings: Arc<Mutex<AppSettings>>,
     wallpaper_directory: Arc<Mutex<PathBuf>>,
     last_tray_click: Arc<Mutex<Option<Instant>>>,
+    current_wallpaper_path: Arc<Mutex<Option<PathBuf>>>,
 }
 
 /// 获取必应壁纸列表
@@ -79,9 +80,18 @@ async fn download_wallpaper(
 
 /// 设置桌面壁纸
 #[tauri::command]
-async fn set_desktop_wallpaper(file_path: String) -> Result<(), String> {
+async fn set_desktop_wallpaper(
+    file_path: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), String> {
     let path = PathBuf::from(file_path);
-    wallpaper_manager::set_wallpaper(&path).map_err(|e| e.to_string())
+    wallpaper_manager::set_wallpaper(&path).map_err(|e| e.to_string())?;
+
+    // 保存当前壁纸路径
+    let mut current_path = state.current_wallpaper_path.lock().await;
+    *current_path = Some(path);
+
+    Ok(())
 }
 
 /// 获取已下载的壁纸列表
@@ -279,6 +289,7 @@ pub fn run() {
         settings: Arc::new(Mutex::new(AppSettings::default())),
         wallpaper_directory: Arc::new(Mutex::new(default_dir)),
         last_tray_click: Arc::new(Mutex::new(None)),
+        current_wallpaper_path: Arc::new(Mutex::new(None)),
     };
 
     tauri::Builder::default()
@@ -306,6 +317,9 @@ pub fn run() {
             show_main_window,
         ])
         .setup(|app| {
+            // 初始化壁纸管理器的 Space 切换观察者（仅 macOS）
+            wallpaper_manager::initialize_observer();
+
             // 设置系统托盘
             setup_tray(app.handle())?;
             Ok(())

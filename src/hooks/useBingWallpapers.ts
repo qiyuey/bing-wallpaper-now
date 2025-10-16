@@ -103,20 +103,16 @@ export function useBingWallpapers() {
 
   /**
    * 设置桌面壁纸
+   * 注意：不设置 loading 状态，避免影响页面列表显示
    */
   const setDesktopWallpaper = async (filePath: string) => {
     console.log("setDesktopWallpaper called with:", filePath);
-    setLoading(true);
-    setError(null);
     try {
       await invoke("set_desktop_wallpaper", { filePath });
       console.log("Wallpaper set successfully");
     } catch (err) {
       console.error("setDesktopWallpaper error:", err);
-      setError(err as string);
       throw err;
-    } finally {
-      setLoading(false);
     }
   };
 
