@@ -90,7 +90,17 @@ async fn get_settings(state: tauri::State<'_, AppState>) -> Result<AppSettings, 
     Ok(settings.clone())
 }
 
-/// 更新应用设置（动态广播）
+/// 设置归一化（内部函数）
+fn normalize_settings(mut s: AppSettings) -> AppSettings {
+    if s.update_interval_hours == 0 {
+        s.update_interval_hours = 1;
+    }
+    if s.keep_image_count < 8 {
+        s.keep_image_count = 8;
+    }
+    s
+}
+
 #[tauri::command]
 async fn update_settings(
     new_settings: AppSettings,
@@ -99,15 +109,8 @@ async fn update_settings(
 ) -> Result<(), String> {
     let mut settings = state.settings.lock().await;
 
-    // 修正 interval，防止 0
-    let mut normalized = new_settings.clone();
-    if normalized.update_interval_hours == 0 {
-        normalized.update_interval_hours = 1;
-    }
-    // 保留数量最少为 8
-    if normalized.keep_image_count < 8 {
-        normalized.keep_image_count = 8;
-    }
+    // 统一归一化逻辑
+    let normalized = normalize_settings(new_settings);
 
     let autostart_manager = app.autolaunch();
     if normalized.launch_at_startup {
@@ -141,6 +144,25 @@ async fn update_settings(
         .map_err(|e| format!("广播设置失败: {e}"))?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod lib_tests {
+    use super::*;
+
+    #[test]
+    fn test_normalize_settings_minimums() {
+        let s = AppSettings {
+            auto_update: true,
+            update_interval_hours: 0,
+            save_directory: None,
+            keep_image_count: 3,
+            launch_at_startup: false,
+        };
+        let n = normalize_settings(s);
+        assert_eq!(n.update_interval_hours, 1);
+        assert_eq!(n.keep_image_count, 8);
+    }
 }
 
 /// 清理旧壁纸
