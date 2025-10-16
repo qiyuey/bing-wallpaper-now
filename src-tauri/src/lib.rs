@@ -15,7 +15,7 @@ use std::time::{Duration, Instant};
 use tauri::{
     menu::{MenuBuilder, MenuItemBuilder},
     tray::{TrayIconBuilder, TrayIconEvent},
-    AppHandle, Manager, Runtime,
+    AppHandle, Emitter, Manager,
 };
 use tauri_plugin_autostart::ManagerExt;
 use tokio::sync::{watch, Mutex};
@@ -490,9 +490,9 @@ fn start_auto_update_task(app: AppHandle) {
 }
 
 /// 设置系统托盘
-fn setup_tray<R: Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<()> {
+fn setup_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
     let show_item = MenuItemBuilder::with_id("show", "显示窗口").build(app)?;
-    let refresh_item = MenuItemBuilder::with_id("refresh", "刷新壁纸").build(app)?;
+    let refresh_item = MenuItemBuilder::with_id("refresh", "更新壁纸").build(app)?;
     let open_folder_item = MenuItemBuilder::with_id("open_folder", "打开保存目录").build(app)?;
     let settings_item = MenuItemBuilder::with_id("settings", "打开设置").build(app)?;
     let quit_item = MenuItemBuilder::with_id("quit", "退出").build(app)?;
@@ -555,25 +555,18 @@ fn setup_tray<R: Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<()> {
                 // 异步触发一次强制更新
                 let app_handle = app.clone();
                 tauri::async_runtime::spawn(async move {
-                    if let Err(e) = force_update(app_handle) {
-                        warn!(target: "auto_update", "托盘刷新失败: {}", e);
+                    if let Err(e) = force_update(app_handle).await {
+                        warn!(target: "auto_update", "托盘更新失败: {}", e);
                     }
                 });
             }
             "open_folder" => {
-                // 打开保存目录
-                let app_handle = app.clone();
-                tauri::async_runtime::spawn(async move {
-                    if let Some(state) = app_handle.try_state::<AppState>() {
-                        let dir = {
-                            let guard = state.wallpaper_directory.lock().await;
-                            guard.clone()
-                        };
-                        if let Err(e) = tauri_plugin_opener::open_path(&app_handle.shell(), &dir) {
-                            warn!(target: "auto_update", "托盘打开目录失败: {}", e);
-                        }
-                    }
-                });
+                // 通过事件通知前端打开目录（复用前端已有逻辑）
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.show();
+                    let _ = window.set_focus();
+                }
+                let _ = app.emit("open-folder", ());
             }
             "settings" => {
                 // 显示主窗口并向前端发送事件，前端可监听此事件弹出设置

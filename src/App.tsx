@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./App.css";
 import { useBingWallpapers } from "./hooks/useBingWallpapers";
 import { WallpaperGrid } from "./components/WallpaperGrid";
@@ -7,6 +7,7 @@ import { Settings } from "./components/Settings";
 import { LocalWallpaper } from "./types";
 import { invoke } from "@tauri-apps/api/core";
 import { openPath } from "@tauri-apps/plugin-opener";
+import { listen } from "@tauri-apps/api/event";
 
 function App() {
   const {
@@ -16,11 +17,28 @@ function App() {
     fetchLocalWallpapers,
     setDesktopWallpaper,
     forceUpdate,
-    updating,
     lastUpdateTime,
+    isUpToDate,
   } = useBingWallpapers();
 
   const [showSettings, setShowSettings] = useState(false);
+
+  // 监听托盘发出的 open-settings 事件，触发前端设置面板显示
+  useEffect(() => {
+    let unlisten: (() => void) | null = null;
+    (async () => {
+      try {
+        unlisten = await listen("open-settings", () => {
+          setShowSettings(true);
+        });
+      } catch (e) {
+        console.error("Failed to bind open-settings event:", e);
+      }
+    })();
+    return () => {
+      if (unlisten) unlisten();
+    };
+  }, []);
 
   // 处理设置壁纸
   const handleSetWallpaper = async (wallpaper: LocalWallpaper) => {
@@ -34,7 +52,7 @@ function App() {
     }
   };
 
-  // 刷新壁纸列表与触发后端更新
+  // 壁纸壁纸列表与触发后端更新
   const handleRefresh = async () => {
     await fetchLocalWallpapers();
     try {
@@ -57,62 +75,73 @@ function App() {
     }
   };
 
+  // 监听托盘发出的 open-folder 事件（复用打开目录逻辑）
+  useEffect(() => {
+    let unlisten: (() => void) | null = null;
+    (async () => {
+      try {
+        unlisten = await listen("open-folder", () => {
+          handleOpenFolder();
+        });
+      } catch (e) {
+        console.error("Failed to bind open-folder event:", e);
+      }
+    })();
+    return () => {
+      if (unlisten) unlisten();
+    };
+  }, []);
+
   return (
     <div className="app">
-      <header className="app-header">
-        <h1>必应壁纸</h1>
+      <header
+        className="app-header"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <h1 style={{ margin: 0 }}>必应壁纸</h1>
         <div
           className="header-actions"
-          style={{ display: "flex", alignItems: "center" }}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "flex-end",
+            flex: 1,
+            marginLeft: "16px",
+          }}
         >
-          {updating && (
-            <div
-              className="updating-indicator"
+          {isUpToDate && (
+            <span
               style={{
                 fontSize: "12px",
-                color: "#888",
+                color: "#4caf50",
+                border: "1px solid #4caf50",
+                padding: "2px 6px",
+                borderRadius: "4px",
                 marginRight: "8px",
-                display: "flex",
-                alignItems: "center",
+                background: "#e8f5e9",
               }}
             >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 50 50"
-                style={{
-                  marginRight: "4px",
-                  animation: "spin 1s linear infinite",
-                }}
-              >
-                <circle
-                  cx="25"
-                  cy="25"
-                  r="20"
-                  stroke="#888"
-                  strokeWidth="4"
-                  fill="none"
-                  strokeDasharray="100"
-                  strokeDashoffset="60"
-                />
-              </svg>
-              正在更新...
-            </div>
+              已是最新
+            </span>
           )}
-          {!updating && lastUpdateTime && (
+          {lastUpdateTime && (
             <div
               className="last-update"
-              style={{ fontSize: "12px", marginRight: "8px" }}
+              style={{
+                fontSize: "12px",
+                marginRight: "12px",
+                color: "#555",
+                whiteSpace: "nowrap",
+              }}
             >
               上次更新: {lastUpdateTime}
             </div>
           )}
-          <button
-            onClick={handleRefresh}
-            className="btn btn-icon"
-            title="刷新"
-            disabled={updating}
-          >
+          <button onClick={handleRefresh} className="btn btn-icon" title="更新">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="20"
@@ -131,7 +160,6 @@ function App() {
             onClick={handleOpenFolder}
             className="btn btn-icon"
             title="打开下载目录"
-            disabled={updating}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -152,7 +180,6 @@ function App() {
             onClick={() => setShowSettings(true)}
             className="btn btn-icon"
             title="设置"
-            disabled={updating}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -165,8 +192,7 @@ function App() {
               strokeLinecap="round"
               strokeLinejoin="round"
             >
-              <circle cx="12" cy="12" r="3" />
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 8.4 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4 15.4a1.65 1.65 0 0 0-1.51-1H2a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 3.6 8.4a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 8.6 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09c0 .68.39 1.3 1 1.51.61.21 1.29.05 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06c-.38.53-.54 1.21-.33 1.82.21.61.83 1 1.51 1H21a2 2 0 0 1 0 4h-.09c-.68 0-1.3.39-1.51 1Z" />
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
             </svg>
           </button>
         </div>

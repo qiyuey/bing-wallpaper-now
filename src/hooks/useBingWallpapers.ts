@@ -6,14 +6,14 @@ import { LocalWallpaper } from "../types";
  * 必应壁纸 Hook（扩展版）
  * 说明：
  *  - 后端负责周期/零点更新与快速重试
- *  - 前端轮询获取：本地壁纸列表、更新进行中状态、最后更新时间
+ *  - 前端轮询获取：本地壁纸列表、最后更新时间
  *  - 提供手动触发一次更新的能力
  */
 export function useBingWallpapers() {
   const [localWallpapers, setLocalWallpapers] = useState<LocalWallpaper[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [updating, setUpdating] = useState(false);
+
   const [lastUpdateTime, setLastUpdateTime] = useState<string | null>(null);
 
   /**
@@ -33,12 +33,10 @@ export function useBingWallpapers() {
   };
 
   /**
-   * 后端状态轮询：更新进行中标记 & 最后更新时间
+   * 后端状态轮询：最后更新时间
    */
   const pollStatus = async () => {
     try {
-      const inProgress = await invoke<boolean>("get_update_in_progress");
-      setUpdating(inProgress);
       const last = await invoke<string | null>("get_last_update_time");
       setLastUpdateTime(last);
     } catch {
@@ -77,12 +75,28 @@ export function useBingWallpapers() {
 
   /**
    * 手动触发后台更新一次（force_update 已在后端执行拉取、下载、清理、自动应用）
-   * 成功后刷新本地列表与状态
+   * 成功后更新本地列表与最后更新时间
    */
   const forceUpdate = async () => {
     setLoading(true);
     setError(null);
     try {
+      // 计算今日日期字符串（与 start_date 格式一致：YYYYMMDD）
+      const now = new Date();
+      const todayStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(
+        now.getDate(),
+      ).padStart(2, "0")}`;
+
+      // 若已是最新（列表第一项日期与今日匹配），不再触发后端 force_update，直接更新状态
+      if (
+        localWallpapers.length > 0 &&
+        localWallpapers[0].start_date === todayStr
+      ) {
+        await pollStatus();
+        setLoading(false);
+        return;
+      }
+
       await invoke("force_update");
       await fetchLocalWallpapers();
       await pollStatus();
@@ -114,12 +128,22 @@ export function useBingWallpapers() {
     };
   }, []);
 
+  // 计算是否已是最新（衍生状态，避免重复手动更新）
+  const isUpToDate = (() => {
+    if (!localWallpapers.length) return false;
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(
+      now.getDate(),
+    ).padStart(2, "0")}`;
+    return localWallpapers[0].start_date === todayStr;
+  })();
+
   return {
     localWallpapers,
     loading,
     error,
-    updating,
     lastUpdateTime,
+    isUpToDate,
     fetchLocalWallpapers,
     setDesktopWallpaper,
     cleanupWallpapers,
