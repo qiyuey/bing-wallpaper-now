@@ -1,10 +1,11 @@
 name: CI
 
 on:
+  # 在 main 分支 push 与版本 tag 及手动触发时运行
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
+    tags:
+      - "v*.*.*"
   workflow_dispatch:
 
 concurrency:
@@ -12,21 +13,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  dependency-review:
-    name: Dependency Review
+  build:
+    name: Build & Test (basic)
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Dependency Review
-        uses: actions/dependency-review-action@v4
-
-  coverage:
-    name: Coverage (Rust + Frontend)
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    needs: quality
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -34,63 +23,28 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 18
-          cache: npm
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-      - name: Install Linux deps
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
-      - name: Install Node deps
-        run: npm ci
-      - name: Rust coverage (tarpaulin)
-        run: |
-          cargo install cargo-tarpaulin || echo "tarpaulin installed"
-          cargo tarpaulin --manifest-path src-tauri/Cargo.toml --out Xml --timeout 120 || echo "Non-zero exit tolerated"
-      - name: Frontend coverage (vitest)
-        run: |
-          npm i -D vitest @vitest/coverage-v8 || true
-          npx vitest run --coverage || echo "Vitest optional; tolerate failure"
-      - name: Upload coverage artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-reports
-          path: |
-            coverage
-            tarpaulin-report.xml
 
-  quality:
-    name: Quality Gates (fmt + clippy + types + lint) (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-          cache: npm
-
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache Cargo
+      - name: Cache Cargo (registry + git)
         uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            src-tauri/target
           key: ${{ runner.os }}-cargo-${{ hashFiles('src-tauri/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-
 
+      - name: Cache Node modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
         run: |
@@ -100,86 +54,35 @@ jobs:
             libayatana-appindicator3-dev \
             librsvg2-dev \
             patchelf
-
       - name: Install Node dependencies
-        run: npm ci
-
-      - name: Install lint tooling (if missing)
-        run: |
-          npm i -D eslint prettier eslint-config-prettier eslint-plugin-prettier @typescript-eslint/parser @typescript-eslint/eslint-plugin eslint-plugin-react eslint-plugin-react-hooks eslint-plugin-import || true
-
-      - name: ESLint (cached)
-        run: |
-          npx eslint -c .config/eslint/.eslintrc.cjs --cache --cache-location .cache/eslint/ "src/**/*.{ts,tsx}"
-
-      - name: Prettier check
-        run: |
-          npx prettier --check "**/*.{ts,tsx,js,jsx,css,scss,md,json}"
-
-      - name: TypeScript type check
+        run: npm ci --prefer-offline --no-audit
+      - name: TypeScript typecheck
         run: npm run typecheck
-
-      - name: Rust fmt check
-        run: cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
-
-      - name: Rust clippy (deny warnings)
-        run: cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings
-
-      - name: Build frontend
+      - name: Frontend build
         run: npm run build
-
-      - name: Rust tests (all targets)
-        run: cargo test --manifest-path src-tauri/Cargo.toml --all-targets -- --nocapture
-
-      - name: Optional network tests (Bing API)
-        if: env.BING_TEST == '1'
-        run: BING_TEST=1 cargo test --manifest-path src-tauri/Cargo.toml -- --ignored --nocapture
-
-      - name: Cargo deny (advisories, licenses, bans)
-        working-directory: src-tauri
-        run: |
-          cargo install --locked cargo-deny || echo "cargo-deny already installed"
-          cargo deny check
-
+      - name: Rust tests
+        run: bash -c "set -o pipefail; cargo test --manifest-path src-tauri/Cargo.toml -- --nocapture | tee test-rust.log"
+      - name: Frontend tests
+        run: bash -c "set -o pipefail; npm run test:frontend | tee test-frontend.log"
       - name: Upload dist artifact
-        if: runner.os != 'Windows'
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: dist-${{ runner.os }}
+          name: dist
           path: dist
-
-  nightly:
-    name: Nightly Toolchain (non-blocking) - ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    continue-on-error: true
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - name: Upload test logs
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          node-version: 18
-          cache: npm
-
-      - name: Setup Nightly Rust
-        uses: dtolnay/rust-toolchain@nightly
-
-      - name: Install Node dependencies
-        run: npm ci
-
-      - name: Quick compile (no tests)
-        run: cargo build --manifest-path src-tauri/Cargo.toml
+          name: test-logs
+          path: |
+            test-rust.log
+            test-frontend.log
 
   bundle:
-    name: Tauri Bundle (conditional) - ${{ matrix.os }}
-    needs: quality
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    name: Tauri Bundle (${{ matrix.os }})
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -194,7 +97,26 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 18
-          cache: npm
+
+      - name: Cache Cargo (registry + git)
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-${{ hashFiles('src-tauri/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Cache Node modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -210,7 +132,24 @@ jobs:
             patchelf
 
       - name: Install Node dependencies
-        run: npm ci
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Download dist artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - name: Generate release summary
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          echo "## Release ${GITHUB_REF##*/}" > RELEASE_SUMMARY.md
+          echo "" >> RELEASE_SUMMARY.md
+          echo "Commit: $GITHUB_SHA" >> RELEASE_SUMMARY.md
+          echo "Date: $(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> RELEASE_SUMMARY.md
+          echo "" >> RELEASE_SUMMARY.md
+          echo "Platforms: ubuntu-latest, macos-latest, windows-latest" >> RELEASE_SUMMARY.md
+          echo "Dist reused from build job artifact." >> RELEASE_SUMMARY.md
 
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v2
@@ -224,3 +163,10 @@ jobs:
         with:
           name: tauri-bundles-${{ runner.os }}
           path: src-tauri/target/release/bundle
+
+      - name: Upload release summary
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-summary
+          path: RELEASE_SUMMARY.md

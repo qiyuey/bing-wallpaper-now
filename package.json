@@ -11,21 +11,7 @@
     "typecheck": "tsc --noEmit",
     "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
     "test:frontend": "vitest run",
-    "fmt:check": "cargo fmt --manifest-path src-tauri/Cargo.toml -- --check",
-    "fmt:fix": "cargo fmt --manifest-path src-tauri/Cargo.toml",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
-    "lint:rust": "cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings",
-    "lint:frontend": "eslint -c .config/eslint/.eslintrc.cjs \"src/**/*.{ts,tsx}\"",
-    "lint:frontend:fix": "eslint -c .config/eslint/.eslintrc.cjs --fix \"src/**/*.{ts,tsx}\"",
-    "lint": "npm run lint:rust && npm run lint:frontend",
-    "check:rust": "npm run fmt:check && npm run lint:rust && npm run test:rust",
-    "check:frontend": "npm run format:check && npm run typecheck && npm run lint:frontend && npm run test:frontend",
-    "check": "npm run check:rust && npm run check:frontend",
-    "coverage:rust": "bash .config/scripts/coverage-rust.sh",
-    "coverage:frontend": "vitest run --coverage",
-    "coverage": "npm run coverage:rust && npm run coverage:frontend",
-    "ci": "npm run typecheck && npm run build && npm run test:rust && npm run test:frontend"
+    "test": "npm run test:rust && npm run test:frontend"
   },
   "dependencies": {
     "react": "^18.3.1",

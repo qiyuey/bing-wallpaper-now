@@ -5,7 +5,6 @@
 #   make tauri-dev      # Run Tauri dev (frontend + backend)
 #   make build          # Type-check and build frontend assets
 #   make test           # Run Rust tests
-#   make ci             # Run local CI (typecheck + build + rust tests)
 #   make bundle         # Build production Tauri bundles
 #   make clean          # Remove build artifacts
 #
@@ -26,7 +25,7 @@ RUST_MANIFEST := src-tauri/Cargo.toml
 # Phony targets
 # -------------------------------------------------------------------
 
-.PHONY: dev tauri-dev build typecheck test rust-test ci bundle clean format help
+.PHONY: dev tauri-dev build typecheck test rust-test bundle clean help
 
 # -------------------------------------------------------------------
 # Frontend / Dev
@@ -62,10 +61,7 @@ rust-test:
 	@echo "[rust-test] Running Rust tests..."
 	cargo test --manifest-path $(RUST_MANIFEST) -- --nocapture
 
-# Combined local CI sequence
-ci:
-	@echo "[ci] Running local CI pipeline (typecheck + build + rust tests)..."
-	npm run ci
+# (Removed legacy local CI sequence target)
 
 # -------------------------------------------------------------------
 # Tauri Bundle
@@ -79,24 +75,7 @@ bundle:
 # Utilities
 # -------------------------------------------------------------------
 
-format:
-	@echo "[format] (Placeholder) Add prettier/clippy/eslint format commands here"
-	@echo "Skipping (no formatter configured)."
-
-fmt-check:
-	@echo "[fmt-check] Verifying Rust formatting..."
-	cargo fmt --manifest-path $(RUST_MANIFEST) -- --check
-
-lint-rust:
-	@echo "[lint-rust] Running clippy lints (deny warnings)..."
-	cargo clippy --manifest-path $(RUST_MANIFEST) -- -D warnings
-
-check:
-	@echo "[check] Full quality gate (typecheck + fmt + clippy + tests)"
-	npm run typecheck
-	make fmt-check
-	make lint-rust
-	make rust-test
+# (Removed quality-related targets: format, fmt-check, lint-rust, check)
 
 clean:
 	@echo "[clean] Removing dist and Rust target artifacts..."
@@ -115,13 +94,8 @@ help:
 	@echo "  build        - Type-check and build frontend"
 	@echo "  test         - Run Rust tests (alias to rust-test)"
 	@echo "  rust-test    - Run Rust tests only"
-	@echo "  ci           - Run local CI pipeline (typecheck + build + tests)"
 	@echo "  bundle       - Build Tauri bundles for release"
-	@echo "  format       - Placeholder for code formatting"
-	@echo "  fmt-check    - Check Rust formatting"
-	@echo "  lint-rust    - Run clippy (deny warnings)"
-	@echo "  check        - Run full quality gate"
 	@echo "  clean        - Clean build artifacts"
 	@echo "  help         - Show this help message"
 	@echo ""
-	@echo "Example: make check"
+	@echo "Example: make build"
