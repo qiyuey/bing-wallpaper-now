@@ -55,11 +55,18 @@ mod tests {
     use super::*;
 
     #[tokio::test]
+    #[ignore = "Network test ignored by default. Run with: BING_TEST=1 cargo test -- --ignored"]
     async fn test_fetch_bing_images() {
+        // Only execute network call when explicitly enabled
+        if std::env::var("BING_TEST").ok().as_deref() != Some("1") {
+            // Silently skip (return Ok(()))
+            return;
+        }
+
         let images = fetch_bing_images(1, 0).await;
-        assert!(images.is_ok());
+        assert!(images.is_ok(), "Bing fetch failed");
         let images = images.unwrap();
-        assert!(!images.is_empty());
+        assert!(!images.is_empty(), "No images returned");
         assert!(images[0].url.starts_with("http"));
     }
 

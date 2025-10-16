@@ -35,9 +35,8 @@ struct AppState {
 
 // (removed) fetch_bing_images command; image retrieval now handled by background auto-update logic.
 
-/// 下载壁纸
+// 下载壁纸
 // (removed obsolete download_wallpaper command)
-
 /// 设置桌面壁纸
 #[tauri::command]
 async fn set_desktop_wallpaper(
@@ -173,9 +172,8 @@ async fn cleanup_wallpapers(state: tauri::State<'_, AppState>) -> Result<usize, 
         .map_err(|e| e.to_string())
 }
 
-/// 获取当前桌面壁纸路径
+// 获取当前桌面壁纸路径
 // (removed obsolete get_current_wallpaper command)
-
 /// 获取默认壁纸目录
 #[tauri::command]
 async fn get_default_wallpaper_directory() -> Result<String, String> {

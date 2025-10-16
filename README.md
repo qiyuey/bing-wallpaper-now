@@ -222,4 +222,98 @@ MIT License
 
 ---
 
+## 🧪 CI/CD
+
+本项目提供自动化持续集成与交付流程：
+
+### GitHub Actions
+
+已配置两个工作流（位于 `.github/workflows/`）：
+- `ci.yml`：在 push / PR 时执行
+  - Node & Rust 环境初始化
+  - 前端 TypeScript 检查与构建
+  - Rust 单元测试
+  - 多平台（Ubuntu / macOS / Windows）构建与产物上传
+- `release.yml`：当推送符合 `v*.*.*` 规则的标签时
+  - 三平台打包 Tauri 应用
+  - 汇总产物并创建 GitHub Release
+
+Linux 环境需要的原生依赖（本地构建或 CI）：
+```bash
+sudo apt-get update
+sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+```
+
+### 本地开发与验证
+
+可使用内置脚本或 Makefile：
+```bash
+# 前端开发
+npm run dev
+
+# 本地 CI（类型检查 + 构建 + Rust 测试）
+npm run ci
+# 或:
+make ci
+
+# 打包 Tauri 应用
+npm run tauri build
+# 或:
+make bundle
+```
+
+### 后续可拓展建议
+- 接入 ESLint / Prettier / Rust clippy 进行代码质量检查
+- 增加缓存命中率：针对 `Cargo.lock` 与 `package-lock.json`
+- 增加发布签名（macOS / Windows）
+- 增加测试覆盖率统计（例如 tarpaulin + 前端测试框架）
+- 将快速重试与零点更新行为写入 Release Notes（自动生成）
+
 **注意**: 本应用仅用于个人学习和使用，壁纸版权归 Bing 及相应版权方所有。
+
+## 🛡️ 质量检查 (Quality Checks)
+
+项目在本地与 CI 中都执行一套质量门槛（Quality Gates）：
+
+### Rust
+- 格式检查：`cargo fmt -- --check`
+- 静态分析：`cargo clippy -D warnings`
+- 单元测试：`cargo test --all-targets`
+- 可选网络测试（Bing API）：默认忽略，通过设置环境变量 `BING_TEST=1` 再运行：
+  ```bash
+  BING_TEST=1 cargo test -- --ignored
+  ```
+
+### 前端 (TypeScript)
+- 类型检查：`tsc --noEmit`
+- 构建验证：`npm run build`
+- （可选）ESLint：当前尚未启用，已在脚本中预留占位，可后续接入。
+
+### 本地综合质量命令
+使用 npm 脚本：
+```bash
+npm run fmt:check
+npm run lint:rust
+npm run typecheck
+npm run test:rust
+```
+或使用 Makefile：
+```bash
+make check
+```
+
+### CI 中的执行顺序
+1. Node & Rust 环境初始化与缓存
+2. TypeScript 类型检查
+3. Rust fmt & clippy（出现格式差异或警告则失败）
+4. 前端构建
+5. Rust 全目标测试
+6. 可选网络测试（受 `BING_TEST` 控制）
+7. 产物上传（dist / 可选打包）
+
+通过上述流程确保：
+- 没有未格式化的 Rust 代码
+- 没有静态分析警告
+- 类型与构建可持续
+- 网络不稳定不会拖慢默认 CI（测试被忽略）
+

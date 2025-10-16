@@ -7,7 +7,14 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "typecheck": "tsc --noEmit",
+    "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
+    "fmt:check": "cargo fmt --manifest-path src-tauri/Cargo.toml -- --check",
+    "lint:rust": "cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings",
+    "check:rust": "npm run fmt:check && npm run lint:rust && npm run test:rust",
+    "ci": "npm run typecheck && npm run build && npm run test:rust",
+    "lint": "echo 'Add eslint script here if needed'"
   },
   "dependencies": {
     "react": "^18.3.1",

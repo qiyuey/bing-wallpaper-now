@@ -73,7 +73,7 @@ unsafe fn setup_workspace_observer() {
     let notification_name = NSString::from_str("NSWorkspaceActiveSpaceDidChangeNotification");
 
     // 将观察者转换为 AnyObject 引用进行注册
-    let observer_ref: &AnyObject = &**observer;
+    let observer_ref: &AnyObject = &observer;
 
     notification_center.addObserver_selector_name_object(
         observer_ref,

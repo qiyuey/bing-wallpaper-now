@@ -60,7 +60,6 @@ pub struct AppSettings {
 /// Migration helper: in future if more legacy fields are removed or value normalization is needed,
 /// extend this method. Currently the legacy field `auto_apply_latest` is gone; serde silently ignores
 /// it when deserializing persisted JSON, so we just return self unchanged.
-
 impl Default for AppSettings {
     fn default() -> Self {
         Self {
