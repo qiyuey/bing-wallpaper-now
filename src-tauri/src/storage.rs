@@ -5,9 +5,21 @@ use tokio::fs;
 
 /// 获取默认的壁纸存储目录
 pub fn get_default_wallpaper_directory() -> Result<PathBuf> {
-    let pictures_dir = dirs::picture_dir().context("Failed to get pictures directory")?;
+    // Primary attempt: use OS-specific pictures directory
+    if let Some(pictures) = dirs::picture_dir() {
+        return Ok(pictures.join("Bing Wallpaper Now"));
+    }
 
-    Ok(pictures_dir.join("Bing Wallpaper Now"))
+    // Fallback: construct ~/Pictures (cross-platform) then append app folder
+    if let Some(home) = dirs::home_dir() {
+        let pictures = home.join("Pictures");
+        return Ok(pictures.join("Bing Wallpaper Now"));
+    }
+
+    // Both strategies failed
+    anyhow::bail!(
+        "Failed to resolve pictures directory (dirs::picture_dir() and home_dir() both returned None)"
+    );
 }
 
 /// 确保壁纸目录存在
