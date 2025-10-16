@@ -4,6 +4,7 @@ mod models;
 mod storage;
 mod wallpaper_manager;
 
+use chrono::{DateTime, Local};
 use log::{debug, error, info, trace, warn};
 
 use futures::stream::{FuturesUnordered, StreamExt};
@@ -25,6 +26,7 @@ struct AppState {
     wallpaper_directory: Arc<Mutex<PathBuf>>,
     last_tray_click: Arc<Mutex<Option<Instant>>>,
     current_wallpaper_path: Arc<Mutex<Option<PathBuf>>>,
+    last_update_time: Arc<Mutex<Option<DateTime<Local>>>>,
     settings_tx: watch::Sender<AppSettings>,
     settings_rx: watch::Receiver<AppSettings>,
     auto_update_handle: Arc<Mutex<tauri::async_runtime::JoinHandle<()>>>,
@@ -180,6 +182,13 @@ async fn get_default_wallpaper_directory() -> Result<String, String> {
     storage::get_default_wallpaper_directory()
         .map_err(|e| e.to_string())
         .map(|p| p.to_string_lossy().to_string())
+}
+
+/// 获取最后一次成功更新时间（本地时区）
+#[tauri::command]
+async fn get_last_update_time(state: tauri::State<'_, AppState>) -> Result<Option<String>, String> {
+    let guard = state.last_update_time.lock().await;
+    Ok(guard.map(|dt| dt.format("%Y-%m-%d %H:%M:%S").to_string()))
 }
 
 /// 确保壁纸目录存在
@@ -346,6 +355,11 @@ async fn run_update_cycle(app: &AppHandle) {
     }
 
     info!(target: "auto_update", "完成一次更新循环");
+    // 记录最后更新时间
+    {
+        let mut last = state.last_update_time.lock().await;
+        *last = Some(Local::now());
+    }
     // 末尾重置 update_in_progress
     {
         let mut flag = state.update_in_progress.lock().await;
@@ -375,13 +389,37 @@ fn start_auto_update_task(app: AppHandle) {
         let new_handle = tauri::async_runtime::spawn(async move {
             // 初始立即执行一次
             run_update_cycle(&app_clone).await;
-            // 固定间隔循环（1h），后续可根据 Bing 官方每日壁纸发布时间（通常为每日凌晨）再做精确对齐
+            // 小时循环 + 零点对齐
             loop {
-                // 每 1 小时自动更新；若需进一步对齐到每日零点，可在此处计算距下一次零点的 sleep_dur
-                let sleep_dur = Duration::from_secs(3600);
+                // 计算距下一次本地零点（含 5 分钟缓冲）剩余时间
+                let now = Local::now();
+                let tomorrow = now.date_naive().succ_opt().unwrap();
+                let next_midnight = Local
+                    .from_local_datetime(&tomorrow.and_hms_opt(0, 5, 0).unwrap())
+                    .unwrap();
+                let until_midnight = next_midnight - now;
+
+                // 每小时轮询，若距零点不足 1 小时则缩短睡眠以对齐零点
+                let sleep_dur = if let Ok(rem) = until_midnight.to_std() {
+                    if rem <= Duration::from_secs(3600) {
+                        rem
+                    } else {
+                        Duration::from_secs(3600)
+                    }
+                } else {
+                    Duration::from_secs(3600)
+                };
+
                 tokio::select! {
                     _ = tokio::time::sleep(sleep_dur) => {
-                        run_update_cycle(&app_clone).await;
+                        let after_sleep_now = Local::now();
+                        // 若已经跨过零点缓冲（00:05 之前视为零点时段），执行更新；否则按小时例行更新
+                        if after_sleep_now.hour() == 0 && after_sleep_now.minute() <= 5 {
+                            trace!(target:"auto_update","零点窗口内执行每日对齐更新");
+                            run_update_cycle(&app_clone).await;
+                        } else {
+                            run_update_cycle(&app_clone).await;
+                        }
                     }
                     changed = rx.changed() => {
                         if changed.is_err() {
@@ -491,6 +529,7 @@ pub fn run() {
         wallpaper_directory: Arc::new(Mutex::new(default_dir)),
         last_tray_click: Arc::new(Mutex::new(None)),
         current_wallpaper_path: Arc::new(Mutex::new(None)),
+        last_update_time: Arc::new(Mutex::new(None)),
         settings_tx: tx,
         settings_rx: rx,
         auto_update_handle: Arc::new(Mutex::new(tauri::async_runtime::spawn(async {}))),
@@ -520,6 +559,7 @@ pub fn run() {
             cleanup_wallpapers,
             get_wallpaper_directory,
             get_default_wallpaper_directory,
+            get_last_update_time,
             ensure_wallpaper_directory_exists,
             show_main_window,
             force_update,

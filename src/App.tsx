@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./App.css";
 import { useBingWallpapers } from "./hooks/useBingWallpapers";
 import { WallpaperGrid } from "./components/WallpaperGrid";
@@ -19,6 +19,7 @@ function App() {
   } = useBingWallpapers();
 
   const [showSettings, setShowSettings] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState<string | null>(null);
 
   // 处理设置壁纸
   const handleSetWallpaper = async (wallpaper: LocalWallpaper) => {
@@ -34,11 +35,12 @@ function App() {
 
   // 刷新壁纸列表
   const handleRefresh = async () => {
-    // 刷新本地列表
     await fetchLocalWallpapers();
-    // 触发后端一次立即更新（下载/清理/自动应用）
     try {
       await forceUpdate();
+      // 成功后更新最后更新时间
+      const t = await invoke<string | null>("get_last_update_time");
+      setLastUpdate(t);
     } catch (err) {
       console.log("Force update failed:", err);
     }
@@ -61,11 +63,32 @@ function App() {
     }
   };
 
+  // 初始化加载最后更新时间
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const t = await invoke<string | null>("get_last_update_time");
+        setLastUpdate(t);
+      } catch {
+        // 忽略错误
+      }
+    };
+    load();
+  }, []);
+
   return (
     <div className="app">
       <header className="app-header">
         <h1>必应壁纸</h1>
         <div className="header-actions">
+          {lastUpdate && (
+            <div
+              className="last-update"
+              style={{ fontSize: "12px", marginRight: "8px" }}
+            >
+              上次更新: {lastUpdate}
+            </div>
+          )}
           <button onClick={handleRefresh} className="btn btn-icon" title="刷新">
             <svg
               xmlns="http://www.w3.org/2000/svg"
