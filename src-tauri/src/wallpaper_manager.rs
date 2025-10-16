@@ -3,15 +3,15 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
 #[cfg(target_os = "macos")]
-use objc2::mutability::InteriorMutable;
+use objc2::rc::Retained;
 #[cfg(target_os = "macos")]
-use objc2::runtime::{AnyObject, NSObject};
+use objc2::runtime::AnyObject;
 #[cfg(target_os = "macos")]
-use objc2::{declare_class, msg_send_id, rc::Retained, sel, ClassType, DeclaredClass};
+use objc2::{define_class, msg_send, sel, ClassType};
 #[cfg(target_os = "macos")]
 use objc2_app_kit::{NSScreen, NSWorkspace};
 #[cfg(target_os = "macos")]
-use objc2_foundation::{MainThreadMarker, NSDictionary, NSNotification, NSString, NSURL};
+use objc2_foundation::{MainThreadMarker, NSDictionary, NSString, NSURL};
 
 #[cfg(target_os = "macos")]
 use once_cell::sync::Lazy;
@@ -23,22 +23,17 @@ static CURRENT_WALLPAPER: Lazy<Arc<Mutex<Option<PathBuf>>>> =
 
 // 声明 WallpaperObserver 类，用于监听 Space 切换通知
 #[cfg(target_os = "macos")]
-declare_class!(
+use objc2_foundation::NSObject;
+
+#[cfg(target_os = "macos")]
+define_class!(
+    #[unsafe(super(NSObject))]
+    #[name = "WallpaperObserver"]
     struct WallpaperObserver;
 
-    unsafe impl ClassType for WallpaperObserver {
-        type Super = NSObject;
-        type Mutability = InteriorMutable;
-        const NAME: &'static str = "WallpaperObserver";
-    }
-
-    impl DeclaredClass for WallpaperObserver {}
-
-    unsafe impl WallpaperObserver {
-        /// 当 Space 切换时调用此方法
-        #[method(onSpaceChanged:)]
-        fn on_space_changed(&self, _notification: *const NSNotification) {
-            // 重新应用当前壁纸
+    impl WallpaperObserver {
+        #[unsafe(method(onSpaceChanged:))]
+        fn on_space_changed(&self, _notification: &AnyObject) {
             if let Some(path) = CURRENT_WALLPAPER.lock().unwrap().as_ref() {
                 let _ = set_wallpaper_for_all_screens(path);
             }
@@ -71,16 +66,14 @@ unsafe fn setup_workspace_observer() {
     let notification_center = workspace.notificationCenter();
 
     // 创建观察者实例
-    let observer_class = WallpaperObserver::class();
-    let observer: Retained<WallpaperObserver> =
-        msg_send_id![msg_send_id![observer_class, alloc], init];
+    let observer: Retained<WallpaperObserver> = msg_send![WallpaperObserver::class(), new];
 
     // 注册 Space 切换通知
     // NSWorkspaceActiveSpaceDidChangeNotification 是 macOS 系统通知名称
     let notification_name = NSString::from_str("NSWorkspaceActiveSpaceDidChangeNotification");
 
     // 将观察者转换为 AnyObject 引用进行注册
-    let observer_ref: &AnyObject = &observer;
+    let observer_ref: &AnyObject = &**observer;
 
     notification_center.addObserver_selector_name_object(
         observer_ref,
@@ -143,7 +136,7 @@ fn set_wallpaper_for_all_screens(image_path: &Path) -> Result<()> {
 
     // 创建 NSURL
     let ns_path = NSString::from_str(path_str);
-    let url = unsafe { NSURL::fileURLWithPath(&ns_path) };
+    let url = NSURL::fileURLWithPath(&ns_path);
 
     // 获取共享的 NSWorkspace 实例和主线程标记
     // SAFETY: Tauri 在主线程上调用此函数，所有 Objective-C API 调用都是安全的
@@ -153,7 +146,7 @@ fn set_wallpaper_for_all_screens(image_path: &Path) -> Result<()> {
 
         // 获取所有屏幕
         let screens = NSScreen::screens(mtm);
-        let screen_count = screens.count();
+        let screen_count = screens.len();
 
         if screen_count == 0 {
             return Err(anyhow::anyhow!("No screens found"));
