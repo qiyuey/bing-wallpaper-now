@@ -182,11 +182,9 @@ bing-wallpaper-now/
 - [ ] Search/filter wallpapers (by date, title, keywords)
 - [ ] Scheduled wallpaper rotation (hourly/daily/custom)
 
-See [ROADMAP.md](ROADMAP.md) for detailed development plans.
-
 ## 🤝 Contributing
 
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+We welcome all forms of contributions! Whether it's bug reports, feature requests, documentation improvements, or code contributions.
 
 ### Development Workflow
 
@@ -216,19 +214,25 @@ cargo test             # Rust tests
 
 ## 📄 License
 
-This project is licensed under the **Anti-996 License**.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-- **Anti-996 License** - Promotes work-life balance and opposes excessive overtime culture
-- See [LICENSE](LICENSE) for full text
+This project also supports the [Anti-996 License](https://github.com/996icu/996.ICU/blob/master/LICENSE). By using this software, you agree to comply with labor laws and regulations, and not to force employees to work overtime without reasonable compensation.
 
-The Anti-996 License is a software license created by developers to protest the "996 working hour system" (9am-9pm, 6 days a week) prevalent in some tech companies. By using this license, we advocate for:
+**Additional Terms:**
+- This software is for learning, research, and legitimate personal use
+- Users must comply with local labor laws and regulations
+- Prohibited from using this software to exploit workers or violate labor rights
+
+**What is Anti-996?**
+
+The Anti-996 License is created by developers to protest the "996 working hour system" (9am-9pm, 6 days a week) prevalent in some tech companies. By supporting this license, we advocate for:
 
 - ⏰ Reasonable working hours
 - 🏖️ Work-life balance
 - 💪 Developer well-being
 - 🌟 Sustainable software development
 
-**Note**: This license may not be suitable for commercial use in certain jurisdictions. Use at your own discretion.
+MIT © [Bing Wallpaper Now Contributors](https://github.com/qiyuey/bing-wallpaper-now/graphs/contributors)
 
 ## 🙏 Acknowledgments
 
