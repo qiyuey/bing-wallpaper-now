@@ -29,7 +29,7 @@ describe("WallpaperCard", () => {
       <WallpaperCard
         wallpaper={mockWallpaper}
         onSetWallpaper={mockOnSetWallpaper}
-      />
+      />,
     );
 
     expect(screen.getByText("测试壁纸")).toBeInTheDocument();
@@ -41,7 +41,7 @@ describe("WallpaperCard", () => {
       <WallpaperCard
         wallpaper={mockWallpaper}
         onSetWallpaper={mockOnSetWallpaper}
-      />
+      />,
     );
 
     const image = screen.getByAltText("测试壁纸") as HTMLImageElement;
@@ -54,7 +54,7 @@ describe("WallpaperCard", () => {
       <WallpaperCard
         wallpaper={mockWallpaper}
         onSetWallpaper={mockOnSetWallpaper}
-      />
+      />,
     );
 
     const button = screen.getByRole("button", { name: /设置壁纸/i });
@@ -74,7 +74,7 @@ describe("WallpaperCard", () => {
       <WallpaperCard
         wallpaper={wallpaperWithCopyright}
         onSetWallpaper={mockOnSetWallpaper}
-      />
+      />,
     );
 
     expect(screen.getByText("美景")).toBeInTheDocument();
