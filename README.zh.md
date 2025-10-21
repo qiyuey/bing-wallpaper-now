@@ -71,6 +71,17 @@ pnpm run tauri build
 
 从 [GitHub Releases](https://github.com/qiyuey/bing-wallpaper-now/releases) 下载预编译的安装包。
 
+### macOS 安装说明
+
+如果看到"应用已损坏，无法打开"或需要运行 `xattr` 命令，这是未签名开源应用的正常情况。
+
+**快速解决：**
+```bash
+xattr -cr "/Applications/Bing Wallpaper Now.app"
+```
+
+详细解决方案和说明请参考 [macOS 安装指南](docs/MACOS_INSTALL.md)。
+
 ## 📁 项目结构
 
 ```bash

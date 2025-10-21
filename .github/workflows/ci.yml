@@ -203,10 +203,22 @@ jobs:
             - **Intel**: `Bing.Wallpaper.Now_v__VERSION___x64.dmg`
             - **Universal**: `Bing.Wallpaper.Now.app.tar.gz`
 
-            **macOS Installation Note**: If you see "App is damaged and can't be opened", run:
-            ```bash
-            xattr -cr "/Applications/Bing Wallpaper Now.app"
-            ```
+            **⚠️ macOS Security Notice**:
+
+            This app is **not signed or notarized** by Apple (requires $99/year Apple Developer account). When you first open the app, macOS Gatekeeper will block it.
+
+            **Solution (choose one):**
+
+            1. **Command Line** (Recommended):
+               ```bash
+               xattr -cr "/Applications/Bing Wallpaper Now.app"
+               ```
+
+            2. **System Settings**: Open "Settings → Privacy & Security", find the app and click "Open Anyway"
+
+            3. **Right-click**: Control-click the app icon and select "Open"
+
+            This is standard for open-source apps. See [macOS Installation Guide](https://github.com/qiyuey/bing-wallpaper-now/blob/main/docs/MACOS_INSTALL.md) for details.
 
             ### Linux
             - **Debian/Ubuntu**: `bing-wallpaper-now_v__VERSION___amd64.deb`

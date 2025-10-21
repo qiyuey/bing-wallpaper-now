@@ -71,6 +71,17 @@ Build artifacts are located in `src-tauri/target/release/bundle/` directory.
 
 Download pre-built binaries from [GitHub Releases](https://github.com/qiyuey/bing-wallpaper-now/releases).
 
+### macOS Installation Note
+
+If you see "App is damaged and can't be opened" or need to run `xattr` command, this is normal for unsigned open-source apps. 
+
+**Quick fix:**
+```bash
+xattr -cr "/Applications/Bing Wallpaper Now.app"
+```
+
+See [macOS Installation Guide](docs/MACOS_INSTALL.md) for detailed solutions and explanation.
+
 ## 📁 Project Structure
 
 ```bash
