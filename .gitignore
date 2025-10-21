@@ -54,3 +54,6 @@ yarn.lock
 workspace/
 tmp/
 temp/
+
+# Act (local GitHub Actions runner)
+.actrc

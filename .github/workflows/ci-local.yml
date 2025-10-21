@@ -1,0 +1,54 @@
+name: CI Local Test
+
+on:
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: "20"
+
+jobs:
+  lint-and-format:
+    name: Lint & Format Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Rust 代码质量检查
+      - name: Rust Clippy
+        run: cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings
+
+      - name: Rust format check
+        run: cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
+
+      # 前端代码质量检查
+      - name: Frontend Lint
+        run: pnpm run lint
+
+      - name: Frontend format check
+        run: pnpm run format:check
+
+      - name: TypeScript typecheck
+        run: pnpm run typecheck
+
+      - name: Summary
+        run: echo "✅ All lint and format checks passed!"

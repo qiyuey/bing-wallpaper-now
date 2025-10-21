@@ -6,11 +6,16 @@ on:
     branches: [main]
     tags:
       - "v*.*.*"
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
+
+env:
+  NODE_VERSION: "20" # LTS 版本，支持到 2026年4月
 
 jobs:
   build:
@@ -19,42 +24,43 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
 
-      - name: Cache Cargo (registry + git)
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-          key: ${{ runner.os }}-cargo-reg-${{ hashFiles('src-tauri/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-reg-
-
-      - name: Cache Cargo build (debug profile)
-        uses: actions/cache@v4
-        with:
-          path: |
-            src-tauri/target/debug
-            src-tauri/target/.fingerprint
-          key: ${{ runner.os }}-cargo-debug-${{ hashFiles('src-tauri/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-debug-
-
-      - name: Cache pnpm store
-        uses: actions/cache@v4
-        with:
-          path: ~/.pnpm-store
-          key: ${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Cargo dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+          key: ${{ runner.os }}-cargo-${{ hashFiles('src-tauri/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Cache Cargo build
+        uses: actions/cache@v4
+        with:
+          path: src-tauri/target
+          key: ${{ runner.os }}-cargo-build-${{ hashFiles('src-tauri/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-build-
+
       - name: Install Linux dependencies
-        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -62,10 +68,9 @@ jobs:
             libayatana-appindicator3-dev \
             librsvg2-dev \
             patchelf
-      - name: Enable corepack & install dependencies (pnpm)
-        run: |
-          corepack enable
-          pnpm install --frozen-lockfile || pnpm install
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       # Rust 代码质量检查
       - name: Rust Clippy
@@ -88,23 +93,17 @@ jobs:
         run: npm run build
 
       - name: Rust tests
-        run: bash -c "set -o pipefail; cargo test --manifest-path src-tauri/Cargo.toml -- --nocapture | tee test-rust.log"
+        run: cargo test --manifest-path src-tauri/Cargo.toml
+
       - name: Frontend tests
-        run: bash -c "set -o pipefail; npm run test:frontend | tee test-frontend.log"
+        run: pnpm run test:frontend
+
       - name: Upload dist artifact
-        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: dist
           path: dist
-      - name: Upload test logs
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-logs
-          path: |
-            test-rust.log
-            test-frontend.log
+          retention-days: 7
 
   bundle:
     name: Tauri Bundle (${{ matrix.os }})
@@ -120,41 +119,38 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 18
-
-      - name: Cache Cargo (registry + git)
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-          key: ${{ runner.os }}-cargo-reg-${{ hashFiles('src-tauri/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-reg-
-
-      - name: Cache Cargo build (release profile)
-        uses: actions/cache@v4
-        with:
-          path: |
-            src-tauri/target/release
-            src-tauri/target/.fingerprint
-          key: ${{ runner.os }}-cargo-release-${{ hashFiles('src-tauri/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-release-
-
-      - name: Cache pnpm store
-        uses: actions/cache@v4
-        with:
-          path: ~/.pnpm-store
-          key: ${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+          key: ${{ runner.os }}-cargo-${{ hashFiles('src-tauri/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Cache Cargo build (release)
+        uses: actions/cache@v4
+        with:
+          path: src-tauri/target
+          key: ${{ runner.os }}-cargo-release-${{ hashFiles('src-tauri/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-release-
 
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
@@ -166,10 +162,8 @@ jobs:
             librsvg2-dev \
             patchelf
 
-      - name: Enable corepack & install dependencies (pnpm)
-        run: |
-          corepack enable
-          pnpm install --frozen-lockfile || pnpm install
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Download dist artifact
         uses: actions/download-artifact@v4
@@ -177,33 +171,16 @@ jobs:
           name: dist
           path: dist
 
-      - name: Generate release summary
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: |
-          echo "## Release ${GITHUB_REF##*/}" > RELEASE_SUMMARY.md
-          echo "" >> RELEASE_SUMMARY.md
-          echo "Commit: $GITHUB_SHA" >> RELEASE_SUMMARY.md
-          echo "Date: $(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> RELEASE_SUMMARY.md
-          echo "" >> RELEASE_SUMMARY.md
-          echo "Platforms: ubuntu-latest, macos-latest, windows-latest" >> RELEASE_SUMMARY.md
-          echo "Dist reused from build job artifact." >> RELEASE_SUMMARY.md
-
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          args: build
+          args: --bundles deb,appimage,msi,dmg,app
 
       - name: Upload bundles
         uses: actions/upload-artifact@v4
         with:
           name: tauri-bundles-${{ runner.os }}
           path: src-tauri/target/release/bundle
-
-      - name: Upload release summary
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-summary
-          path: RELEASE_SUMMARY.md
+          retention-days: 7
