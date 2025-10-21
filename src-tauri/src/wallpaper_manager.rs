@@ -1,7 +1,10 @@
 use anyhow::Result;
-use log::{debug, info, trace, warn};
-use std::collections::HashMap;
 use std::path::Path;
+
+#[cfg(target_os = "macos")]
+use log::{debug, info, trace, warn};
+#[cfg(target_os = "macos")]
+use std::collections::HashMap;
 #[cfg(target_os = "macos")]
 use std::path::PathBuf;
 #[cfg(target_os = "macos")]
@@ -33,6 +36,7 @@ struct WallpaperState {
     skipped_count: u64,
 }
 
+#[cfg(target_os = "macos")]
 impl Default for WallpaperState {
     fn default() -> Self {
         Self {
