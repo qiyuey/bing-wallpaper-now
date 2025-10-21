@@ -30,6 +30,8 @@ export default [
         setInterval: "readonly",
         clearInterval: "readonly",
         HTMLElement: "readonly",
+        HTMLImageElement: "readonly",
+        global: "readonly",
       },
     },
     plugins: {
