@@ -26,7 +26,7 @@ use once_cell::sync::Lazy;
 
 /// 壁纸状态：记录期望壁纸和各显示器实际壁纸
 #[cfg(target_os = "macos")]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 struct WallpaperState {
     /// 期望设置的壁纸路径
     expected: Option<PathBuf>,
@@ -34,17 +34,6 @@ struct WallpaperState {
     actual_per_screen: HashMap<usize, PathBuf>,
     /// 跳过的重复设置次数（性能统计）
     skipped_count: u64,
-}
-
-#[cfg(target_os = "macos")]
-impl Default for WallpaperState {
-    fn default() -> Self {
-        Self {
-            expected: None,
-            actual_per_screen: HashMap::new(),
-            skipped_count: 0,
-        }
-    }
 }
 
 // 全局静态变量，用于存储壁纸状态

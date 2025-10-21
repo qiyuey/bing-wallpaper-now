@@ -36,7 +36,8 @@ for target in "${TARGETS[@]}"; do
     echo "🎯 Target: ${target}"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-    if cargo check --manifest-path "${MANIFEST}" --target "${target}" 2>&1 | tail -20; then
+    # 只检查 lib，跳过需要系统依赖的部分
+    if cargo check --manifest-path "${MANIFEST}" --target "${target}" --lib 2>&1 | tail -20; then
         echo "✅ ${target} 编译检查通过"
     else
         echo "❌ ${target} 编译检查失败"

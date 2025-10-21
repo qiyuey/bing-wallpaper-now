@@ -226,13 +226,13 @@ check-cross:
 	@printf "$(COLOR_BOLD)$(COLOR_BLUE)🌍 跨平台编译检查...$(COLOR_RESET)\n"
 	./scripts/check-all-platforms.sh
 
-## check-linux: 快速检查 Linux 编译 (GitHub Actions 平台)
+## check-linux: 快速代码质量检查 (Clippy + 格式 + 测试)
 check-linux:
-	@printf "$(COLOR_BOLD)$(COLOR_BLUE)🐧 检查 Linux 编译...$(COLOR_RESET)\n"
+	@printf "$(COLOR_BOLD)$(COLOR_BLUE)🔍 运行代码质量检查...$(COLOR_RESET)\n"
 	./scripts/check-linux.sh
 
 ## check-ci: 模拟 CI 环境检查 (推荐在提交前运行)
-check-ci: check-linux test
+check-ci: check-linux
 	@printf "$(COLOR_BOLD)$(COLOR_GREEN)✅ CI 检查通过$(COLOR_RESET)\n"
 
 # ============================================================================
