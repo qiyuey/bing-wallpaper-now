@@ -278,6 +278,25 @@ cargo-audit:
 	cargo audit --manifest-path $(RUST_MANIFEST)
 
 # ============================================================================
+# 版本管理
+# ============================================================================
+
+## version-patch: 升级补丁版本 (0.1.0 -> 0.1.1)
+version-patch:
+	@printf "$(COLOR_BOLD)$(COLOR_BLUE)📦 升级补丁版本...$(COLOR_RESET)\n"
+	./scripts/version.sh patch
+
+## version-minor: 升级次版本 (0.1.0 -> 0.2.0)
+version-minor:
+	@printf "$(COLOR_BOLD)$(COLOR_BLUE)📦 升级次版本...$(COLOR_RESET)\n"
+	./scripts/version.sh minor
+
+## version-major: 升级主版本 (0.1.0 -> 1.0.0)
+version-major:
+	@printf "$(COLOR_BOLD)$(COLOR_BLUE)📦 升级主版本...$(COLOR_RESET)\n"
+	./scripts/version.sh major
+
+# ============================================================================
 # 工具命令
 # ============================================================================
 
@@ -299,6 +318,9 @@ info:
 	@printf "Tauri CLI: $(COLOR_GREEN)"
 	@$(PKG_MANAGER) run tauri --version | head -n 1
 	@printf "$(COLOR_RESET)"
+	@printf "当前版本: $(COLOR_GREEN)"
+	@grep '"version"' package.json | head -1 | sed 's/.*"version": "\(.*\)".*/\1/'
+	@printf "$(COLOR_RESET)\n"
 
 # ============================================================================
 # CI/CD 相关
@@ -344,6 +366,10 @@ help:
 	@printf "$(COLOR_BOLD)清理命令:$(COLOR_RESET)\n"
 	@printf "  $(COLOR_GREEN)make clean$(COLOR_RESET)            - 清理构建产物\n"
 	@printf "  $(COLOR_GREEN)make clean-all$(COLOR_RESET)        - 深度清理 (包括依赖)\n\n"
+	@printf "$(COLOR_BOLD)版本管理:$(COLOR_RESET)\n"
+	@printf "  $(COLOR_GREEN)make version-patch$(COLOR_RESET)    - 升级补丁版本 (0.1.0 -> 0.1.1)\n"
+	@printf "  $(COLOR_GREEN)make version-minor$(COLOR_RESET)    - 升级次版本 (0.1.0 -> 0.2.0)\n"
+	@printf "  $(COLOR_GREEN)make version-major$(COLOR_RESET)    - 升级主版本 (0.1.0 -> 1.0.0)\n\n"
 	@printf "$(COLOR_BOLD)其他命令:$(COLOR_RESET)\n"
 	@printf "  $(COLOR_GREEN)make install$(COLOR_RESET)          - 安装所有依赖\n"
 	@printf "  $(COLOR_GREEN)make doc$(COLOR_RESET)              - 生成 Rust 文档\n"
