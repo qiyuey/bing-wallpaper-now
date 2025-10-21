@@ -1,4 +1,6 @@
 use anyhow::Result;
+use log::{debug, info, trace, warn};
+use std::collections::HashMap;
 use std::path::Path;
 #[cfg(target_os = "macos")]
 use std::path::PathBuf;
@@ -19,10 +21,76 @@ use objc2_foundation::{MainThreadMarker, NSDictionary, NSString, NSURL};
 #[cfg(target_os = "macos")]
 use once_cell::sync::Lazy;
 
-// 全局静态变量，用于存储当前设置的壁纸路径
+/// 壁纸状态：记录期望壁纸和各显示器实际壁纸
 #[cfg(target_os = "macos")]
-static CURRENT_WALLPAPER: Lazy<Arc<Mutex<Option<PathBuf>>>> =
-    Lazy::new(|| Arc::new(Mutex::new(None)));
+#[derive(Debug, Clone)]
+struct WallpaperState {
+    /// 期望设置的壁纸路径
+    expected: Option<PathBuf>,
+    /// 各显示器实际成功设置的壁纸路径 (screen_index -> path)
+    actual_per_screen: HashMap<usize, PathBuf>,
+    /// 跳过的重复设置次数（性能统计）
+    skipped_count: u64,
+}
+
+impl Default for WallpaperState {
+    fn default() -> Self {
+        Self {
+            expected: None,
+            actual_per_screen: HashMap::new(),
+            skipped_count: 0,
+        }
+    }
+}
+
+// 全局静态变量，用于存储壁纸状态
+#[cfg(target_os = "macos")]
+static WALLPAPER_STATE: Lazy<Arc<Mutex<WallpaperState>>> =
+    Lazy::new(|| Arc::new(Mutex::new(WallpaperState::default())));
+
+/// 获取指定显示器的当前壁纸路径
+#[cfg(target_os = "macos")]
+fn get_desktop_image_url_for_screen(screen_index: usize) -> Option<PathBuf> {
+    unsafe {
+        let mtm = MainThreadMarker::new_unchecked();
+        let workspace = NSWorkspace::sharedWorkspace();
+        let screens = NSScreen::screens(mtm);
+
+        if screen_index >= screens.len() {
+            return None;
+        }
+
+        let screen = screens.objectAtIndex(screen_index);
+
+        // 调用 desktopImageURLForScreen: 方法（需要转换为 &AnyObject）
+        let screen_obj: &AnyObject = &screen;
+        let url: Option<Retained<NSURL>> =
+            msg_send![&workspace, desktopImageURLForScreen: screen_obj];
+
+        url.and_then(|nsurl| {
+            let path_str = nsurl.path()?.to_string();
+            Some(PathBuf::from(path_str))
+        })
+    }
+}
+
+/// 获取所有显示器的当前壁纸路径
+#[cfg(target_os = "macos")]
+fn get_all_desktop_images() -> HashMap<usize, PathBuf> {
+    unsafe {
+        let mtm = MainThreadMarker::new_unchecked();
+        let screens = NSScreen::screens(mtm);
+        let screen_count = screens.len();
+
+        let mut result = HashMap::new();
+        for i in 0..screen_count {
+            if let Some(path) = get_desktop_image_url_for_screen(i) {
+                result.insert(i, path);
+            }
+        }
+        result
+    }
+}
 
 // 声明 WallpaperObserver 类，用于监听 Space 切换通知
 #[cfg(target_os = "macos")]
@@ -37,8 +105,36 @@ define_class!(
     impl WallpaperObserver {
         #[unsafe(method(onSpaceChanged:))]
         fn on_space_changed(&self, _notification: &AnyObject) {
-            if let Some(path) = CURRENT_WALLPAPER.lock().unwrap().as_ref() {
-                let _ = set_wallpaper_for_all_screens(path);
+            trace!(target: "wallpaper", "Space 切换事件触发");
+
+            // 智能对比：只有不一致时才重新设置
+            if let Ok(state) = WALLPAPER_STATE.lock() {
+                if let Some(expected) = &state.expected {
+                    let actual = get_all_desktop_images();
+
+                    // 检查是否所有显示器的壁纸都与期望一致
+                    let all_match = actual.values().all(|path| path == expected);
+
+                    if all_match {
+                        // 壁纸一致，跳过设置
+                        trace!(target: "wallpaper", "所有显示器壁纸已一致，跳过设置");
+                        drop(state);
+                        if let Ok(mut state) = WALLPAPER_STATE.lock() {
+                            state.skipped_count += 1;
+                            if state.skipped_count % 10 == 0 {
+                                info!(target: "wallpaper", "已跳过 {} 次不必要的壁纸设置", state.skipped_count);
+                            }
+                        }
+                        return;
+                    }
+
+                    // 壁纸不一致，需要重新设置
+                    debug!(target: "wallpaper", "检测到壁纸不一致，重新设置: 期望={:?}, 实际={:?}",
+                           expected, actual);
+                    let path = expected.clone();
+                    drop(state);
+                    let _ = set_wallpaper_for_all_screens(&path);
+                }
             }
         }
     }
@@ -117,16 +213,36 @@ pub fn set_wallpaper(image_path: &Path) -> Result<()> {
 /// macOS 专用壁纸设置函数
 ///
 /// 使用 NSWorkspace API 来设置壁纸，可以正确处理全屏应用场景
-/// 遍历所有屏幕并为每个屏幕设置壁纸
+/// 遍历所有屏幕并为每个屏幕设置壁纸，并验证设置结果
 #[cfg(target_os = "macos")]
 fn set_wallpaper_macos(image_path: &Path) -> Result<()> {
-    // 保存当前壁纸路径到全局变量
-    if let Ok(mut current) = CURRENT_WALLPAPER.lock() {
-        *current = Some(image_path.to_path_buf());
+    let target_path = image_path.to_path_buf();
+
+    // 保存期望壁纸路径到全局变量
+    if let Ok(mut state) = WALLPAPER_STATE.lock() {
+        state.expected = Some(target_path.clone());
     }
 
     // 设置壁纸
     set_wallpaper_for_all_screens(image_path)?;
+
+    // 验证设置结果：读取各显示器实际壁纸并记录
+    let actual = get_all_desktop_images();
+
+    if let Ok(mut state) = WALLPAPER_STATE.lock() {
+        state.actual_per_screen = actual.clone();
+
+        // 检查是否所有显示器都设置成功
+        let all_success = actual.values().all(|path| path == &target_path);
+
+        if all_success {
+            info!(target: "wallpaper", "壁纸设置成功并已验证: {:?} (共 {} 个显示器)",
+                  target_path, actual.len());
+        } else {
+            warn!(target: "wallpaper", "部分显示器壁纸设置可能失败: 期望={:?}, 实际={:?}",
+                  target_path, actual);
+        }
+    }
 
     Ok(())
 }
