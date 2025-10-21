@@ -43,10 +43,8 @@ function App() {
   // 处理设置壁纸
   const handleSetWallpaper = async (wallpaper: LocalWallpaper) => {
     try {
-      console.log("Setting wallpaper...", wallpaper);
       // 异步设置，不阻塞 UI
       await setDesktopWallpaper(wallpaper.file_path);
-      console.log("壁纸设置请求已发送");
     } catch (err) {
       console.error("Failed to set wallpaper:", err);
       alert("设置壁纸失败: " + String(err));
@@ -59,7 +57,7 @@ function App() {
     try {
       await forceUpdate();
     } catch (err) {
-      console.log("Force update failed:", err);
+      console.warn("Force update failed:", err);
     }
   };
 
@@ -67,7 +65,6 @@ function App() {
   const handleOpenFolder = async () => {
     try {
       const folderPath = await invoke<string>("get_wallpaper_directory");
-      console.log("Opening folder:", folderPath);
       await invoke("ensure_wallpaper_directory_exists");
       await openPath(folderPath);
     } catch (err) {

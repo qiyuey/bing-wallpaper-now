@@ -41,18 +41,18 @@ make version-major    # 0.1.0 -> 1.0.0
 
 ## 📋 可用脚本
 
-### 1. `check-linux.sh` - 快速代码质量检查 ⚡ (推荐)
+### 1. `check-quality.sh` - 快速代码质量检查 ⚡ (推荐)
 
-**用途**: 在本地快速验证代码质量，包括语法、格式和测试
+**用途**: 在本地快速验证代码质量，包括 Clippy、格式检查和单元测试
 
 **使用方法**:
 
 ```bash
 # 方法 1: 直接运行脚本
-./scripts/check-linux.sh
+./scripts/check-quality.sh
 
 # 方法 2: 使用 Makefile
-make check-linux
+make check-quality
 ```
 
 **包含的检查**:
@@ -67,11 +67,12 @@ make check-linux
 - 最接近 CI 环境的检查
 - **推荐在每次提交前运行**
 
-**关于 Linux 交叉编译**:
+**代码质量保证**:
 
-- ⚠️ Tauri 应用依赖 Linux 系统库（GTK, WebKit），在 macOS 上无法进行真正的交叉编译
-- ✅ 此脚本通过 Clippy、格式和测试来验证代码质量
-- ✅ 完整的 Linux 编译检查在 GitHub Actions CI 中自动进行
+- ✅ Clippy 检查捕获常见错误和代码异味
+- ✅ 格式检查确保代码风格一致
+- ✅ 单元测试验证核心功能
+- ✅ 跨平台兼容性检查在 GitHub Actions CI 中自动进行
 
 ---
 
@@ -131,8 +132,8 @@ make check-ci
 # 1. 修改代码
 vim src-tauri/src/wallpaper_manager.rs
 
-# 2. 快速检查 Linux 编译
-make check-linux
+# 2. 快速代码质量检查
+make check-quality
 
 # 3. 如果通过，提交代码
 git add -A
@@ -167,12 +168,12 @@ git push
 # 1. CI 失败，查看错误信息（例如 Linux 编译错误）
 
 # 2. 本地复现问题
-make check-linux
+make check-quality
 
 # 3. 修改代码
 
 # 4. 再次检查
-make check-linux
+make check-quality
 
 # 5. 确认通过后推送
 git add -A
@@ -208,23 +209,23 @@ git push
 
 对于 Tauri 项目，推荐的本地检查流程：
 
-1. **使用 `make check-linux`**: 运行 Clippy + 格式 + 测试（快速，准确）
-2. **使用 `make check-cross`**: 检查 macOS/Windows 编译（可选）
-3. **依赖 GitHub Actions**: 进行完整的 Linux 编译验证
+1. **使用 `make check-quality`**: 运行代码质量检查（快速，全面）
+2. **使用 `make check-cross`**: 检查跨平台编译兼容性（可选）
+3. **依赖 GitHub Actions**: 进行完整的 CI/CD 流程验证
 
 ### 首次运行
 
-首次运行会自动下载编译目标，需要一些时间：
+首次运行 `check-cross` 会自动下载编译目标，需要一些时间：
 
 ```bash
-$ make check-linux
+$ make check-cross
 📦 安装 x86_64-unknown-linux-gnu...
 info: downloading component 'rust-std' for 'x86_64-unknown-linux-gnu'
 info: installing component 'rust-std' for 'x86_64-unknown-linux-gnu'
 ...
 ```
 
-后续运行会很快。
+后续运行会很快。`check-quality` 无需下载额外依赖，始终快速。
 
 ---
 
@@ -242,7 +243,7 @@ info: installing component 'rust-std' for 'x86_64-unknown-linux-gnu'
 
 ## 💡 最佳实践
 
-1. **每次修改 Rust 代码后运行** `make check-linux`
+1. **每次修改代码后运行** `make check-quality`
 2. **提交前运行** `make check-ci`
 3. **重大重构时运行** `make check-cross`
 4. **配置 Git pre-push hook**（可选）:
@@ -250,7 +251,7 @@ info: installing component 'rust-std' for 'x86_64-unknown-linux-gnu'
 ```bash
 # .git/hooks/pre-push
 #!/bin/sh
-make check-linux
+make check-quality
 ```
 
 ---

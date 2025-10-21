@@ -40,3 +40,4 @@ src-tauri/gen
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+coverage-frontend/

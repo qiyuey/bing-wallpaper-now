@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
-# 快速检查代码语法（跳过 Tauri 特定的 Linux 依赖）
+# 代码质量检查脚本
 #
-# 注意：Tauri 应用依赖 Linux 系统库（GTK, WebKit 等），
-# 在 macOS 上无法进行完整的交叉编译检查。
+# 功能：运行 Clippy、格式检查和单元测试，验证代码质量
+# 用途：日常开发中的快速反馈，建议每次修改代码后运行
 #
-# 此脚本提供语法检查作为快速反馈，完整的编译检查在 CI 中进行。
+# 注意：此脚本不涉及跨平台编译检查，完整的平台兼容性验证在 CI 中进行
 
 set -e
 
 MANIFEST="src-tauri/Cargo.toml"
 
-echo "🔍 运行代码语法和类型检查..."
-echo "注意：此检查验证 Rust 语法和类型，不包含 Linux 系统依赖"
+echo "🔍 运行代码质量检查..."
+echo "包括：Clippy 检查、格式验证、单元测试"
 echo ""
 
 # 方案 1: 使用 cargo clippy 做语法检查（最接近 CI 检查）
@@ -57,7 +57,7 @@ echo "✅ 所有检查通过！"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 echo "💡 提示："
-echo "  - 语法、格式、测试检查已通过"
-echo "  - Linux 系统依赖检查会在 GitHub Actions CI 中自动进行"
+echo "  - 代码质量检查已全部通过"
+echo "  - 跨平台兼容性检查会在 GitHub Actions CI 中自动进行"
 echo "  - 现在可以安全地提交和推送代码"
 echo ""

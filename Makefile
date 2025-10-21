@@ -226,13 +226,13 @@ check-cross:
 	@printf "$(COLOR_BOLD)$(COLOR_BLUE)🌍 跨平台编译检查...$(COLOR_RESET)\n"
 	./scripts/check-all-platforms.sh
 
-## check-linux: 快速代码质量检查 (Clippy + 格式 + 测试)
-check-linux:
+## check-quality: 快速代码质量检查 (Clippy + 格式 + 测试)
+check-quality:
 	@printf "$(COLOR_BOLD)$(COLOR_BLUE)🔍 运行代码质量检查...$(COLOR_RESET)\n"
-	./scripts/check-linux.sh
+	./scripts/check-quality.sh
 
 ## check-ci: 模拟 CI 环境检查 (推荐在提交前运行)
-check-ci: check-linux
+check-ci: check-quality
 	@printf "$(COLOR_BOLD)$(COLOR_GREEN)✅ CI 检查通过$(COLOR_RESET)\n"
 
 # ============================================================================
@@ -361,7 +361,7 @@ help:
 	@printf "  $(COLOR_GREEN)make lint-fix$(COLOR_RESET)         - 自动修复 lint 问题\n\n"
 	@printf "$(COLOR_BOLD)跨平台检查:$(COLOR_RESET)\n"
 	@printf "  $(COLOR_GREEN)make check-cross$(COLOR_RESET)      - 检查所有平台编译\n"
-	@printf "  $(COLOR_GREEN)make check-linux$(COLOR_RESET)      - 快速检查 Linux 编译\n"
+	@printf "  $(COLOR_GREEN)make check-quality$(COLOR_RESET)    - 快速代码质量检查\n"
 	@printf "  $(COLOR_GREEN)make check-ci$(COLOR_RESET)         - 模拟 CI 检查 (推荐)\n\n"
 	@printf "$(COLOR_BOLD)清理命令:$(COLOR_RESET)\n"
 	@printf "  $(COLOR_GREEN)make clean$(COLOR_RESET)            - 清理构建产物\n"

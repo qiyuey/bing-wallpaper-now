@@ -9,6 +9,10 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts,.tsx",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\"",
     "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
     "test:frontend": "vitest run",
     "test": "cargo test --manifest-path src-tauri/Cargo.toml && vitest run"

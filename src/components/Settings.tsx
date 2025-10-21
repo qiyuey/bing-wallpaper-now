@@ -30,7 +30,7 @@ export function Settings({ onClose }: SettingsProps) {
     getDefaultDirectory().then((dir) => {
       if (dir) setDefaultDir(dir);
     });
-  }, []);
+  }, [getDefaultDirectory]);
 
   const handleSave = async () => {
     try {
@@ -42,7 +42,10 @@ export function Settings({ onClose }: SettingsProps) {
     }
   };
 
-  const handleChange = (field: keyof AppSettings, value: any) => {
+  const handleChange = (
+    field: keyof AppSettings,
+    value: string | number | boolean,
+  ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 

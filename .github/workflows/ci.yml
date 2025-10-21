@@ -66,10 +66,27 @@ jobs:
         run: |
           corepack enable
           pnpm install --frozen-lockfile || pnpm install
+
+      # Rust 代码质量检查
+      - name: Rust Clippy
+        run: cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings
+
+      - name: Rust format check
+        run: cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
+
+      # 前端代码质量检查
+      - name: Frontend Lint
+        run: npm run lint
+
+      - name: Frontend format check
+        run: npm run format:check
+
       - name: TypeScript typecheck
         run: npm run typecheck
+
       - name: Frontend build
         run: npm run build
+
       - name: Rust tests
         run: bash -c "set -o pipefail; cargo test --manifest-path src-tauri/Cargo.toml -- --nocapture | tee test-rust.log"
       - name: Frontend tests

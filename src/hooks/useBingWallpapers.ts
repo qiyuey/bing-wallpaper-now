@@ -59,11 +59,7 @@ export function useBingWallpapers() {
    * 设置桌面壁纸（不使用 loading 状态避免影响整体 UI）
    */
   const setDesktopWallpaper = useCallback(async (filePath: string) => {
-    try {
-      await invoke("set_desktop_wallpaper", { filePath });
-    } catch (err) {
-      throw err;
-    }
+    await invoke("set_desktop_wallpaper", { filePath });
   }, []);
 
   /**
@@ -123,6 +119,7 @@ export function useBingWallpapers() {
   useEffect(() => {
     fetchLocalWallpapers(true);
     pollStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 监听后端壁纸更新事件，自动刷新列表（静默刷新，不显示 loading）
@@ -132,7 +129,7 @@ export function useBingWallpapers() {
       try {
         const { listen } = await import("@tauri-apps/api/event");
         unlisten = await listen("wallpaper-updated", () => {
-          console.log("收到壁纸更新事件，刷新列表...");
+          console.warn("收到壁纸更新事件，刷新列表...");
           // 静默刷新，不显示 loading
           fetchLocalWallpapers(false);
           pollStatus();
