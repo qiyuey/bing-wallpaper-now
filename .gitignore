@@ -40,4 +40,17 @@ src-tauri/gen
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+
+# Test coverage
+coverage/
 coverage-frontend/
+.nyc_output/
+
+# Lock files (keep only pnpm-lock.yaml)
+package-lock.json
+yarn.lock
+
+# Temporary directories
+workspace/
+tmp/
+temp/
