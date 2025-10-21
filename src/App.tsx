@@ -44,8 +44,9 @@ function App() {
   const handleSetWallpaper = async (wallpaper: LocalWallpaper) => {
     try {
       console.log("Setting wallpaper...", wallpaper);
+      // 异步设置，不阻塞 UI
       await setDesktopWallpaper(wallpaper.file_path);
-      alert("壁纸已设置成功!");
+      console.log("壁纸设置请求已发送");
     } catch (err) {
       console.error("Failed to set wallpaper:", err);
       alert("设置壁纸失败: " + String(err));

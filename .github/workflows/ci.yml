@@ -53,10 +53,6 @@ jobs:
             ${{ runner.os }}-pnpm-
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
-      - name: Install sccache
-        run: cargo install sccache
-      - name: Configure sccache
-        run: echo "RUSTC_WRAPPER=$(which sccache)" >> $GITHUB_ENV
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
         run: |
@@ -92,9 +88,6 @@ jobs:
           path: |
             test-rust.log
             test-frontend.log
-      - name: sccache stats
-        if: always()
-        run: sccache --show-stats || true
 
   bundle:
     name: Tauri Bundle (${{ matrix.os }})
@@ -145,10 +138,6 @@ jobs:
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
-      - name: Install sccache
-        run: cargo install sccache
-      - name: Configure sccache
-        run: echo "RUSTC_WRAPPER=$(which sccache)" >> $GITHUB_ENV
 
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
@@ -201,6 +190,3 @@ jobs:
         with:
           name: release-summary
           path: RELEASE_SUMMARY.md
-      - name: sccache stats
-        if: always()
-        run: sccache --show-stats || true

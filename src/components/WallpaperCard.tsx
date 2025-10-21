@@ -35,7 +35,7 @@ export function WallpaperCard({
 
     return {
       title,
-      subtitle
+      subtitle,
     };
   };
 
@@ -49,7 +49,7 @@ export function WallpaperCard({
       <div
         className="wallpaper-image-container"
         onClick={handleImageClick}
-        style={{ cursor: 'pointer' }}
+        style={{ cursor: "pointer" }}
         title="点击查看详情"
       >
         <img

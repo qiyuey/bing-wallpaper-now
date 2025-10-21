@@ -37,11 +37,12 @@ struct AppState {
 
 // 下载壁纸
 // (removed obsolete download_wallpaper command)
-/// 设置桌面壁纸
+/// 设置桌面壁纸（异步非阻塞）
 #[tauri::command]
 async fn set_desktop_wallpaper(
     file_path: String,
     state: tauri::State<'_, AppState>,
+    app: tauri::AppHandle,
 ) -> Result<(), String> {
     let path = PathBuf::from(&file_path);
 
@@ -64,11 +65,18 @@ async fn set_desktop_wallpaper(
         return Err("目标文件不存在或不是普通文件".into());
     }
 
-    wallpaper_manager::set_wallpaper(&target_can).map_err(|e| e.to_string())?;
-
-    // 保存当前壁纸路径
-    let mut current_path = state.current_wallpaper_path.lock().await;
-    *current_path = Some(target_can);
+    // 异步执行设置壁纸，避免阻塞 UI
+    let target_for_spawn = target_can.clone();
+    let app_clone = app.clone();
+    tauri::async_runtime::spawn(async move {
+        if let Err(e) = wallpaper_manager::set_wallpaper(&target_for_spawn) {
+            error!(target: "wallpaper", "设置壁纸失败: {e}");
+        } else {
+            let state_clone = app_clone.state::<AppState>();
+            let mut current_path = state_clone.current_wallpaper_path.lock().await;
+            *current_path = Some(target_for_spawn);
+        }
+    });
 
     Ok(())
 }
@@ -364,6 +372,12 @@ async fn run_update_cycle(app: &AppHandle) {
         let mut last = state.last_update_time.lock().await;
         *last = Some(Local::now());
     }
+
+    // 通知前端刷新壁纸列表
+    if let Err(e) = app.emit("wallpaper-updated", ()) {
+        warn!(target: "auto_update", "通知前端失败: {e}");
+    }
+
     // 末尾重置 update_in_progress
     {
         let mut flag = state.update_in_progress.lock().await;

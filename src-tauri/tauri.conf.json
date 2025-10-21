@@ -18,17 +18,18 @@
         "minWidth": 700,
         "minHeight": 500,
         "hiddenTitle": true,
-        "center": true
+        "center": true,
+        "visible": true,
+        "focus": true,
+        "transparent": false,
+        "alwaysOnTop": false
       }
     ],
     "security": {
       "csp": null,
       "assetProtocol": {
         "enable": true,
-        "scope": [
-          "$PICTURE/**",
-          "$HOME/Pictures/**"
-        ]
+        "scope": ["$PICTURE/**", "$HOME/Pictures/**"]
       }
     }
   },

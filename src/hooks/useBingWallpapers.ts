@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { LocalWallpaper } from "../types";
 
@@ -18,52 +18,63 @@ export function useBingWallpapers() {
 
   /**
    * 获取本地壁纸列表
+   * @param showLoading 是否显示加载状态，默认 false 避免不必要的闪烁
    */
-  const fetchLocalWallpapers = async () => {
-    setLoading(true);
+  const fetchLocalWallpapers = useCallback(async (showLoading = false) => {
+    if (showLoading) {
+      setLoading(true);
+    }
     setError(null);
     try {
       const wallpapers = await invoke<LocalWallpaper[]>("get_local_wallpapers");
-      setLocalWallpapers(wallpapers);
+      // 只有数据真正变化时才更新状态，避免不必要的重渲染
+      setLocalWallpapers((prev) => {
+        if (JSON.stringify(prev) === JSON.stringify(wallpapers)) {
+          return prev;
+        }
+        return wallpapers;
+      });
     } catch (err) {
       setError(String(err));
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
-  };
+  }, []);
 
   /**
    * 后端状态轮询：最后更新时间
    */
-  const pollStatus = async () => {
+  const pollStatus = useCallback(async () => {
     try {
       const last = await invoke<string | null>("get_last_update_time");
-      setLastUpdateTime(last);
+      setLastUpdateTime((prev) => (prev === last ? prev : last));
     } catch {
       // 忽略错误，防止抖动
     }
-  };
+  }, []);
 
   /**
    * 设置桌面壁纸（不使用 loading 状态避免影响整体 UI）
    */
-  const setDesktopWallpaper = async (filePath: string) => {
+  const setDesktopWallpaper = useCallback(async (filePath: string) => {
     try {
       await invoke("set_desktop_wallpaper", { filePath });
     } catch (err) {
       throw err;
     }
-  };
+  }, []);
 
   /**
    * 清理旧壁纸
    */
-  const cleanupWallpapers = async () => {
+  const cleanupWallpapers = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const deletedCount = await invoke<number>("cleanup_wallpapers");
-      await fetchLocalWallpapers();
+      await fetchLocalWallpapers(true);
       return deletedCount;
     } catch (err) {
       setError(String(err));
@@ -71,13 +82,13 @@ export function useBingWallpapers() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [fetchLocalWallpapers]);
 
   /**
    * 手动触发后台更新一次（force_update 已在后端执行拉取、下载、清理、自动应用）
    * 成功后更新本地列表与最后更新时间
    */
-  const forceUpdate = async () => {
+  const forceUpdate = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -98,7 +109,7 @@ export function useBingWallpapers() {
       }
 
       await invoke("force_update");
-      await fetchLocalWallpapers();
+      await fetchLocalWallpapers(true);
       await pollStatus();
     } catch (err) {
       setError(String(err));
@@ -106,37 +117,58 @@ export function useBingWallpapers() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [localWallpapers, fetchLocalWallpapers, pollStatus]);
 
-  // 初始加载：只加载本地，并获取一次状态
+  // 初始加载：只加载本地，并获取一次状态（初始加载显示 loading）
   useEffect(() => {
-    fetchLocalWallpapers();
+    fetchLocalWallpapers(true);
     pollStatus();
   }, []);
 
-  // 轮询后台状态（每 5 秒）
+  // 监听后端壁纸更新事件，自动刷新列表（静默刷新，不显示 loading）
+  useEffect(() => {
+    let unlisten: (() => void) | null = null;
+    (async () => {
+      try {
+        const { listen } = await import("@tauri-apps/api/event");
+        unlisten = await listen("wallpaper-updated", () => {
+          console.log("收到壁纸更新事件，刷新列表...");
+          // 静默刷新，不显示 loading
+          fetchLocalWallpapers(false);
+          pollStatus();
+        });
+      } catch (e) {
+        console.error("Failed to bind wallpaper-updated event:", e);
+      }
+    })();
+    return () => {
+      if (unlisten) unlisten();
+    };
+  }, [fetchLocalWallpapers, pollStatus]);
+
+  // 轮询后台状态（降低频率到每 10 秒，减少性能开销）
   useEffect(() => {
     let mounted = true;
     const interval = setInterval(() => {
       if (mounted) {
         pollStatus();
       }
-    }, 5000);
+    }, 10000);
     return () => {
       mounted = false;
       clearInterval(interval);
     };
-  }, []);
+  }, [pollStatus]);
 
   // 计算是否已是最新（衍生状态，避免重复手动更新）
-  const isUpToDate = (() => {
+  const isUpToDate = useMemo(() => {
     if (!localWallpapers.length) return false;
     const now = new Date();
     const todayStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(
       now.getDate(),
     ).padStart(2, "0")}`;
     return localWallpapers[0].start_date === todayStr;
-  })();
+  }, [localWallpapers]);
 
   return {
     localWallpapers,
