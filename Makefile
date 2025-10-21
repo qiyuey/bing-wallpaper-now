@@ -43,7 +43,7 @@ COLOR_CYAN := \033[36m
 .PHONY: test test-rust test-frontend
 .PHONY: fmt lint check pre-commit
 .PHONY: clean deps install
-.PHONY: snapshot-patch snapshot-minor snapshot-major release release-push version-info
+.PHONY: snapshot-patch snapshot-minor snapshot-major release version-info
 .PHONY: help info
 
 # ============================================================================
@@ -132,40 +132,35 @@ check:
 ## pre-commit: 提交前完整 CI 检查 (推荐)
 pre-commit:
 	@printf "$(COLOR_BOLD)$(COLOR_BLUE)🚀 运行提交前检查...$(COLOR_RESET)\n"
-	@./scripts/pre-commit-check.sh
+	@./scripts/check-commit.sh
 
 # ============================================================================
-# 版本管理 (Maven-like)
+# 版本管理 (SNAPSHOT)
 # ============================================================================
 
 ## snapshot-patch: 创建下一个 patch SNAPSHOT 版本 (0.1.0 -> 0.1.1-SNAPSHOT)
 snapshot-patch:
 	@printf "$(COLOR_BOLD)$(COLOR_CYAN)📦 创建 patch SNAPSHOT 版本...$(COLOR_RESET)\n"
-	@./scripts/version-maven.sh snapshot-patch
+	@./scripts/version.sh snapshot-patch
 
 ## snapshot-minor: 创建下一个 minor SNAPSHOT 版本 (0.1.0 -> 0.2.0-SNAPSHOT)
 snapshot-minor:
 	@printf "$(COLOR_BOLD)$(COLOR_CYAN)📦 创建 minor SNAPSHOT 版本...$(COLOR_RESET)\n"
-	@./scripts/version-maven.sh snapshot-minor
+	@./scripts/version.sh snapshot-minor
 
 ## snapshot-major: 创建下一个 major SNAPSHOT 版本 (0.1.0 -> 1.0.0-SNAPSHOT)
 snapshot-major:
 	@printf "$(COLOR_BOLD)$(COLOR_CYAN)📦 创建 major SNAPSHOT 版本...$(COLOR_RESET)\n"
-	@./scripts/version-maven.sh snapshot-major
+	@./scripts/version.sh snapshot-major
 
-## release: 发布当前 SNAPSHOT 为正式版本并打 tag
+## release: 发布当前 SNAPSHOT 为正式版本、打 tag 并推送到远程
 release:
 	@printf "$(COLOR_BOLD)$(COLOR_GREEN)🚀 发布正式版本...$(COLOR_RESET)\n"
-	@./scripts/version-maven.sh release
-
-## release-push: 发布正式版本并推送到远程
-release-push:
-	@printf "$(COLOR_BOLD)$(COLOR_GREEN)🚀 发布并推送正式版本...$(COLOR_RESET)\n"
-	@./scripts/version-maven.sh release-push
+	@./scripts/version.sh release
 
 ## version-info: 显示当前版本信息
 version-info:
-	@./scripts/version-maven.sh info
+	@./scripts/version.sh info
 
 # ============================================================================
 # 清理命令
@@ -213,12 +208,11 @@ help:
 	@printf "  $(COLOR_GREEN)make pre-commit$(COLOR_RESET)       - 提交前完整检查 (推荐)\n"
 	@printf "  $(COLOR_GREEN)make fmt$(COLOR_RESET)              - 格式化所有代码\n"
 	@printf "  $(COLOR_GREEN)make lint$(COLOR_RESET)             - 运行所有 linter\n\n"
-	@printf "$(COLOR_BOLD)📦 版本管理 (Maven-like):$(COLOR_RESET)\n"
+	@printf "$(COLOR_BOLD)📦 版本管理 (SNAPSHOT):$(COLOR_RESET)\n"
 	@printf "  $(COLOR_CYAN)make snapshot-patch$(COLOR_RESET)    - 创建 patch SNAPSHOT (0.1.0 -> 0.1.1-SNAPSHOT)\n"
 	@printf "  $(COLOR_CYAN)make snapshot-minor$(COLOR_RESET)    - 创建 minor SNAPSHOT (0.1.0 -> 0.2.0-SNAPSHOT)\n"
 	@printf "  $(COLOR_CYAN)make snapshot-major$(COLOR_RESET)    - 创建 major SNAPSHOT (0.1.0 -> 1.0.0-SNAPSHOT)\n"
-	@printf "  $(COLOR_GREEN)make release$(COLOR_RESET)           - 发布正式版本并打 tag\n"
-	@printf "  $(COLOR_GREEN)make release-push$(COLOR_RESET)      - 发布并推送到远程\n"
+	@printf "  $(COLOR_GREEN)make release$(COLOR_RESET)           - 发布正式版本、打 tag 并推送到远程\n"
 	@printf "  $(COLOR_BLUE)make version-info$(COLOR_RESET)      - 显示当前版本信息\n\n"
 	@printf "$(COLOR_BOLD)🔧 其他命令:$(COLOR_RESET)\n"
 	@printf "  $(COLOR_GREEN)make install$(COLOR_RESET)          - 安装所有依赖\n"
@@ -231,7 +225,7 @@ help:
 	@printf "  2. 开发新功能...\n\n"
 	@printf "  3. 准备发布:\n"
 	@printf "     $(COLOR_GREEN)make pre-commit$(COLOR_RESET)    → 运行所有检查\n"
-	@printf "     $(COLOR_GREEN)make release-push$(COLOR_RESET)  → 发布 0.1.1 并推送\n\n"
+	@printf "     $(COLOR_GREEN)make release$(COLOR_RESET)       → 发布 0.1.1 并推送到远程\n\n"
 	@printf "  4. GitHub Actions 自动构建并发布到 Releases\n\n"
 	@printf "  5. 继续开发:\n"
 	@printf "     $(COLOR_CYAN)make snapshot-patch$(COLOR_RESET)  → 创建 0.1.2-SNAPSHOT\n\n"
