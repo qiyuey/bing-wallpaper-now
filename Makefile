@@ -218,6 +218,24 @@ check-rust: fmt-check-rust lint-rust
 check-frontend: fmt-check-frontend typecheck lint-frontend
 
 # ============================================================================
+# 跨平台编译检查
+# ============================================================================
+
+## check-cross: 检查所有平台编译 (Linux, Windows, macOS)
+check-cross:
+	@printf "$(COLOR_BOLD)$(COLOR_BLUE)🌍 跨平台编译检查...$(COLOR_RESET)\n"
+	./scripts/check-all-platforms.sh
+
+## check-linux: 快速检查 Linux 编译 (GitHub Actions 平台)
+check-linux:
+	@printf "$(COLOR_BOLD)$(COLOR_BLUE)🐧 检查 Linux 编译...$(COLOR_RESET)\n"
+	./scripts/check-linux.sh
+
+## check-ci: 模拟 CI 环境检查 (推荐在提交前运行)
+check-ci: check-linux test
+	@printf "$(COLOR_BOLD)$(COLOR_GREEN)✅ CI 检查通过$(COLOR_RESET)\n"
+
+# ============================================================================
 # 清理命令
 # ============================================================================
 
@@ -319,6 +337,10 @@ help:
 	@printf "  $(COLOR_GREEN)make fmt$(COLOR_RESET)              - 格式化所有代码\n"
 	@printf "  $(COLOR_GREEN)make lint$(COLOR_RESET)             - 运行所有 linter\n"
 	@printf "  $(COLOR_GREEN)make lint-fix$(COLOR_RESET)         - 自动修复 lint 问题\n\n"
+	@printf "$(COLOR_BOLD)跨平台检查:$(COLOR_RESET)\n"
+	@printf "  $(COLOR_GREEN)make check-cross$(COLOR_RESET)      - 检查所有平台编译\n"
+	@printf "  $(COLOR_GREEN)make check-linux$(COLOR_RESET)      - 快速检查 Linux 编译\n"
+	@printf "  $(COLOR_GREEN)make check-ci$(COLOR_RESET)         - 模拟 CI 检查 (推荐)\n\n"
 	@printf "$(COLOR_BOLD)清理命令:$(COLOR_RESET)\n"
 	@printf "  $(COLOR_GREEN)make clean$(COLOR_RESET)            - 清理构建产物\n"
 	@printf "  $(COLOR_GREEN)make clean-all$(COLOR_RESET)        - 深度清理 (包括依赖)\n\n"
