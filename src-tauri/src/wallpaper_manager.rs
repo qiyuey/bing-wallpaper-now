@@ -101,33 +101,33 @@ define_class!(
             trace!(target: "wallpaper", "Space 切换事件触发");
 
             // 智能对比：只有不一致时才重新设置
-            if let Ok(state) = WALLPAPER_STATE.lock() {
-                if let Some(expected) = &state.expected {
-                    let actual = get_all_desktop_images();
+            if let Ok(state) = WALLPAPER_STATE.lock()
+                && let Some(expected) = &state.expected
+            {
+                let actual = get_all_desktop_images();
 
-                    // 检查是否所有显示器的壁纸都与期望一致
-                    let all_match = actual.values().all(|path| path == expected);
+                // 检查是否所有显示器的壁纸都与期望一致
+                let all_match = actual.values().all(|path| path == expected);
 
-                    if all_match {
-                        // 壁纸一致，跳过设置
-                        trace!(target: "wallpaper", "所有显示器壁纸已一致，跳过设置");
-                        drop(state);
-                        if let Ok(mut state) = WALLPAPER_STATE.lock() {
-                            state.skipped_count += 1;
-                            if state.skipped_count % 10 == 0 {
-                                info!(target: "wallpaper", "已跳过 {} 次不必要的壁纸设置", state.skipped_count);
-                            }
-                        }
-                        return;
-                    }
-
-                    // 壁纸不一致，需要重新设置
-                    debug!(target: "wallpaper", "检测到壁纸不一致，重新设置: 期望={:?}, 实际={:?}",
-                           expected, actual);
-                    let path = expected.clone();
+                if all_match {
+                    // 壁纸一致，跳过设置
+                    trace!(target: "wallpaper", "所有显示器壁纸已一致，跳过设置");
                     drop(state);
-                    let _ = set_wallpaper_for_all_screens(&path);
+                    if let Ok(mut state) = WALLPAPER_STATE.lock() {
+                        state.skipped_count += 1;
+                        if state.skipped_count % 10 == 0 {
+                            info!(target: "wallpaper", "已跳过 {} 次不必要的壁纸设置", state.skipped_count);
+                        }
+                    }
+                    return;
                 }
+
+                // 壁纸不一致，需要重新设置
+                debug!(target: "wallpaper", "检测到壁纸不一致，重新设置: 期望={:?}, 实际={:?}",
+                       expected, actual);
+                let path = expected.clone();
+                drop(state);
+                let _ = set_wallpaper_for_all_screens(&path);
             }
         }
     }

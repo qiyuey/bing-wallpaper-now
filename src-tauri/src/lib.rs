@@ -13,12 +13,12 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tauri::{
+    AppHandle, Emitter, Manager,
     menu::{MenuBuilder, MenuItemBuilder},
     tray::{TrayIconBuilder, TrayIconEvent},
-    AppHandle, Emitter, Manager,
 };
 use tauri_plugin_autostart::ManagerExt;
-use tokio::sync::{watch, Mutex};
+use tokio::sync::{Mutex, watch};
 
 /// 全局状态管理
 struct AppState {
@@ -354,15 +354,15 @@ async fn run_update_cycle(app: &AppHandle) {
     }
 
     // 自动应用最新壁纸：现在无条件执行
-    if let Ok(list) = storage::get_local_wallpapers(&dir).await {
-        if let Some(first) = list.first() {
-            let path = PathBuf::from(&first.file_path);
-            if let Err(e) = wallpaper_manager::set_wallpaper(&path) {
-                error!(target: "auto_update", "设置壁纸失败: {e}");
-            } else {
-                let mut current_path = state.current_wallpaper_path.lock().await;
-                *current_path = Some(path);
-            }
+    if let Ok(list) = storage::get_local_wallpapers(&dir).await
+        && let Some(first) = list.first()
+    {
+        let path = PathBuf::from(&first.file_path);
+        if let Err(e) = wallpaper_manager::set_wallpaper(&path) {
+            error!(target: "auto_update", "设置壁纸失败: {e}");
+        } else {
+            let mut current_path = state.current_wallpaper_path.lock().await;
+            *current_path = Some(path);
         }
     }
 
@@ -527,30 +527,30 @@ fn setup_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
         .tooltip("Bing Wallpaper Now")
         .show_menu_on_left_click(false)
         .on_tray_icon_event(|tray, event| {
-            if let TrayIconEvent::Click { button, .. } = event {
-                if button == tauri::tray::MouseButton::Left {
-                    let app = tray.app_handle();
-                    if let Some(state) = app.try_state::<AppState>() {
-                        let now = Instant::now();
-                        let mut last_click =
-                            tauri::async_runtime::block_on(state.last_tray_click.lock());
+            if let TrayIconEvent::Click { button, .. } = event
+                && button == tauri::tray::MouseButton::Left
+            {
+                let app = tray.app_handle();
+                if let Some(state) = app.try_state::<AppState>() {
+                    let now = Instant::now();
+                    let mut last_click =
+                        tauri::async_runtime::block_on(state.last_tray_click.lock());
 
-                        if let Some(last) = *last_click {
-                            if now.duration_since(last) < Duration::from_millis(300) {
-                                return;
-                            }
-                        }
+                    if let Some(last) = *last_click
+                        && now.duration_since(last) < Duration::from_millis(300)
+                    {
+                        return;
+                    }
 
-                        *last_click = Some(now);
-                        drop(last_click);
+                    *last_click = Some(now);
+                    drop(last_click);
 
-                        if let Some(window) = app.get_webview_window("main") {
-                            if window.is_visible().unwrap_or(false) {
-                                let _ = window.hide();
-                            } else {
-                                let _ = window.show();
-                                let _ = window.set_focus();
-                            }
+                    if let Some(window) = app.get_webview_window("main") {
+                        if window.is_visible().unwrap_or(false) {
+                            let _ = window.hide();
+                        } else {
+                            let _ = window.show();
+                            let _ = window.set_focus();
                         }
                     }
                 }

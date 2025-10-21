@@ -55,10 +55,10 @@ pub async fn get_local_wallpapers(directory: &Path) -> Result<Vec<LocalWallpaper
         if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("jpg") {
             // 尝试读取元数据文件
             let metadata_path = path.with_extension("json");
-            if let Ok(metadata_content) = fs::read_to_string(&metadata_path).await {
-                if let Ok(wallpaper) = serde_json::from_str::<LocalWallpaper>(&metadata_content) {
-                    wallpapers.push(wallpaper);
-                }
+            if let Ok(metadata_content) = fs::read_to_string(&metadata_path).await
+                && let Ok(wallpaper) = serde_json::from_str::<LocalWallpaper>(&metadata_content)
+            {
+                wallpapers.push(wallpaper);
             }
         }
     }
