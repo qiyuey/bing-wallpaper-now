@@ -46,11 +46,11 @@ MAJOR.MINOR.PATCH
 
 ### 何时升级版本号
 
-| 版本类型 | 何时使用 | 示例变更 | 命令 |
-|---------|---------|---------|------|
+| 版本类型  | 何时使用         | 示例变更         | 命令                 |
+| --------- | ---------------- | ---------------- | -------------------- |
 | **PATCH** | Bug 修复，小改进 | 修复壁纸设置失败 | `make version-patch` |
 | **MINOR** | 新功能，向后兼容 | 添加多显示器支持 | `make version-minor` |
-| **MAJOR** | 破坏性更改 | 重构存储结构 | `make version-major` |
+| **MAJOR** | 破坏性更改       | 重构存储结构     | `make version-major` |
 
 ---
 
@@ -59,36 +59,43 @@ MAJOR.MINOR.PATCH
 `version.sh` 脚本会自动完成以下操作：
 
 ### 1. 检查环境
+
 - ✅ 验证 Git 仓库状态
-- ⚠️  检查是否有未提交的更改（可继续）
+- ⚠️ 检查是否有未提交的更改（可继续）
 
 ### 2. 更新版本号
+
 自动更新以下三个文件：
 
-| 文件 | 说明 |
-|-----|------|
-| `package.json` | Node.js 包配置 |
-| `src-tauri/Cargo.toml` | Rust 包配置 |
+| 文件                        | 说明           |
+| --------------------------- | -------------- |
+| `package.json`              | Node.js 包配置 |
+| `src-tauri/Cargo.toml`      | Rust 包配置    |
 | `src-tauri/tauri.conf.json` | Tauri 应用配置 |
 
 ### 3. 更新 Cargo.lock
+
 ```bash
 cargo update -p bing-wallpaper-now
 ```
 
 ### 4. Git 提交
+
 ```bash
 git add package.json src-tauri/Cargo.toml src-tauri/tauri.conf.json src-tauri/Cargo.lock
 git commit -m "chore(release): x.y.z"
 ```
 
 ### 5. 创建 Git 标签
+
 ```bash
 git tag -a vx.y.z -m "Release x.y.z"
 ```
 
 ### 6. 推送（可选）
+
 脚本会询问是否立即推送：
+
 ```bash
 git push origin main
 git push origin vx.y.z
@@ -113,27 +120,27 @@ make version-patch
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #   Tauri 版本更新
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# 
+#
 # ℹ 当前版本: 0.1.0
 # ℹ 新版本:   0.1.1
-# 
+#
 # 确认更新版本？(y/N) y
-# 
+#
 # ✓ package.json 已更新为 0.1.1
 # ✓ src-tauri/Cargo.toml 已更新为 0.1.1
 # ✓ src-tauri/tauri.conf.json 已更新为 0.1.1
 # ✓ Cargo.lock 已更新
 # ✓ 已创建提交
 # ✓ 已创建标签 v0.1.1
-# 
+#
 # ✓ 版本已更新为 0.1.1
-# 
+#
 # ℹ 下一步：
 #   git push origin main
 #   git push origin v0.1.1
-# 
+#
 # 是否立即推送到远程？(y/N) y
-# 
+#
 # ✓ 已推送到远程
 # ✓ 完成！
 ```
@@ -169,21 +176,25 @@ make version-minor
 在发布新版本前，确保完成以下步骤：
 
 ### 1. 代码质量检查
+
 ```bash
 make check-ci
 ```
 
 ### 2. 运行完整测试
+
 ```bash
 make test
 ```
 
 ### 3. 构建测试
+
 ```bash
 make bundle
 ```
 
 ### 4. 更新 CHANGELOG（可选）
+
 ```bash
 vim CHANGELOG.md
 git add CHANGELOG.md
@@ -191,11 +202,13 @@ git commit -m "docs: update changelog for vx.y.z"
 ```
 
 ### 5. 升级版本
+
 ```bash
 make version-patch  # 或 minor / major
 ```
 
 ### 6. 验证发布
+
 - 检查 GitHub Releases
 - 验证标签已推送
 - 测试安装包
@@ -249,12 +262,14 @@ update_custom_file "$new_version"
 ### 问题 1: 工作目录有未提交的更改
 
 **错误信息：**
+
 ```
 ⚠ 工作目录有未提交的更改
 是否继续？(y/N)
 ```
 
 **解决方案：**
+
 ```bash
 # 选项 1: 提交更改
 git add -A
@@ -271,6 +286,7 @@ git stash
 脚本已处理 macOS 和 Linux 的差异。
 
 如果仍有问题，安装 `jq`：
+
 ```bash
 # macOS
 brew install jq
@@ -284,6 +300,7 @@ sudo apt-get install jq
 **症状：** 三个文件的版本号不同步
 
 **解决方案：**
+
 ```bash
 # 手动同步版本号
 vim package.json
@@ -297,11 +314,13 @@ make version-patch
 ### 问题 4: 标签已存在
 
 **错误信息：**
+
 ```
 fatal: tag 'v0.1.1' already exists
 ```
 
 **解决方案：**
+
 ```bash
 # 删除本地标签
 git tag -d v0.1.1
@@ -328,17 +347,17 @@ make version-patch
 
 推荐使用 [Conventional Commits](https://www.conventionalcommits.org/zh-hans/) 规范：
 
-| 类型 | 说明 | 版本影响 |
-|-----|------|---------|
-| `feat:` | 新功能 | MINOR |
-| `fix:` | Bug 修复 | PATCH |
-| `docs:` | 文档更新 | 无 |
-| `style:` | 代码格式 | 无 |
-| `refactor:` | 重构 | 无/MINOR |
-| `perf:` | 性能优化 | PATCH |
-| `test:` | 测试相关 | 无 |
-| `chore:` | 构建/工具 | 无 |
-| `BREAKING CHANGE:` | 破坏性更改 | MAJOR |
+| 类型               | 说明       | 版本影响 |
+| ------------------ | ---------- | -------- |
+| `feat:`            | 新功能     | MINOR    |
+| `fix:`             | Bug 修复   | PATCH    |
+| `docs:`            | 文档更新   | 无       |
+| `style:`           | 代码格式   | 无       |
+| `refactor:`        | 重构       | 无/MINOR |
+| `perf:`            | 性能优化   | PATCH    |
+| `test:`            | 测试相关   | 无       |
+| `chore:`           | 构建/工具  | 无       |
+| `BREAKING CHANGE:` | 破坏性更改 | MAJOR    |
 
 ### 示例
 
@@ -372,7 +391,7 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 jobs:
   release:
@@ -412,6 +431,7 @@ pnpm run release
 ## 💡 最佳实践
 
 1. **提交前运行测试**
+
    ```bash
    make check-ci && make test
    ```
@@ -444,6 +464,7 @@ pnpm run release
 **Q: 如何撤销版本升级？**
 
 A: 如果还没推送：
+
 ```bash
 git reset --hard HEAD~1
 git tag -d vx.y.z
@@ -452,6 +473,7 @@ git tag -d vx.y.z
 **Q: 如何查看所有版本标签？**
 
 A:
+
 ```bash
 git tag -l
 # 或
@@ -465,6 +487,7 @@ A: 优先从 `package.json` 读取当前版本。
 **Q: 支持预发布版本吗？**
 
 A: 支持，使用完整版本号：
+
 ```bash
 ./scripts/version.sh 1.0.0-beta.1
 ```
@@ -472,6 +495,7 @@ A: 支持，使用完整版本号：
 **Q: 如何与 npm version 集成？**
 
 A: 可以在 `package.json` 添加钩子：
+
 ```json
 {
   "scripts": {

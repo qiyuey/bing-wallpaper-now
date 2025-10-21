@@ -4,11 +4,49 @@
 
 ## 📋 可用脚本
 
+### 🏷️ 版本管理
+
+**`version.sh`** - 自动版本管理（类似 npm version）
+
+快速升级版本号并创建 Git 标签：
+
+```bash
+# 使用 Makefile（推荐）
+make version-patch    # 0.1.0 -> 0.1.1
+make version-minor    # 0.1.0 -> 0.2.0
+make version-major    # 0.1.0 -> 1.0.0
+
+# 或直接使用脚本
+./scripts/version.sh patch
+./scripts/version.sh minor
+./scripts/version.sh major
+./scripts/version.sh 1.2.3  # 指定版本
+```
+
+**自动完成的操作：**
+
+- ✅ 更新 `package.json` 版本号
+- ✅ 更新 `src-tauri/Cargo.toml` 版本号
+- ✅ 更新 `src-tauri/tauri.conf.json` 版本号
+- ✅ 更新 `Cargo.lock`
+- ✅ Git 提交（`chore(release): x.y.z`）
+- ✅ 创建 Git 标签（`vx.y.z`）
+- ✅ 可选：推送到远程
+
+详细文档：[VERSION_MANAGEMENT.md](../docs/VERSION_MANAGEMENT.md)
+
+---
+
+### 🔍 跨平台编译检查
+
+## 📋 可用脚本
+
 ### 1. `check-linux.sh` - 快速代码质量检查 ⚡ (推荐)
 
 **用途**: 在本地快速验证代码质量，包括语法、格式和测试
 
 **使用方法**:
+
 ```bash
 # 方法 1: 直接运行脚本
 ./scripts/check-linux.sh
@@ -18,16 +56,19 @@ make check-linux
 ```
 
 **包含的检查**:
+
 - ✅ Clippy 代码检查（捕获常见错误）
 - ✅ 代码格式检查
 - ✅ 单元测试
 
 **特点**:
+
 - 速度快（不涉及交叉编译）
 - 最接近 CI 环境的检查
 - **推荐在每次提交前运行**
 
 **关于 Linux 交叉编译**:
+
 - ⚠️ Tauri 应用依赖 Linux 系统库（GTK, WebKit），在 macOS 上无法进行真正的交叉编译
 - ✅ 此脚本通过 Clippy、格式和测试来验证代码质量
 - ✅ 完整的 Linux 编译检查在 GitHub Actions CI 中自动进行
@@ -39,6 +80,7 @@ make check-linux
 **用途**: 检查代码在所有主要平台上的编译情况
 
 **使用方法**:
+
 ```bash
 # 方法 1: 直接运行脚本
 ./scripts/check-all-platforms.sh
@@ -48,12 +90,14 @@ make check-cross
 ```
 
 **检查的平台**:
+
 - ✅ Linux (x86_64-unknown-linux-gnu)
 - ✅ Windows (x86_64-pc-windows-msvc)
 - ✅ macOS Intel (x86_64-apple-darwin)
 - ✅ macOS Apple Silicon (aarch64-apple-darwin)
 
 **特点**:
+
 - 全面覆盖
 - 自动安装所有必要的编译目标
 - 显示详细的结果汇总
@@ -65,11 +109,13 @@ make check-cross
 **用途**: 模拟 GitHub Actions CI 检查流程
 
 **使用方法**:
+
 ```bash
 make check-ci
 ```
 
 **包含的检查**:
+
 1. Linux 平台编译检查
 2. 运行所有单元测试
 
@@ -161,6 +207,7 @@ git push
 ### 实际建议
 
 对于 Tauri 项目，推荐的本地检查流程：
+
 1. **使用 `make check-linux`**: 运行 Clippy + 格式 + 测试（快速，准确）
 2. **使用 `make check-cross`**: 检查 macOS/Windows 编译（可选）
 3. **依赖 GitHub Actions**: 进行完整的 Linux 编译验证
@@ -183,13 +230,13 @@ info: installing component 'rust-std' for 'x86_64-unknown-linux-gnu'
 
 ## 📊 与 CI 的对比
 
-| 特性 | 本地检查 | GitHub Actions |
-|------|---------|----------------|
-| 速度 | ⚡ 快 (秒级) | 🐢 慢 (分钟级) |
-| 成本 | 免费 | 有配额限制 |
-| 反馈周期 | 即时 | 需要推送等待 |
-| 完整性 | 编译检查 | 完整 CI 流程 |
-| 建议用途 | 开发时快速验证 | 最终验证 |
+| 特性     | 本地检查       | GitHub Actions |
+| -------- | -------------- | -------------- |
+| 速度     | ⚡ 快 (秒级)   | 🐢 慢 (分钟级) |
+| 成本     | 免费           | 有配额限制     |
+| 反馈周期 | 即时           | 需要推送等待   |
+| 完整性   | 编译检查       | 完整 CI 流程   |
+| 建议用途 | 开发时快速验证 | 最终验证       |
 
 ---
 
