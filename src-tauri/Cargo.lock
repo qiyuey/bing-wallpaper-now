@@ -321,7 +321,6 @@ dependencies = [
  "objc2 0.6.3",
  "objc2-app-kit",
  "objc2-foundation 0.3.2",
- "once_cell",
  "reqwest",
  "serde",
  "serde_json",

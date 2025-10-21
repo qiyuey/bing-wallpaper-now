@@ -15,14 +15,14 @@ use objc2::rc::Retained;
 #[cfg(target_os = "macos")]
 use objc2::runtime::AnyObject;
 #[cfg(target_os = "macos")]
-use objc2::{define_class, msg_send, sel, ClassType};
+use objc2::{ClassType, define_class, msg_send, sel};
 #[cfg(target_os = "macos")]
 use objc2_app_kit::{NSScreen, NSWorkspace};
 #[cfg(target_os = "macos")]
 use objc2_foundation::{MainThreadMarker, NSDictionary, NSString, NSURL};
 
 #[cfg(target_os = "macos")]
-use once_cell::sync::Lazy;
+use std::sync::LazyLock;
 
 /// 壁纸状态：记录期望壁纸和各显示器实际壁纸
 #[cfg(target_os = "macos")]
@@ -38,8 +38,8 @@ struct WallpaperState {
 
 // 全局静态变量，用于存储壁纸状态
 #[cfg(target_os = "macos")]
-static WALLPAPER_STATE: Lazy<Arc<Mutex<WallpaperState>>> =
-    Lazy::new(|| Arc::new(Mutex::new(WallpaperState::default())));
+static WALLPAPER_STATE: LazyLock<Arc<Mutex<WallpaperState>>> =
+    LazyLock::new(|| Arc::new(Mutex::new(WallpaperState::default())));
 
 /// 获取指定显示器的当前壁纸路径
 #[cfg(target_os = "macos")]
@@ -167,12 +167,15 @@ unsafe fn setup_workspace_observer() {
     // 将观察者转换为 AnyObject 引用进行注册
     let observer_ref: &AnyObject = &observer;
 
-    notification_center.addObserver_selector_name_object(
-        observer_ref,
-        sel!(onSpaceChanged:),
-        Some(&notification_name),
-        None,
-    );
+    // Rust 2024: unsafe 函数内的 unsafe 操作需要显式 unsafe 块
+    unsafe {
+        notification_center.addObserver_selector_name_object(
+            observer_ref,
+            sel!(onSpaceChanged:),
+            Some(&notification_name),
+            None,
+        );
+    }
 
     // 使用 std::mem::forget 防止观察者被释放
     // 这样观察者会一直存活，直到程序退出
