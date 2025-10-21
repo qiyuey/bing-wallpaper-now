@@ -1,21 +1,59 @@
-MIT License
+# "Anti 996" License Version 1.0 (Draft)
 
-Copyright (c) 2025 yuchuan
+## Purpose
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+The purpose of this License is to protect workers' rights and prevent exploitative labor practices, particularly the "996" work schedule (working 9am to 9pm, 6 days a week) that is prevalent in some technology companies.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+## License Grant
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+Permission is hereby granted to any individual or legal entity obtaining a copy of this licensed work (including the source code, documentation, and related materials) to deal in the work without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the work, and to permit persons to whom the work is furnished to do so, subject to the following conditions:
+
+## Conditions
+
+1. **License Display**: The above copyright notice and this license shall be included in all copies or substantial portions of the work.
+
+2. **Labor Law Compliance**: The individual or the legal entity must strictly comply with all applicable laws, regulations, rules and standards of the jurisdiction relating to labor and employment where the individual is physically located or where the individual was born or naturalized; or where the legal entity is registered or is operating (whichever is stricter). In case that the jurisdiction has no such laws, regulations, rules and standards or its laws, regulations, rules and standards are unenforceable, the individual or the legal entity are required to comply with Core International Labour Standards.
+
+3. **No Coercion**: The individual or the legal entity must not induce, suggest or force its employee(s), whether full-time or part-time, or its independent contractor(s), in any methods, to agree in oral or written form, to directly or indirectly restrict, weaken or relinquish his or her rights or remedies under such laws, regulations, rules and standards relating to labor and employment as mentioned above, no matter whether such written or oral agreements are enforceable under the laws of the said jurisdiction, nor shall such individual or the legal entity limit, in any methods, the rights of its employee(s) or independent contractor(s) from reporting or complaining to the copyright holder or relevant authorities monitoring the compliance of the license about its violation(s) of the said license.
+
+## Core International Labour Standards
+
+"Core International Labour Standards" means the fundamental rights set out in:
+
+- Freedom of Association and Protection of the Right to Organise Convention, 1948 (No. 87)
+- Right to Organise and Collective Bargaining Convention, 1949 (No. 98)
+- Forced Labour Convention, 1930 (No. 29) (and its 2014 Protocol)
+- Abolition of Forced Labour Convention, 1957 (No. 105)
+- Minimum Age Convention, 1973 (No. 138)
+- Worst Forms of Child Labour Convention, 1999 (No. 182)
+- Equal Remuneration Convention, 1951 (No. 100)
+- Discrimination (Employment and Occupation) Convention, 1958 (No. 111)
+
+## Disclaimer
+
+THE LICENSED WORK IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE LICENSED WORK OR THE USE OR OTHER DEALINGS IN THE LICENSED WORK.
+
+---
+
+## About This License
+
+The "Anti 996" License was created by developers to protest against the "996" working hour system (working 9am-9pm, 6 days a week) that is common in some tech companies, particularly in China. This license aims to:
+
+- Protect workers' fundamental labor rights
+- Promote work-life balance
+- Encourage sustainable software development practices
+- Raise awareness about labor rights in the tech industry
+
+By using this license, we stand against exploitative labor practices and support fair working conditions for all software developers and workers.
+
+## Additional Information
+
+For more information about the 996.ICU movement and this license, visit:
+- https://github.com/996icu/996.ICU
+- https://996.icu
+
+---
+
+Copyright (c) 2025 Bing Wallpaper Now Contributors
+
+This project is licensed under the "Anti 996" License Version 1.0.

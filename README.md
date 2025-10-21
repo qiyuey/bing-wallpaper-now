@@ -1,276 +1,250 @@
 # Bing Wallpaper Now
 
-一个基于 Tauri 的跨平台桌面应用，每天自动获取并设置 Bing 精美壁纸。
+[English](README.md) | [中文](README.zh.md)
+
+A cross-platform desktop application built with Tauri that automatically fetches and sets beautiful Bing daily wallpapers.
 
 ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)
 ![Tauri](https://img.shields.io/badge/Tauri-2.0-blue)
 ![React](https://img.shields.io/badge/React-18-blue)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)
-![Rust](https://img.shields.io/badge/Rust-1.70+-orange)
+![Rust](https://img.shields.io/badge/Rust-2024-orange)
+![License](https://img.shields.io/badge/license-Anti--996-blue)
 
-## ✨ 特性
+## ✨ Features
 
-### 核心功能
+### Core Functionality
 
-- 📸 **每日壁纸** - 自动获取 Bing 每日精选壁纸（最多 8 张）
-- 🖼️ **高清下载** - 支持 UHD 超高清分辨率下载
-- 🎨 **一键设置** - 点击即可设置为桌面壁纸
-- 📁 **本地管理** - 自动保存壁纸到本地，支持历史记录浏览
-- 🔄 **后台更新** - 自动在后台下载新壁纸，不阻塞界面
-- 🗑️ **智能清理** - 根据保留数量自动清理旧壁纸
+- 📸 **Daily Wallpapers** - Automatically fetch Bing's daily featured wallpapers (up to 8)
+- 🖼️ **High Resolution** - Download in UHD (Ultra High Definition) resolution
+- 🎨 **One-Click Setup** - Set as desktop wallpaper with a single click
+- 📁 **Local Management** - Automatically save wallpapers locally with history browsing
+- 🔄 **Background Updates** - Auto-download new wallpapers in the background without blocking UI
+- 🗑️ **Smart Cleanup** - Automatically clean old wallpapers based on retention count
 
-### macOS 特色功能
+### macOS Exclusive Features
 
-- 🖥️ **多显示器支持** - 同时为所有显示器设置壁纸
-- 🎯 **全屏应用支持** - 完美处理全屏应用场景下的壁纸设置
-- 🔄 **Space 自动恢复** - 切换 Space 或退出全屏时自动恢复壁纸
-- 🎪 **原生 API** - 使用 NSWorkspace API (objc2) 实现原生体验
+- 🖥️ **Multi-Monitor Support** - Set wallpaper for all displays simultaneously
+- 🎯 **Fullscreen App Support** - Perfect handling of wallpaper setting in fullscreen scenarios
+- 🔄 **Space Auto-Recovery** - Automatically restore wallpaper when switching Spaces or exiting fullscreen
+- 🎪 **Native API** - Uses NSWorkspace API (objc2) for native experience
 
-### 用户体验
+### User Experience
 
-- 🚀 **快速响应** - 优先加载本地缓存，后台获取远程数据
-- 💾 **系统托盘** - 最小化到托盘，不占用任务栏空间
-- ⚙️ **灵活配置** - 自定义保存目录、保留数量、启动选项
-- 🌐 **版权链接** - 点击图片可访问详细介绍页面
-- 📂 **快速访问** - 一键打开壁纸保存文件夹
+- 🚀 **Fast Response** - Prioritize loading local cache, fetch remote data in background
+- 💾 **System Tray** - Minimize to tray without occupying taskbar space
+- ⚙️ **Flexible Configuration** - Customize save directory, retention count, startup options
+- 🌐 **Copyright Links** - Click images to visit detailed info pages
+- 📂 **Quick Access** - One-click to open wallpaper save folder
 
-## 🚀 快速开始
+## 🚀 Quick Start
 
-### 环境要求
+### Prerequisites
 
-- Node.js 18+
-- Rust 1.70+
-- 操作系统：macOS 10.15+ / Windows 10+ / Linux
+- Node.js 22+ (LTS)
+- Rust 1.80+ (Edition 2024)
+- OS: macOS 10.15+ / Windows 10+ / Linux
 
-### 安装依赖
-
-```bash
-npm install
-```
-
-### 开发模式
+### Install Dependencies
 
 ```bash
-npm run tauri dev
+pnpm install
 ```
 
-这会同时启动 Vite 开发服务器和 Tauri 应用窗口。
-
-### 构建应用
+### Development Mode
 
 ```bash
-npm run tauri build
+pnpm run tauri dev
 ```
 
-构建产物位于 `src-tauri/target/release/bundle/` 目录。
+This will start both Vite dev server and Tauri application window.
 
-## 📁 项目结构
+### Build Application
+
+```bash
+pnpm run tauri build
+```
+
+Build artifacts are located in `src-tauri/target/release/bundle/` directory.
+
+## 📦 Download
+
+Download pre-built binaries from [GitHub Releases](https://github.com/qiyuey/bing-wallpaper-now/releases).
+
+## 📁 Project Structure
 
 ```bash
 bing-wallpaper-now/
-├── src/                          # 前端代码
-│   ├── components/               # React 组件
-│   │   ├── WallpaperCard.tsx    # 壁纸卡片组件
-│   │   ├── WallpaperGrid.tsx    # 壁纸网格布局
-│   │   └── Settings.tsx         # 设置对话框
+├── src/                          # Frontend code
+│   ├── components/               # React components
+│   │   ├── WallpaperCard.tsx    # Wallpaper card component
+│   │   ├── WallpaperGrid.tsx    # Wallpaper grid layout
+│   │   └── Settings.tsx         # Settings dialog
 │   ├── hooks/                    # React Hooks
-│   │   └── useBingWallpapers.ts # 壁纸管理核心逻辑
-│   ├── types/                    # TypeScript 类型定义
-│   ├── App.tsx                   # 主应用组件
-│   └── main.tsx                  # 应用入口
-├── src-tauri/                    # Tauri 后端
+│   │   └── useBingWallpapers.ts # Core wallpaper management logic
+│   ├── types/                    # TypeScript type definitions
+│   ├── App.tsx                   # Main app component
+│   └── main.tsx                  # Application entry
+├── src-tauri/                    # Tauri backend
 │   ├── src/
-│   │   ├── bing_api.rs          # Bing API 集成
-│   │   ├── wallpaper_manager.rs # 壁纸设置管理（含 macOS 优化）
-│   │   ├── download_manager.rs  # 图片下载管理
-│   │   ├── storage.rs           # 文件存储管理
-│   │   ├── models.rs            # 数据模型
-│   │   └── lib.rs               # Tauri 应用入口
-│   ├── Cargo.toml               # Rust 依赖配置
-│   └── tauri.conf.json          # Tauri 应用配置
-└── CLAUDE.md                     # 开发指南（给 AI 的项目说明）
+│   │   ├── bing_api.rs          # Bing API integration
+│   │   ├── wallpaper_manager.rs # Wallpaper management (with macOS optimizations)
+│   │   ├── download_manager.rs  # Image download manager
+│   │   ├── storage.rs           # File storage management
+│   │   ├── models.rs            # Data models
+│   │   └── lib.rs               # Tauri app entry
+│   ├── Cargo.toml               # Rust dependencies
+│   └── tauri.conf.json          # Tauri app configuration
+└── scripts/                      # Development scripts
 ```
 
-## 🎯 核心功能实现
+## ⚙️ Application Settings
 
-### 壁纸获取与下载
+- **Auto Update** - Periodically fetch new wallpapers and automatically apply the latest one
+- **Save Directory** - Customize wallpaper save location
+- **Retention Count** - Set maximum number of wallpapers to keep (minimum 8)
+- **Launch at Startup** - Start application with system
 
-- 使用 Bing HPImageArchive API 获取壁纸元数据
-- 自动构造 UHD 高清图片 URL
-- 后台异步下载，不阻塞用户界面
-- 自动跳过已下载的壁纸
+## 🖥️ System Tray
 
-### 壁纸设置（跨平台）
+- **Left Click** - Show/hide main window (300ms debounce)
+- **Right Click Menu** - Show window, exit application
+- **Window Close** - Minimize to tray instead of exit
 
-#### macOS 优化实现
+## 🛠️ Tech Stack
 
-- 使用 `objc2` 生态系统与 Objective-C API 交互
-- 使用 `NSWorkspace` API 直接设置壁纸
-- 遍历所有 `NSScreen` 为每个显示器设置
-- 正确处理全屏应用场景
-- 监听 `NSWorkspaceActiveSpaceDidChangeNotification` 通知
-- 使用 `declare_class!` 宏创建动态观察者类
-- 自动处理 Space 切换和全屏应用场景
+### Frontend
 
-#### 其他平台
+- **Framework**: React 18 + TypeScript
+- **Build Tool**: Vite
+- **State Management**: React Hooks
+- **Styling**: CSS
 
-- 使用 `wallpaper` crate 提供跨平台支持
+### Backend
 
-### 数据持久化
+- **Framework**: Tauri 2.0
+- **Language**: Rust (Edition 2024)
+- **Core Dependencies**:
+  - `reqwest` - HTTP client
+  - `serde` / `serde_json` - Serialization/deserialization
+  - `chrono` - Date/time handling
+  - `anyhow` - Error handling
+  - `wallpaper` - Cross-platform wallpaper setting
+  - `objc2` / `objc2-foundation` / `objc2-app-kit` - macOS native API bindings
 
-每张壁纸保存为两个文件：
+### Tauri Plugins
 
-- `{startdate}.jpg` - 壁纸图片
-- `{startdate}.json` - 元数据（标题、版权、日期等）
+- `@tauri-apps/plugin-opener` - Open files/links
+- `@tauri-apps/plugin-dialog` - Native dialogs
+- `@tauri-apps/plugin-store` - Settings persistence
+- `@tauri-apps/plugin-autostart` - Launch at startup
+- `@tauri-apps/plugin-notification` - System notifications
 
-默认保存位置：
+## 🗺️ Roadmap
 
-- macOS: `~/Pictures/Bing Wallpaper Now`
-- Windows: `%USERPROFILE%\Pictures\Bing Wallpaper Now`
-- Linux: `~/Pictures/Bing Wallpaper Now`
+### 🎯 Next Release (v0.2.0)
 
-## ⚙️ 应用设置
+**Multi-Platform Optimization**
+- [ ] Windows multi-monitor support enhancement
+- [ ] Linux desktop environment compatibility (GNOME, KDE, XFCE, etc.)
+- [ ] Wallpaper fit modes for different platforms (fill, fit, stretch, etc.)
 
-- **自动更新** - 定期自动获取新壁纸，并自动应用最新一张
+**UI Improvements**
+- [ ] Dark mode / Light mode toggle
+- [ ] Theme customization (color schemes)
+- [ ] Grid layout customization (card size, column count)
 
-- **保存目录** - 自定义壁纸保存位置
-- **保留数量** - 设置最多保留的壁纸数量（最少保留 8 张）
-- **开机启动** - 应用随系统启动
+**Notifications & Feedback**
+- [ ] New wallpaper downloaded notification
+- [ ] Wallpaper set success notification
+- [ ] Update progress display (downloading, processing)
 
-## 🖥️ 系统托盘
+**Performance Optimization**
+- [ ] Image lazy loading optimization
+- [ ] Thumbnail generation and caching
+- [ ] Incremental updates (only download new wallpapers)
+- [ ] Memory usage optimization
 
-- **左键点击** - 显示/隐藏主窗口（300ms 防抖）
-- **右键菜单** - 显示窗口、退出应用
-- **窗口关闭** - 最小化到托盘而非退出
+### 🌟 Future Plans
 
-## 🛠️ 技术栈
+**Internationalization**
+- [ ] Multi-language support (English, Chinese, Japanese, etc.)
+- [ ] Timezone handling optimization
+- [ ] Regionalized wallpaper fetching (different regions of Bing)
 
-### 前端
+**AI Features**
+- [ ] AI-powered wallpaper description generation
+- [ ] Wallpaper color analysis and theme color extraction
 
-- **框架**: React 18 + TypeScript
-- **构建工具**: Vite
-- **状态管理**: React Hooks
-- **样式**: CSS
+**Advanced Features**
+- [ ] Wallpaper preview mode (click card for fullscreen view)
+- [ ] Favorite wallpapers (prevent auto-cleanup)
+- [ ] Search/filter wallpapers (by date, title, keywords)
+- [ ] Scheduled wallpaper rotation (hourly/daily/custom)
 
-### 后端
+See [ROADMAP.md](ROADMAP.md) for detailed development plans.
 
-- **框架**: Tauri 2.0
-- **语言**: Rust
-- **核心依赖**:
-  - `reqwest` - HTTP 客户端
-  - `serde` / `serde_json` - 序列化/反序列化
-  - `chrono` - 日期时间处理
-  - `anyhow` - 错误处理
-  - `wallpaper` - 跨平台壁纸设置
-  - `objc2` / `objc2-foundation` / `objc2-app-kit` - macOS 原生 API 绑定
-  - `once_cell` - 延迟初始化
+## 🤝 Contributing
 
-### Tauri 插件
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-- `@tauri-apps/plugin-opener` - 打开文件/链接
-- `@tauri-apps/plugin-dialog` - 原生对话框
-- `@tauri-apps/plugin-store` - 配置持久化
-- `@tauri-apps/plugin-autostart` - 开机启动
-- `@tauri-apps/plugin-notification` - 系统通知
+### Development Workflow
 
-## 🎨 用户界面
+1. Fork this repository
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-- 简洁现代的卡片式布局
-- 响应式网格布局，自适应窗口大小
-- 图片懒加载优化性能
-- 加载状态和错误提示
-- 平滑的交互动画
+### Code Quality
 
-## 🐛 已知问题
-
-无重大已知问题。如遇到问题请提交 Issue。
-
-## 📝 开发说明
-
-### 代码格式化
+Before submitting a PR, please ensure:
 
 ```bash
-# Rust 代码格式化
-cargo fmt --manifest-path src-tauri/Cargo.toml
+# Run all pre-commit checks
+make pre-commit
 
-# TypeScript 代码检查
-npx tsc --noEmit
+# Or run checks individually
+pnpm run lint          # ESLint check
+pnpm run format:check  # Prettier check
+pnpm run typecheck     # TypeScript check
+pnpm run test:frontend # Frontend tests
+cargo fmt              # Rust format
+cargo clippy           # Rust lint
+cargo test             # Rust tests
 ```
 
-### 调试
+## 📄 License
 
-- 前端：使用浏览器开发者工具（在应用中右键 -> Inspect Element）
-- 后端：查看终端输出的 Rust 日志
+This project is licensed under the **Anti-996 License**.
 
-### 贡献指南
+- **Anti-996 License** - Promotes work-life balance and opposes excessive overtime culture
+- See [LICENSE](LICENSE) for full text
 
-1. Fork 本项目
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 开启 Pull Request
+The Anti-996 License is a software license created by developers to protest the "996 working hour system" (9am-9pm, 6 days a week) prevalent in some tech companies. By using this license, we advocate for:
 
-## 📄 许可证
+- ⏰ Reasonable working hours
+- 🏖️ Work-life balance
+- 💪 Developer well-being
+- 🌟 Sustainable software development
 
-MIT License
+**Note**: This license may not be suitable for commercial use in certain jurisdictions. Use at your own discretion.
 
-## 🙏 致谢
+## 🙏 Acknowledgments
 
-- [Bing](https://www.bing.com) - 提供精美的每日壁纸
-- [Tauri](https://tauri.app) - 轻量级跨平台应用框架
-- [React](https://react.dev) - 用户界面库
+- [Bing](https://www.bing.com) - For providing beautiful daily wallpapers
+- [Tauri](https://tauri.app) - Lightweight cross-platform app framework
+- [React](https://react.dev) - UI library
+- [Anti-996 License](https://github.com/996icu/996.ICU) - Promoting developer welfare
+
+## 📞 Contact & Support
+
+- **Issues**: [GitHub Issues](https://github.com/qiyuey/bing-wallpaper-now/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/qiyuey/bing-wallpaper-now/discussions)
+- **Pull Requests**: Always welcome!
 
 ---
 
-## 🔧 构建与运行
+**Made with ❤️ by open source community**
 
-当前仓库保留最基本的开发与打包能力：
-
-```bash
-# 安装依赖
-npm install
-
-# 前端 + Tauri 联合开发（热重载）
-npm run tauri dev
-
-# 仅前端开发（Vite）
-npm run dev
-
-# 生产打包 (Tauri)
-npm run tauri build
-```
-
-打包产物生成于：
-
-```bash
-src-tauri/target/release/bundle/
-```
-
-## ✅ 测试
-
-保留了基础测试能力（不再包含额外的覆盖率 / lint / 安全门槛脚本）：
-
-```bash
-# Rust 后端测试
-npm run test:rust
-# 或直接:
-cargo test --manifest-path src-tauri/Cargo.toml
-
-# 前端测试 (Vitest)
-npm run test:frontend
-
-# 组合执行（前后端测试）
-npm run test
-```
-
-Vitest 配置文件 `vitest.config.ts` 仍保留，可按需扩展覆盖率或测试过滤规则。
-
-## 📦 打包
-
-跨平台构建桌面应用：
-
-```bash
-npm run tauri build
-```
-
-在 Linux 环境可能需要安装系统依赖（如 webkit2gtk 等），请参考 Tauri 官方文档。
+**Work-life balance matters. Say NO to 996! 💪**
