@@ -187,7 +187,73 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: "Bing Wallpaper Now v__VERSION__"
-          releaseBody: "See the assets to download and install this version."
+          releaseBody: |
+            # 🎉 Bing Wallpaper Now v__VERSION__
+
+            > A cross-platform desktop application that automatically fetches and sets beautiful Bing daily wallpapers.
+
+            ## 📦 Installation
+
+            ### Windows
+            - **Recommended**: `Bing.Wallpaper.Now_v__VERSION___x64_en-US.msi` - Windows 10/11 (64-bit)
+            - **Alternative**: `Bing.Wallpaper.Now_v__VERSION___x64-setup.exe` - NSIS installer
+
+            ### macOS
+            - **Apple Silicon (M1/M2/M3)**: `Bing.Wallpaper.Now_v__VERSION___aarch64.dmg`
+            - **Intel**: `Bing.Wallpaper.Now_v__VERSION___x64.dmg`
+            - **Universal**: `Bing.Wallpaper.Now.app.tar.gz`
+
+            **macOS Installation Note**: If you see "App is damaged and can't be opened", run:
+            ```bash
+            xattr -cr "/Applications/Bing Wallpaper Now.app"
+            ```
+
+            ### Linux
+            - **Debian/Ubuntu**: `bing-wallpaper-now_v__VERSION___amd64.deb`
+            - **Universal**: `bing-wallpaper-now_v__VERSION___amd64.AppImage`
+
+            ## ✨ Highlights
+
+            - 📸 Automatic Bing daily wallpaper fetching (up to 8 wallpapers)
+            - 🖼️ UHD (Ultra High Definition) download support
+            - 🎨 One-click wallpaper setting
+            - 📁 Local wallpaper management with history
+            - 🔄 Background auto-updates
+            - 💾 System tray integration
+            - ⚙️ Flexible configuration (save directory, retention, autostart)
+
+            ### 🖥️ macOS Exclusive
+            - Multi-monitor support
+            - Fullscreen app handling
+            - Space auto-recovery
+            - Native NSWorkspace API
+
+            ## 📋 Technical Details
+
+            **Tech Stack**: React 18 + TypeScript + Rust 2024 + Tauri 2.0
+
+            **Supported Platforms**:
+            - ✅ Windows 10+ (x64)
+            - ✅ macOS 10.15+ (Intel & Apple Silicon)
+            - ✅ Linux (Debian-based, AppImage)
+
+            ## 📖 Documentation
+
+            - [English README](https://github.com/qiyuey/bing-wallpaper-now/blob/main/README.md)
+            - [中文文档](https://github.com/qiyuey/bing-wallpaper-now/blob/main/README.zh.md)
+            - [Report Issues](https://github.com/qiyuey/bing-wallpaper-now/issues)
+
+            ## 📄 License
+
+            Dual-licensed under **MIT** + **Anti-996** License
+
+            ---
+
+            **Made with ❤️ by open source community**
+
+            **Say NO to 996! Work-life balance matters! 💪**
+
+            [Full Changelog](https://github.com/qiyuey/bing-wallpaper-now/commits/v__VERSION__)
           releaseDraft: false
           prerelease: false
 
