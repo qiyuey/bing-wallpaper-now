@@ -53,6 +53,7 @@ COLOR_BLUE := \033[34m
 .PHONY: fmt fmt-rust fmt-frontend fmt-check
 .PHONY: lint lint-rust lint-frontend
 .PHONY: check check-rust check-frontend
+.PHONY: pre-commit
 .PHONY: clean clean-rust clean-frontend clean-all
 .PHONY: deps deps-rust deps-frontend
 .PHONY: cargo-update cargo-tree
@@ -218,6 +219,15 @@ check-rust: fmt-check-rust lint-rust
 check-frontend: fmt-check-frontend typecheck lint-frontend
 
 # ============================================================================
+# 提交前检查
+# ============================================================================
+
+## pre-commit: 提交前完整 CI 检查 (推荐在 git commit 前运行)
+pre-commit:
+	@printf "$(COLOR_BOLD)$(COLOR_BLUE)🚀 运行提交前检查...$(COLOR_RESET)\n"
+	./scripts/pre-commit-check.sh
+
+# ============================================================================
 # 跨平台编译检查
 # ============================================================================
 
@@ -356,6 +366,7 @@ help:
 	@printf "  $(COLOR_GREEN)make typecheck$(COLOR_RESET)        - TypeScript 类型检查\n\n"
 	@printf "$(COLOR_BOLD)代码质量:$(COLOR_RESET)\n"
 	@printf "  $(COLOR_GREEN)make check$(COLOR_RESET)            - 运行所有质量检查\n"
+	@printf "  $(COLOR_GREEN)make pre-commit$(COLOR_RESET)       - 提交前完整 CI 检查 (推荐)\n"
 	@printf "  $(COLOR_GREEN)make fmt$(COLOR_RESET)              - 格式化所有代码\n"
 	@printf "  $(COLOR_GREEN)make lint$(COLOR_RESET)             - 运行所有 linter\n"
 	@printf "  $(COLOR_GREEN)make lint-fix$(COLOR_RESET)         - 自动修复 lint 问题\n\n"

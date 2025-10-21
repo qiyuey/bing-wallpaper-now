@@ -10,12 +10,14 @@ vi.mock("@tauri-apps/api/core", () => ({
 
 describe("WallpaperCard", () => {
   const mockWallpaper: LocalWallpaper = {
+    id: "20240101",
     start_date: "20240101",
+    end_date: "20240102",
     title: "测试壁纸",
     copyright: "测试地点 (测试作者)",
-    file_path: "/path/to/wallpaper.jpg",
-    url: "https://example.com/wallpaper.jpg",
     copyright_link: "https://example.com/details",
+    file_path: "/path/to/wallpaper.jpg",
+    download_time: "2024-01-01T00:00:00Z",
   };
 
   const mockOnSetWallpaper = vi.fn();

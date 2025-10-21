@@ -44,7 +44,7 @@ export function Settings({ onClose }: SettingsProps) {
 
   const handleChange = (
     field: keyof AppSettings,
-    value: string | number | boolean,
+    value: string | number | boolean | null,
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
