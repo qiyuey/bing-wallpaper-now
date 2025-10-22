@@ -230,11 +230,11 @@ jobs:
             ## 📦 快速安装
 
             ### Windows
-            下载 **[MSI 安装包](https://github.com/${{ github.repository }}/releases/download/v__VERSION__/Bing.Wallpaper.Now_v__VERSION___x64_zh-CN.msi)** (推荐) 或 **[EXE 安装程序](https://github.com/${{ github.repository }}/releases/download/v__VERSION__/Bing.Wallpaper.Now_v__VERSION___x64-setup.exe)**
+            下载 **[MSI 安装包](https://github.com/${{ github.repository }}/releases/download/v__VERSION__/Bing.Wallpaper.Now___VERSION___x64_zh-CN.msi)** (推荐) 或 **[EXE 安装程序](https://github.com/${{ github.repository }}/releases/download/v__VERSION__/Bing.Wallpaper.Now___VERSION___x64-setup.exe)**
 
             ### macOS
-            - **M1/M2/M3 芯片**: 下载 **[Apple Silicon DMG](https://github.com/${{ github.repository }}/releases/download/v__VERSION__/Bing.Wallpaper.Now_v__VERSION___aarch64.dmg)**
-            - **Intel 芯片**: 下载 **[Intel DMG](https://github.com/${{ github.repository }}/releases/download/v__VERSION__/Bing.Wallpaper.Now_v__VERSION___x64.dmg)**
+            - **M1/M2/M3 芯片**: 下载 **[Apple Silicon DMG](https://github.com/${{ github.repository }}/releases/download/v__VERSION__/Bing.Wallpaper.Now___VERSION___aarch64.dmg)**
+            - **Intel 芯片**: 下载 **[Intel DMG](https://github.com/${{ github.repository }}/releases/download/v__VERSION__/Bing.Wallpaper.Now___VERSION___x64.dmg)**
 
             **首次打开提示**：应用未经过 Apple 签名（需要每年 $99 的开发者账号），macOS 会阻止运行。
 
@@ -246,8 +246,8 @@ jobs:
             或在「系统设置 → 隐私与安全性」中点击「仍要打开」。详见 [macOS 安装指南](https://github.com/qiyuey/bing-wallpaper-now/blob/main/docs/MACOS_INSTALL.md)。
 
             ### Linux
-            - **Debian/Ubuntu**: 下载 **[DEB 包](https://github.com/${{ github.repository }}/releases/download/v__VERSION__/bing-wallpaper-now_v__VERSION___amd64.deb)**
-            - **其他发行版**: 下载 **[AppImage](https://github.com/${{ github.repository }}/releases/download/v__VERSION__/bing-wallpaper-now_v__VERSION___amd64.AppImage)**
+            - **Debian/Ubuntu**: 下载 **[DEB 包](https://github.com/${{ github.repository }}/releases/download/v__VERSION__/bing-wallpaper-now___VERSION___amd64.deb)**
+            - **其他发行版**: 下载 **[AppImage](https://github.com/${{ github.repository }}/releases/download/v__VERSION__/bing-wallpaper-now___VERSION___amd64.AppImage)**
 
             ---
 
