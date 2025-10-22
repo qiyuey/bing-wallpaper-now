@@ -171,22 +171,16 @@ jobs:
         include:
           - platform: "Windows (x64)"
             os: windows-latest
-            rust_target: x86_64-pc-windows-msvc
           - platform: "Windows (ARM64)"
             os: windows-11-arm
-            rust_target: aarch64-pc-windows-msvc
           - platform: "macOS (Apple Silicon)"
             os: macos-latest
-            rust_target: aarch64-apple-darwin
           - platform: "macOS (Intel)"
             os: macos-15-intel
-            rust_target: x86_64-apple-darwin
           - platform: "Ubuntu (x64)"
             os: ubuntu-24.04
-            rust_target: x86_64-unknown-linux-gnu
           - platform: "Ubuntu (ARM64)"
             os: ubuntu-24.04-arm
-            rust_target: aarch64-unknown-linux-gnu
 
     steps:
       - name: Checkout
@@ -263,7 +257,6 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CARGO_BUILD_TARGET: ${{ matrix.rust_target }}
         with:
           tagName: ${{ github.ref_name }}
           includeRelease: true
