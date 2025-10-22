@@ -188,6 +188,24 @@ jobs:
           name: dist
           path: dist
 
+      - name: Extract changelog for current version
+        id: changelog
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+
+          # Extract content between current version header and next version header
+          CHANGELOG=$(awk "/## \[$VERSION\]/,/## \[/" CHANGELOG.md | sed '$d' | tail -n +2)
+
+          # If changelog is empty, use a default message
+          if [ -z "$CHANGELOG" ]; then
+            CHANGELOG="请查看完整的更新日志: [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)"
+          fi
+
+          # Save to output (handle multiline)
+          echo "content<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Build Tauri app and create GitHub Release
         uses: tauri-apps/tauri-action@v0
         env:
@@ -233,48 +251,13 @@ jobs:
             - **Debian/Ubuntu**: [bing-wallpaper-now_v__VERSION___amd64.deb](https://github.com/${{ github.repository }}/releases/download/v__VERSION__/bing-wallpaper-now_v__VERSION___amd64.deb)
             - **Universal**: [bing-wallpaper-now_v__VERSION___amd64.AppImage](https://github.com/${{ github.repository }}/releases/download/v__VERSION__/bing-wallpaper-now_v__VERSION___amd64.AppImage)
 
-            ## ✨ Highlights
+            ## ✨ What's New in v__VERSION__
 
-            - 📸 Automatic Bing daily wallpaper fetching (up to 8 wallpapers)
-            - 🖼️ UHD (Ultra High Definition) download support
-            - 🎨 One-click wallpaper setting
-            - 📁 Local wallpaper management with history
-            - 🔄 Background auto-updates
-            - 💾 System tray integration
-            - ⚙️ Flexible configuration (save directory, retention, autostart)
-
-            ### 🖥️ macOS Exclusive
-            - Multi-monitor support
-            - Fullscreen app handling
-            - Space auto-recovery
-            - Native NSWorkspace API
-
-            ## 📋 Technical Details
-
-            **Tech Stack**: React 18 + TypeScript + Rust 2024 + Tauri 2.0
-
-            **Supported Platforms**:
-            - ✅ Windows 10+ (x64)
-            - ✅ macOS 10.15+ (Intel & Apple Silicon)
-            - ✅ Linux (Debian-based, AppImage)
-
-            ## 📖 Documentation
-
-            - [English README](https://github.com/qiyuey/bing-wallpaper-now/blob/main/README.md)
-            - [中文文档](https://github.com/qiyuey/bing-wallpaper-now/blob/main/README.zh.md)
-            - [Report Issues](https://github.com/qiyuey/bing-wallpaper-now/issues)
-
-            ## 📄 License
-
-            Dual-licensed under **MIT** + **Anti-996** License
+            ${{ steps.changelog.outputs.content }}
 
             ---
 
-            **Made with ❤️ by open source community**
-
-            **Say NO to 996! Work-life balance matters! 💪**
-
-            [Full Changelog](https://github.com/qiyuey/bing-wallpaper-now/commits/v__VERSION__)
+            [Full Changelog](https://github.com/qiyuey/bing-wallpaper-now/blob/main/CHANGELOG.md)
           releaseDraft: false
           prerelease: false
 
