@@ -1,7 +1,6 @@
 name: CI
 
 on:
-  # main 分支只运行测试，tag 推送时构建和发布
   push:
     branches: [main]
     tags:
@@ -10,7 +9,6 @@ on:
     branches: [main]
   workflow_dispatch:
 
-# 添加必要的权限以创建 GitHub Release
 permissions:
   contents: write
 
@@ -19,12 +17,13 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: "22" # LTS 版本 (v22.21.0)，支持到 2027年4月
+  NODE_VERSION: "22"
+  CARGO_INCREMENTAL: 0
+  RUST_BACKTRACE: short
 
 jobs:
   test:
     name: Test
-    # 只在非 tag 的 push 和 PR 时运行测试
     if: "!startsWith(github.ref, 'refs/tags/v')"
     runs-on: ubuntu-latest
     steps:
@@ -45,30 +44,10 @@ jobs:
         with:
           components: rustfmt, clippy
 
-      - name: Cache Cargo dependencies
-        uses: actions/cache@v4
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry/index
-            ~/.cargo/registry/cache
-            ~/.cargo/git/db
-          key: ${{ runner.os }}-cargo-${{ hashFiles('src-tauri/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
-
-      - name: Cache Cargo build
-        uses: actions/cache@v4
-        with:
-          path: src-tauri/target
-          key: ${{ runner.os }}-cargo-build-${{ hashFiles('src-tauri/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-build-
-
-      - name: Cache APT packages
-        uses: awalsh128/cache-apt-pkgs-action@latest
-        with:
-          packages: libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev
-          version: 1.0
+          workspaces: src-tauri
 
       - name: Install Linux dependencies
         run: |
@@ -81,14 +60,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # Rust 代码质量检查
       - name: Rust Clippy
         run: cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings
 
       - name: Rust format check
         run: cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
 
-      # 前端代码质量检查
       - name: Frontend Lint
         run: npm run lint
 
@@ -107,33 +84,29 @@ jobs:
       - name: Frontend tests
         run: pnpm run test:frontend
 
-  bundle:
-    name: Tauri Bundle (${{ matrix.platform }})
-    # 只在推送 tag 时运行 bundle，节省普通 push 的构建时间
+  bundle-x86:
+    name: Bundle (${{ matrix.platform }})
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - platform: "Ubuntu (x64)"
-            os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-          - platform: "Ubuntu (ARM64)"
-            os: ubuntu-latest
-            target: aarch64-unknown-linux-gnu
-          - platform: "macOS (Intel)"
-            os: macos-13
-            target: x86_64-apple-darwin
-          - platform: "macOS (Apple Silicon)"
-            os: macos-latest
-            target: aarch64-apple-darwin
           - platform: "Windows (x64)"
             os: windows-latest
             target: x86_64-pc-windows-msvc
           - platform: "Windows (ARM64)"
             os: windows-latest
             target: aarch64-pc-windows-msvc
+          - platform: "macOS (Apple Silicon)"
+            os: macos-latest
+            target: aarch64-apple-darwin
+          - platform: "macOS (Intel)"
+            os: macos-13
+            target: x86_64-apple-darwin
+          - platform: "Ubuntu (x64)"
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
 
     steps:
       - name: Checkout
@@ -150,62 +123,27 @@ jobs:
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.target }}
 
-      - name: Setup Linux ARM64 cross-compilation
-        if: matrix.target == 'aarch64-unknown-linux-gnu'
-        run: |
-          # Add ARM64 architecture
-          sudo dpkg --add-architecture arm64
-          # Add ARM64 package sources (ports.ubuntu.com)
-          echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports $(lsb_release -sc) main restricted universe multiverse" | sudo tee /etc/apt/sources.list.d/arm64.list
-          echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports $(lsb_release -sc)-updates main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list.d/arm64.list
-          echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports $(lsb_release -sc)-security main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list.d/arm64.list
-          sudo apt-get update
-          # Install cross-compilation tools and dependencies
-          sudo apt-get install -y \
-            gcc-aarch64-linux-gnu \
-            g++-aarch64-linux-gnu \
-            libwebkit2gtk-4.1-dev:arm64 \
-            libayatana-appindicator3-dev:arm64 \
-            librsvg2-dev:arm64 \
-            patchelf
-          # Configure cross-compilation environment
-          echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
-          echo "CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
-          echo "CXX_aarch64_unknown_linux_gnu=aarch64-linux-gnu-g++" >> $GITHUB_ENV
-          echo "PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig" >> $GITHUB_ENV
-          echo "PKG_CONFIG_ALLOW_CROSS=1" >> $GITHUB_ENV
+      - name: Add Rust Target
+        run: rustup target add ${{ matrix.target }}
 
-      - name: Cache Cargo dependencies
-        uses: actions/cache@v4
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry/index
-            ~/.cargo/registry/cache
-            ~/.cargo/git/db
-          key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ hashFiles('src-tauri/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ matrix.target }}-cargo-
+          workspaces: src-tauri
+          shared-key: stable-cache
 
       - name: Setup sccache
         uses: mozilla-actions/sccache-action@v0.0.6
 
       - name: Configure sccache
+        shell: bash
         run: |
           echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
           echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
 
-      - name: Cache APT packages (x64)
-        if: runner.os == 'Linux' && matrix.target == 'x86_64-unknown-linux-gnu'
-        uses: awalsh128/cache-apt-pkgs-action@latest
-        with:
-          packages: libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
-          version: 1.0
-
-      - name: Install Linux dependencies (x64)
-        if: runner.os == 'Linux' && matrix.target == 'x86_64-unknown-linux-gnu'
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -214,27 +152,30 @@ jobs:
             librsvg2-dev \
             patchelf
 
+      - name: Install x86_64 OpenSSL (macOS Intel only)
+        if: matrix.target == 'x86_64-apple-darwin'
+        run: |
+          arch -x86_64 brew install openssl@3
+          echo "OPENSSL_DIR=$(brew --prefix openssl@3)" >> $GITHUB_ENV
+          echo "OPENSSL_INCLUDE_DIR=$(brew --prefix openssl@3)/include" >> $GITHUB_ENV
+          echo "OPENSSL_LIB_DIR=$(brew --prefix openssl@3)/lib" >> $GITHUB_ENV
+          echo "PKG_CONFIG_PATH=$(brew --prefix openssl@3)/lib/pkgconfig" >> $GITHUB_ENV
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Build frontend
         run: pnpm run build
 
-      - name: Extract changelog for current version
+      - name: Extract changelog
         id: changelog
         shell: bash
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-
-          # Extract content between current version header and next version header
           CHANGELOG=$(awk "/## \[$VERSION\]/,/## \[/" CHANGELOG.md | sed '$d' | tail -n +2)
-
-          # If changelog is empty, use a default message
           if [ -z "$CHANGELOG" ]; then
             CHANGELOG="请查看完整的更新日志: [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)"
           fi
-
-          # Save to output (handle multiline)
           echo "content<<EOF" >> $GITHUB_OUTPUT
           echo "$CHANGELOG" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
@@ -246,7 +187,7 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: "Bing Wallpaper Now v__VERSION__"
-          args: ${{ matrix.target && format('--target {0}', matrix.target) || '' }}
+          args: --target ${{ matrix.target }}
           releaseBody: |
             # 🎉 Bing Wallpaper Now v__VERSION__
 
@@ -294,11 +235,97 @@ jobs:
           prerelease: false
 
       - name: Show sccache stats
+        shell: bash
         run: sccache --show-stats
 
-      - name: Upload bundles
-        uses: actions/upload-artifact@v4
+  bundle-linux-arm:
+    name: Bundle (Ubuntu ARM64)
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
         with:
-          name: tauri-bundles-${{ matrix.platform }}
-          path: src-tauri/target/release/bundle
-          retention-days: 7
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Add Rust Target
+        run: rustup target add aarch64-unknown-linux-gnu
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          shared-key: stable-cache
+
+      - name: Setup sccache
+        uses: mozilla-actions/sccache-action@v0.0.6
+
+      - name: Configure sccache
+        run: |
+          echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
+          echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
+
+      - name: Setup Linux ARM64 cross-compilation
+        run: |
+          # Configure dual-arch sources
+          cat > /tmp/sources.list << 'EOF'
+          deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu $(lsb_release -sc) main multiverse universe restricted
+          deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu $(lsb_release -sc)-security main multiverse universe restricted
+          deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu $(lsb_release -sc)-updates main multiverse universe restricted
+          deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu $(lsb_release -sc)-backports main multiverse universe restricted
+          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports $(lsb_release -sc) main multiverse universe restricted
+          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports $(lsb_release -sc)-security main multiverse universe restricted
+          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports $(lsb_release -sc)-updates main multiverse universe restricted
+          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports $(lsb_release -sc)-backports main multiverse universe restricted
+          EOF
+          sudo mv /etc/apt/sources.list /etc/apt/sources.list.bak
+          sudo mv /tmp/sources.list /etc/apt/sources.list
+
+          # Add ARM64 architecture
+          sudo dpkg --add-architecture arm64
+          sudo apt-get update
+
+          # Install cross-compilation toolchain and ARM64 libraries
+          sudo apt-get install -y \
+            gcc-aarch64-linux-gnu \
+            g++-aarch64-linux-gnu \
+            libwebkit2gtk-4.1-dev:arm64 \
+            libayatana-appindicator3-dev:arm64 \
+            librsvg2-dev:arm64 \
+            libssl-dev:arm64 \
+            patchelf
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build frontend
+        run: pnpm run build
+
+      - name: Build Tauri app for Linux ARM64
+        run: pnpm tauri build --target aarch64-unknown-linux-gnu
+        env:
+          PKG_CONFIG_ALLOW_CROSS: 1
+          PKG_CONFIG_PATH: /usr/lib/aarch64-linux-gnu/pkgconfig
+          PKG_CONFIG_SYSROOT_DIR: /usr/aarch64-linux-gnu/
+
+      - name: Upload Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: |
+            src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/deb/*.deb
+            src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/appimage/*.AppImage
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Show sccache stats
+        run: sccache --show-stats
