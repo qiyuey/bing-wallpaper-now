@@ -150,7 +150,7 @@ jobs:
             xattr -rd com.apple.quarantine "/Applications/Bing Wallpaper Now.app"
             ```
 
-            或在「系统设置 → 隐私与安全性」中点击「仍要打开」。详见 [macOS 安装指南](https://github.com/${{ github.repository }}/blob/main/docs/MACOS_INSTALL.md)。
+            或在「系统设置 → 隐私与安全性」中点击「仍要打开」。
 
             ### Linux
             - **x64 (Intel/AMD)**:
