@@ -670,11 +670,9 @@ pub fn run() {
                 .any(|arg| arg == "--minimized" || arg == "--hidden" || arg == "--startup");
 
             // 如果不是自启动，显示主窗口
-            if !is_autostart {
-                if let Some(window) = app.get_webview_window("main") {
-                    let _ = window.show();
-                    let _ = window.set_focus();
-                }
+            if !is_autostart && let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.set_focus();
             }
 
             // 使用 tauri-plugin-log 进行标准化日志输出（已在 Builder 中初始化）
