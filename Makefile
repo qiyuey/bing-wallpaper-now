@@ -129,25 +129,25 @@ pre-commit:
 	@bash $(CHECK_SCRIPT)
 
 # ============================================================================
-# Version Management (SNAPSHOT)
+# Version Management (Development Versions)
 # ============================================================================
 
-## snapshot-patch: Create next patch SNAPSHOT version (0.1.0 -> 0.1.1-SNAPSHOT)
+## snapshot-patch: Create next patch development version (0.1.0 -> 0.1.1-0)
 snapshot-patch:
-	@echo Creating patch SNAPSHOT version...
+	@echo Creating patch development version...
 	@bash $(VERSION_SCRIPT) snapshot-patch
 
-## snapshot-minor: Create next minor SNAPSHOT version (0.1.0 -> 0.2.0-SNAPSHOT)
+## snapshot-minor: Create next minor development version (0.1.0 -> 0.2.0-0)
 snapshot-minor:
-	@echo Creating minor SNAPSHOT version...
+	@echo Creating minor development version...
 	@bash $(VERSION_SCRIPT) snapshot-minor
 
-## snapshot-major: Create next major SNAPSHOT version (0.1.0 -> 1.0.0-SNAPSHOT)
+## snapshot-major: Create next major development version (0.1.0 -> 1.0.0-0)
 snapshot-major:
-	@echo Creating major SNAPSHOT version...
+	@echo Creating major development version...
 	@bash $(VERSION_SCRIPT) snapshot-major
 
-## release: Release current SNAPSHOT as official version, tag and push to remote
+## release: Release current development version as official version, tag and push to remote
 release:
 	@echo Releasing official version...
 	@bash $(VERSION_SCRIPT) release
@@ -206,10 +206,10 @@ help:
 	@echo "  make fmt              - Format all code"
 	@echo "  make lint             - Run all linters"
 	@echo ""
-	@echo "Version Management (SNAPSHOT):"
-	@echo "  make snapshot-patch   - Create patch SNAPSHOT (0.1.0 -> 0.1.1-SNAPSHOT)"
-	@echo "  make snapshot-minor   - Create minor SNAPSHOT (0.1.0 -> 0.2.0-SNAPSHOT)"
-	@echo "  make snapshot-major   - Create major SNAPSHOT (0.1.0 -> 1.0.0-SNAPSHOT)"
+	@echo "Version Management:"
+	@echo "  make snapshot-patch   - Create patch development version (0.1.0 -> 0.1.1-0)"
+	@echo "  make snapshot-minor   - Create minor development version (0.1.0 -> 0.2.0-0)"
+	@echo "  make snapshot-major   - Create major development version (0.1.0 -> 1.0.0-0)"
 	@echo "  make release          - Release official version, tag and push"
 	@echo "  make version-info     - Display current version information"
 	@echo ""
@@ -221,14 +221,14 @@ help:
 	@echo ""
 	@echo "Version Management Workflow:"
 	@echo "  1. After releasing v0.1.0:"
-	@echo "     make snapshot-patch  -> Create 0.1.1-SNAPSHOT for development"
+	@echo "     make snapshot-patch  -> Create 0.1.1-0 for development"
 	@echo ""
 	@echo "  2. Develop new features..."
 	@echo ""
 	@echo "  3. Prepare for release:"
 	@echo "     make pre-commit    -> Run all checks"
 	@echo "     make release       -> Release 0.1.1 and push to remote"
-	@echo "                          (Will ask to auto-create 0.1.2-SNAPSHOT)"
+	@echo "                          (Will ask to auto-create 0.1.2-0)"
 	@echo ""
 	@echo "  4. GitHub Actions will auto-build and publish to Releases"
 	@echo ""
