@@ -97,7 +97,7 @@ jobs:
         shell: bash
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          CHANGELOG=$(awk "/## \[$VERSION\]/,/## \[/" CHANGELOG.md | sed '$d' | tail -n +2)
+          CHANGELOG=$(sed -n "/^## \[$VERSION\]/,/^## \[/p" CHANGELOG.md | sed '1d;$d')
           if [ -z "$CHANGELOG" ]; then
             CHANGELOG="请查看完整的更新日志: [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)"
           fi
@@ -136,12 +136,12 @@ jobs:
             ## 📦 快速安装
 
             ### Windows
-            - **x64 (Intel/AMD)**: 下载 **MSI 安装包** (推荐) 或 **EXE 安装程序**
-            - **ARM64**: 下载 **MSI 安装包** 或 **EXE 安装程序**
+            - **x64 (Intel/AMD)**: 下载 [**MSI 安装包**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_x64_zh-CN.msi) (推荐) 或 [**EXE 安装程序**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_x64-setup.exe)
+            - **ARM64**: 下载 [**MSI 安装包**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_arm64_zh-CN.msi) 或 [**EXE 安装程序**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_arm64-setup.exe)
 
             ### macOS
-            - **Apple Silicon**: 下载 **ARM64 DMG**
-            - **Intel**: 下载 **x64 DMG**
+            - **Apple Silicon**: 下载 [**ARM64 DMG**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_aarch64.dmg)
+            - **Intel**: 下载 [**x64 DMG**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_x64.dmg)
 
             **首次打开提示**：应用未经过 Apple 签名（需要每年 $99 的开发者账号），macOS 会阻止运行。
 
@@ -150,15 +150,15 @@ jobs:
             xattr -rd com.apple.quarantine "/Applications/Bing Wallpaper Now.app"
             ```
 
-            或在「系统设置 → 隐私与安全性」中点击「仍要打开」。详见 [macOS 安装指南](https://github.com/qiyuey/bing-wallpaper-now/blob/main/docs/MACOS_INSTALL.md)。
+            或在「系统设置 → 隐私与安全性」中点击「仍要打开」。详见 [macOS 安装指南](https://github.com/${{ github.repository }}/blob/main/docs/MACOS_INSTALL.md)。
 
             ### Linux
-            - **x64 (Intel/AMD)**: Debian/Ubuntu 下载 **DEB 包**，其他发行版下载 **AppImage**
-            - **ARM64**: Debian/Ubuntu 下载 **DEB 包**，其他发行版下载 **AppImage**
+            - **x64 (Intel/AMD)**: Debian/Ubuntu 下载 [**DEB 包**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/bing-wallpaper-now_${{ github.ref_name }}_amd64.deb)，其他发行版下载 [**AppImage**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/bing-wallpaper-now_${{ github.ref_name }}_amd64.AppImage)
+            - **ARM64**: Debian/Ubuntu 下载 [**DEB 包**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/bing-wallpaper-now_${{ github.ref_name }}_arm64.deb)，其他发行版下载 [**AppImage**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/bing-wallpaper-now_${{ github.ref_name }}_arm64.AppImage)
 
             ---
 
-            📝 [完整更新日志](https://github.com/qiyuey/bing-wallpaper-now/blob/main/CHANGELOG.md) | 🐛 [反馈问题](https://github.com/qiyuey/bing-wallpaper-now/issues)
+            📝 [完整更新日志](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) | 🐛 [反馈问题](https://github.com/${{ github.repository }}/issues)
 
   bundle:
     name: Bundle (${{ matrix.platform }})
@@ -299,7 +299,7 @@ jobs:
         shell: bash
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          CHANGELOG=$(awk "/## \[$VERSION\]/,/## \[/" CHANGELOG.md | sed '$d' | tail -n +2)
+          CHANGELOG=$(sed -n "/^## \[$VERSION\]/,/^## \[/p" CHANGELOG.md | sed '1d;$d')
           if [ -z "$CHANGELOG" ]; then
             CHANGELOG="请查看完整的更新日志: [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)"
           fi
