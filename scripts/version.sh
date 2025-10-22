@@ -235,20 +235,55 @@ release_version() {
     echo ""
     read -p "是否立即推送到远程？(Y/n) " -n 1 -r
     echo
+    local pushed=false
     if [[ ! $REPLY =~ ^[Nn]$ ]]; then
         print_info "推送到远程..."
         git push origin main
         git push origin "$tag"
         print_success "已推送到远程，CI 将开始构建"
+        pushed=true
         echo ""
-        print_info "下一步："
-        echo "  1. GitHub Actions 将自动构建并发布到 Releases"
-        echo "  2. 发布后，创建下一个 SNAPSHOT 版本: make snapshot-patch"
+        print_info "GitHub Actions 将自动构建并发布到 Releases"
     else
-        print_info "下一步："
-        echo "  1. 推送代码和标签: git push origin main && git push origin $tag"
-        echo "  2. GitHub Actions 将自动构建并发布到 Releases"
-        echo "  3. 发布后，创建下一个 SNAPSHOT 版本: make snapshot-patch"
+        print_info "跳过推送，下次手动推送："
+        echo "  git push origin main && git push origin $tag"
+    fi
+
+    # 询问是否创建下一个 SNAPSHOT 版本
+    echo ""
+    read -p "是否创建下一个 patch SNAPSHOT 版本？(y/N) " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        echo ""
+        print_info "创建下一个 SNAPSHOT 版本..."
+
+        local next_version=$(calculate_next_version "$release_version" "patch")
+        local snapshot_version=$(add_snapshot "$next_version")
+
+        update_version_files "$snapshot_version"
+
+        git add "$PACKAGE_JSON" "$CARGO_TOML" "$TAURI_CONF" "src-tauri/Cargo.lock"
+        git commit -m "chore(version): bump to $snapshot_version"
+
+        print_success "已创建 SNAPSHOT 版本: $snapshot_version"
+
+        if [ "$pushed" = true ]; then
+            echo ""
+            read -p "是否推送 SNAPSHOT 版本到远程？(y/N) " -n 1 -r
+            echo
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                git push origin main
+                print_success "已推送 SNAPSHOT 版本到远程"
+            else
+                print_info "稍后手动推送: git push origin main"
+            fi
+        fi
+
+        echo ""
+        print_success "可以开始新功能的开发了！"
+    else
+        echo ""
+        print_info "稍后可以手动创建 SNAPSHOT 版本: make snapshot-patch"
     fi
 }
 
