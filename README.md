@@ -73,7 +73,7 @@ The app lives in your system tray for quick access:
 
 ### Settings
 
-Click the "Settings" button (gear icon) to customize:
+Click the "Settings" button (star icon) to customize:
 
 - **Auto Update** - Automatically fetch new wallpapers and apply the latest one
 - **Save Directory** - Choose where to store downloaded wallpapers
@@ -92,13 +92,13 @@ Click the "Settings" button (gear icon) to customize:
 **A:** Bing releases new wallpapers daily. Enable "Auto Update" in settings to fetch them automatically.
 
 **Q: Where are wallpapers saved?**  
-**A:** By default, they're saved in your system's pictures directory under "BingWallpapers". You can change this in Settings.
+**A:** By default, they're saved in your system's pictures directory under "Bing Wallpaper Now". You can change this in Settings.
 
 **Q: Does it work offline?**  
 **A:** Yes! Previously downloaded wallpapers are available offline and can be set anytime.
 
 **Q: How much storage does it use?**  
-**A:** Each UHD wallpaper is about 1-3MB. With the default retention of 8 wallpapers, it uses approximately 8-24MB.
+**A:** Each UHD wallpaper is about 1-3MB. With the minimum retention of 8 wallpapers, it uses approximately 8-24MB.
 
 **Q: Can I keep wallpapers forever?**  
 **A:** Currently, wallpapers are auto-cleaned based on retention count. A favorites feature is planned for future releases.
@@ -232,7 +232,6 @@ This project also supports the [Anti-996 License](https://github.com/996icu/996.
 
 - [Bing](https://www.bing.com) - For providing beautiful daily wallpapers
 - [Tauri](https://tauri.app) - Lightweight cross-platform app framework
-- [React](https://react.dev) - UI library
 - Open source community - For continuous support and contributions
 
 ---
