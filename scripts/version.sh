@@ -13,6 +13,16 @@
 #   1. 发布 v0.1.0 后，创建 0.1.1-SNAPSHOT 用于开发
 #   2. 开发完成后，运行 release 转为 0.1.1 正式版本、打 tag 并推送到远程
 #   3. 发布后，再次创建 0.1.2-SNAPSHOT 继续开发
+#
+# 发布失败回滚：
+#   如果发布后 CI 构建失败，需要回滚：
+#   1. 删除本地标签: git tag -d vX.Y.Z
+#   2. 删除远程标签: git push origin :refs/tags/vX.Y.Z
+#   3. 回退提交:
+#      - 仅回退 release 提交: git reset --hard HEAD~1
+#      - 同时创建了 SNAPSHOT: git reset --hard HEAD~2
+#   4. 强制推送: git push origin main --force-with-lease
+#   5. 修复问题后重新运行: make release
 
 set -euo pipefail
 
@@ -117,9 +127,29 @@ calculate_next_version() {
     echo "${MAJOR}.${MINOR}.${PATCH}"
 }
 
+# 验证版本格式（MSI 兼容性）
+validate_version_format() {
+    local version=$1
+
+    # MSI 要求：预发布标识符必须是纯数字（如 1.0.0 或 1.0.0-123）
+    # 不能包含字母后缀（如 1.0.0-alpha, 1.0.0-SNAPSHOT）
+    if [[ "$version" =~ -[^0-9] ]]; then
+        print_error "版本号 '$version' 包含非数字预发布标识符"
+        print_error "MSI 构建要求预发布标识符必须是纯数字（如 1.0.0 或 1.0.0-123）"
+        print_error "当前版本包含字母后缀，这会导致 Windows MSI 构建失败"
+        return 1
+    fi
+    return 0
+}
+
 # 更新所有版本文件
 update_version_files() {
     local new_version=$1
+
+    # 验证版本格式
+    if ! validate_version_format "$new_version"; then
+        exit 1
+    fi
 
     print_info "更新 $PACKAGE_JSON..."
     if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -192,6 +222,64 @@ create_snapshot() {
     print_info "可以开始新功能的开发了！"
 }
 
+# 验证 CHANGELOG 是否已更新
+validate_changelog() {
+    local version=$1
+
+    if [ ! -f "CHANGELOG.md" ]; then
+        print_error "未找到 CHANGELOG.md 文件"
+        return 1
+    fi
+
+    if ! grep -q "## \[$version\]" CHANGELOG.md; then
+        print_error "CHANGELOG.md 中未找到版本 [$version] 的更新日志"
+        print_info "请先在 CHANGELOG.md 中添加以下内容："
+        echo ""
+        echo "  ## [$version]"
+        echo ""
+        echo "  ### Added/Changed/Fixed"
+        echo "  - 您的更新说明..."
+        echo ""
+        print_info "然后重新运行 make release"
+        return 1
+    fi
+
+    print_success "CHANGELOG.md 验证通过"
+    return 0
+}
+
+# 运行发布前质量检查
+run_pre_release_checks() {
+    print_header "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    print_header "  运行发布前质量检查"
+    print_header "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+
+    # 检查 make 命令是否存在
+    if ! command -v make &> /dev/null; then
+        print_warning "未找到 make 命令，跳过质量检查"
+        print_warning "建议手动运行: make pre-commit"
+        echo ""
+        read -p "是否继续发布？(y/N) " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            print_info "已取消"
+            exit 0
+        fi
+        return 0
+    fi
+
+    print_info "运行代码格式检查、lint 和测试..."
+    if ! make pre-commit; then
+        print_error "质量检查失败"
+        print_info "请修复上述问题后重新运行 make release"
+        exit 1
+    fi
+
+    print_success "所有质量检查通过"
+    echo ""
+}
+
 # 发布版本（默认推送到远程）
 release_version() {
     local current=$(get_current_version)
@@ -213,6 +301,15 @@ release_version() {
     print_info "发布版本:      $release_version"
     print_info "Git Tag:       $tag"
     echo ""
+
+    # 验证 CHANGELOG
+    if ! validate_changelog "$release_version"; then
+        exit 1
+    fi
+    echo ""
+
+    # 运行发布前检查
+    run_pre_release_checks
 
     read -p "确认发布版本？(y/N) " -n 1 -r
     echo
