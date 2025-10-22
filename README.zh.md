@@ -2,32 +2,45 @@
 
 [English](README.md) | [中文](README.zh.md)
 
-一个基于 Tauri 的跨平台桌面应用，每天自动获取并设置 Bing 精美壁纸。
+一个跨平台桌面应用，自动获取并设置 Bing 每日精美壁纸。
 
 ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)
-![Tauri](https://img.shields.io/badge/Tauri-2.0-blue)
-![React](https://img.shields.io/badge/React-18-blue)
-![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)
-![Rust](https://img.shields.io/badge/Rust-2024-orange)
 ![License](https://img.shields.io/badge/license-Anti--996-blue)
+
+## 📦 下载安装
+
+从 [GitHub Releases](https://github.com/qiyuey/bing-wallpaper-now/releases) 下载最新版本：
+
+- **Windows**: `.msi` 安装包或 `.exe` 便携版本
+- **macOS**: `.dmg` 磁盘镜像
+- **Linux**: `.deb` (Debian/Ubuntu) 或 `.rpm` (Fedora/RedHat) 或 `.AppImage` (通用版本)
+
+### macOS 安装说明
+
+如果看到"应用已损坏，无法打开"，这是未签名开源应用的正常情况。在终端运行以下命令即可解决：
+
+```bash
+xattr -rd com.apple.quarantine "/Applications/Bing Wallpaper Now.app"
+```
+
+详细说明请参考 [macOS 安装指南](docs/MACOS_INSTALL.md)。
 
 ## ✨ 特性
 
 ### 核心功能
 
 - 📸 **每日壁纸** - 自动获取 Bing 每日精选壁纸（最多 8 张）
-- 🖼️ **高清下载** - 支持 UHD 超高清分辨率下载
+- 🖼️ **高清分辨率** - 下载 UHD（超高清）分辨率壁纸
 - 🎨 **一键设置** - 点击即可设置为桌面壁纸
 - 📁 **本地管理** - 自动保存壁纸到本地，支持历史记录浏览
-- 🔄 **后台更新** - 自动在后台下载新壁纸，不阻塞界面
+- 🔄 **后台更新** - 在后台自动下载新壁纸，不阻塞界面
 - 🗑️ **智能清理** - 根据保留数量自动清理旧壁纸
 
-### macOS 特色功能
+### macOS 专属功能
 
 - 🖥️ **多显示器支持** - 同时为所有显示器设置壁纸
 - 🎯 **全屏应用支持** - 完美处理全屏应用场景下的壁纸设置
 - 🔄 **Space 自动恢复** - 切换 Space 或退出全屏时自动恢复壁纸
-- 🎪 **原生 API** - 使用 NSWorkspace API (objc2) 实现原生体验
 
 ### 用户体验
 
@@ -37,7 +50,91 @@
 - 🌐 **版权链接** - 点击图片可访问详细介绍页面
 - 📂 **快速访问** - 一键打开壁纸保存文件夹
 
-## 🚀 快速开始
+## 🎯 使用方法
+
+### 首次启动
+
+1. 下载并安装应用
+2. 启动"Bing Wallpaper Now"
+3. 应用会自动获取今天的 Bing 壁纸
+4. 在主窗口浏览壁纸画廊
+
+### 设置壁纸
+
+- **点击任意壁纸卡片**即可将其设置为桌面背景
+- 壁纸会立即应用
+- 在 macOS 上，会应用到所有连接的显示器
+
+### 系统托盘
+
+应用会驻留在系统托盘中，方便快速访问：
+
+- **左键点击** - 显示/隐藏主窗口
+- **右键点击** - 访问菜单（显示窗口、退出）
+- **关闭窗口** - 最小化到托盘（应用继续运行）
+
+### 设置选项
+
+点击"设置"按钮（齿轮图标）进行自定义：
+
+- **自动更新** - 自动获取新壁纸并应用最新一张
+- **保存目录** - 选择壁纸保存位置
+- **保留数量** - 设置保留的壁纸数量（最少 8 张）
+- **开机启动** - 系统启动时自动启动应用
+
+### 其他功能
+
+- **版权信息** - 点击壁纸上的版权链接了解更多信息
+- **打开文件夹** - 点击"打开壁纸文件夹"查看所有保存的壁纸
+- **历史记录** - 浏览并设置任何之前下载的壁纸
+
+## ❓ 常见问题
+
+**问：多久更新一次壁纸？**  
+答：Bing 每天发布新壁纸。在设置中启用"自动更新"即可自动获取新壁纸。
+
+**问：壁纸保存在哪里？**  
+答：默认保存在系统图片目录下的"BingWallpapers"文件夹中。您可以在设置中更改保存位置。
+
+**问：离线时可以使用吗？**  
+答：可以！之前下载的壁纸可以离线使用，随时可以设置。
+
+**问：占用多少存储空间？**  
+答：每张 UHD 壁纸约 1-3MB。默认保留 8 张壁纸，大约占用 8-24MB。
+
+**问：可以永久保留壁纸吗？**  
+答：目前壁纸会根据保留数量自动清理。未来版本计划添加收藏功能。
+
+## 🗺️ 发展路线图
+
+### 功能优化
+
+- 深色模式 / 浅色模式切换
+- 新壁纸系统通知
+- 多语言支持
+- 壁纸收藏功能
+
+### 性能优化
+
+- 并发图片下载与连接池复用
+- React 组件渲染优化（memo、懒加载）
+- 非阻塞文件 I/O 与高效元数据存储
+- 内存高效的图片流式传输与压缩
+
+## 📞 支持与反馈
+
+- **问题反馈**: [GitHub Issues](https://github.com/qiyuey/bing-wallpaper-now/issues)
+- **讨论交流**: [GitHub Discussions](https://github.com/qiyuey/bing-wallpaper-now/discussions)
+- **功能建议**: 随时欢迎！
+
+## 🤝 参与贡献
+
+想要帮助改进 Bing Wallpaper Now？欢迎贡献！
+
+如果您有兴趣贡献代码，请查看下面的开发文档。
+
+<details>
+<summary><b>开发指南（面向贡献者）</b></summary>
 
 ### 环境要求
 
@@ -57,8 +154,6 @@ pnpm install
 pnpm run tauri dev
 ```
 
-这会同时启动 Vite 开发服务器和 Tauri 应用窗口。
-
 ### 构建应用
 
 ```bash
@@ -67,143 +162,36 @@ pnpm run tauri build
 
 构建产物位于 `src-tauri/target/release/bundle/` 目录。
 
-## 📦 下载安装
-
-从 [GitHub Releases](https://github.com/qiyuey/bing-wallpaper-now/releases) 下载预编译的安装包。
-
-### macOS 安装说明
-
-如果看到"应用已损坏，无法打开"或需要运行 `xattr` 命令，这是未签名开源应用的正常情况。
-
-**快速解决：**
-
-```bash
-xattr -rd com.apple.quarantine "/Applications/Bing Wallpaper Now.app"
-```
-
-详细解决方案和说明请参考 [macOS 安装指南](docs/MACOS_INSTALL.md)。
-
-## 📁 项目结构
+### 项目结构
 
 ```bash
 bing-wallpaper-now/
-├── src/                          # 前端代码
+├── src/                          # 前端（React + TypeScript）
 │   ├── components/               # React 组件
-│   │   ├── WallpaperCard.tsx    # 壁纸卡片组件
-│   │   ├── WallpaperGrid.tsx    # 壁纸网格布局
-│   │   └── Settings.tsx         # 设置对话框
 │   ├── hooks/                    # React Hooks
-│   │   └── useBingWallpapers.ts # 壁纸管理核心逻辑
-│   ├── types/                    # TypeScript 类型定义
-│   ├── App.tsx                   # 主应用组件
-│   └── main.tsx                  # 应用入口
-├── src-tauri/                    # Tauri 后端
+│   └── types/                    # TypeScript 类型定义
+├── src-tauri/                    # 后端（Rust + Tauri）
 │   ├── src/
 │   │   ├── bing_api.rs          # Bing API 集成
-│   │   ├── wallpaper_manager.rs # 壁纸设置管理（含 macOS 优化）
-│   │   ├── download_manager.rs  # 图片下载管理
-│   │   ├── storage.rs           # 文件存储管理
-│   │   ├── models.rs            # 数据模型
-│   │   └── lib.rs               # Tauri 应用入口
-│   ├── Cargo.toml               # Rust 依赖配置
-│   └── tauri.conf.json          # Tauri 应用配置
-└── scripts/                      # 开发脚本
+│   │   ├── wallpaper_manager.rs # 壁纸管理
+│   │   ├── download_manager.rs  # 图片下载器
+│   │   └── storage.rs           # 文件存储
+│   └── Cargo.toml               # Rust 依赖
+└── scripts/                      # 构建脚本
 ```
 
-## ⚙️ 应用设置
+### 技术栈
 
-- **自动更新** - 定期自动获取新壁纸，并自动应用最新一张
-- **保存目录** - 自定义壁纸保存位置
-- **保留数量** - 设置最多保留的壁纸数量（最少保留 8 张）
-- **开机启动** - 应用随系统启动
+**前端**: React 18, TypeScript, Vite
 
-## 🖥️ 系统托盘
+**后端**: Tauri 2.0, Rust（Edition 2024）
 
-- **左键点击** - 显示/隐藏主窗口（300ms 防抖）
-- **右键菜单** - 显示窗口、退出应用
-- **窗口关闭** - 最小化到托盘而非退出
-
-## 🛠️ 技术栈
-
-### 前端
-
-- **框架**: React 18 + TypeScript
-- **构建工具**: Vite
-- **状态管理**: React Hooks
-- **样式**: CSS
-
-### 后端
-
-- **框架**: Tauri 2.0
-- **语言**: Rust（Edition 2024）
-- **核心依赖**:
-  - `reqwest` - HTTP 客户端
-  - `serde` / `serde_json` - 序列化/反序列化
-  - `chrono` - 日期时间处理
-  - `anyhow` - 错误处理
-  - `wallpaper` - 跨平台壁纸设置
-  - `objc2` / `objc2-foundation` / `objc2-app-kit` - macOS 原生 API 绑定
-
-### Tauri 插件
-
-- `@tauri-apps/plugin-opener` - 打开文件/链接
-- `@tauri-apps/plugin-dialog` - 原生对话框
-- `@tauri-apps/plugin-store` - 配置持久化
-- `@tauri-apps/plugin-autostart` - 开机启动
-- `@tauri-apps/plugin-notification` - 系统通知
-
-## 🗺️ 发展路线图
-
-### 🎯 下一版本 (v0.2.0)
-
-**多平台优化**
-
-- [ ] Windows 多显示器支持增强
-- [ ] Linux 桌面环境兼容（GNOME、KDE、XFCE 等）
-- [ ] 不同平台的壁纸设置模式选择（填充、适应、拉伸等）
-
-**界面优化**
-
-- [ ] 深色模式 / 浅色模式切换
-- [ ] 主题自定义（颜色方案）
-- [ ] 网格布局自定义（卡片大小、列数）
-
-**通知与反馈**
-
-- [ ] 新壁纸下载完成通知
-- [ ] 壁纸设置成功通知
-- [ ] 更新进度显示（下载中、处理中）
-
-**性能优化**
-
-- [ ] 图片懒加载优化
-- [ ] 缩略图生成与缓存
-- [ ] 增量更新（只下载新壁纸）
-- [ ] 内存占用优化
-
-### 🌟 未来计划
-
-**国际化**
-
-- [ ] 多语言支持（英文、中文、日文等）
-- [ ] 时区处理优化
-- [ ] 区域化壁纸获取（不同地区的 Bing）
-
-**AI 功能**
-
-- [ ] AI 壁纸描述生成
-- [ ] 壁纸颜色分析与主题色提取
-
-**高级功能**
-
-- [ ] 壁纸大图预览（点击卡片全屏查看）
-- [ ] 壁纸收藏功能（标记喜欢的壁纸，防止被自动清理）
-- [ ] 壁纸搜索/筛选（按日期、标题、关键词）
-- [ ] 定时自动切换壁纸（每小时/每天/自定义）
-
-## 🤝 参与贡献
-
-我们欢迎任何形式的贡献！无论是问题反馈、功能建议、文档改进还是代码贡献。
+**核心库**:
+- `reqwest` - HTTP 客户端
+- `serde/serde_json` - 序列化
+- `chrono` - 日期时间处理
+- `wallpaper` - 跨平台壁纸设置
+- `objc2` - macOS 原生 API 绑定
 
 ### 开发流程
 
@@ -215,60 +203,41 @@ bing-wallpaper-now/
 
 ### 代码质量
 
-提交 PR 前，请确保：
+提交 PR 前：
 
 ```bash
-# 运行所有提交前检查
-make pre-commit
+make pre-commit  # 运行所有检查
 
-# 或者分别运行各项检查
-pnpm run lint          # ESLint 检查
-pnpm run format:check  # Prettier 格式检查
-pnpm run typecheck     # TypeScript 类型检查
-pnpm run test:frontend # 前端测试
+# 或者分别运行：
+pnpm run lint          # ESLint
+pnpm run format:check  # Prettier
+pnpm run typecheck     # TypeScript
 cargo fmt              # Rust 代码格式化
 cargo clippy           # Rust 代码检查
 cargo test             # Rust 测试
 ```
 
+</details>
+
 ## 📄 许可证
 
-本项目采用 MIT 许可证 - 详见 [LICENSE](LICENSE) 文件。
+MIT 许可证 - 详见 [LICENSE](LICENSE) 文件。
 
-本项目同时支持[反 996 许可证](https://github.com/996icu/996.ICU/blob/master/LICENSE)。使用本软件即表示您同意遵守劳动法律法规，不强制员工无偿加班。
-
-**附加条款：**
-
-- 本软件仅供学习、研究和合法的个人使用
-- 用户必须遵守当地劳动法律法规
-- 禁止使用本软件剥削劳动者或侵犯劳动权益
-
-**什么是反 996？**
-
-反 996 许可证是开发者创建的软件许可证，旨在抗议科技公司中普遍存在的"996工作制"（早9点到晚9点，每周6天）。通过支持此许可证，我们倡导：
+本项目同时支持[反 996 许可证](https://github.com/996icu/996.ICU)。我们倡导：
 
 - ⏰ 合理的工作时间
 - 🏖️ 工作与生活的平衡
 - 💪 开发者的身心健康
-- 🌟 可持续的软件开发
 
-MIT © [Bing Wallpaper Now 贡献者](https://github.com/qiyuey/bing-wallpaper-now/graphs/contributors)
+**工作生活平衡很重要，向 996 说不！💪**
 
 ## 🙏 致谢
 
 - [Bing](https://www.bing.com) - 提供精美的每日壁纸
 - [Tauri](https://tauri.app) - 轻量级跨平台应用框架
 - [React](https://react.dev) - 用户界面库
-- [反 996 许可证](https://github.com/996icu/996.ICU) - 倡导开发者福祉
-
-## 📞 联系与支持
-
-- **问题反馈**: [GitHub Issues](https://github.com/qiyuey/bing-wallpaper-now/issues)
-- **讨论交流**: [GitHub Discussions](https://github.com/qiyuey/bing-wallpaper-now/discussions)
-- **贡献代码**: 随时欢迎 Pull Request！
+- 开源社区 - 持续的支持与贡献
 
 ---
 
-**用 ❤️ 由开源社区制作**
-
-**工作生活平衡很重要，向 996 说不！💪**
+用 ❤️ 由开源社区制作
