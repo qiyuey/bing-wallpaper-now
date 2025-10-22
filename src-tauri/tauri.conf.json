@@ -29,10 +29,7 @@
       "csp": null,
       "assetProtocol": {
         "enable": true,
-        "scope": [
-          "$PICTURE/**",
-          "$HOME/Pictures/**"
-        ]
+        "scope": ["$PICTURE/**", "$HOME/Pictures/**"]
       }
     }
   },
@@ -46,6 +43,11 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
+    "windows": {
+      "wix": {
+        "language": "en-US"
+      }
+    },
     "macOS": {
       "minimumSystemVersion": "10.15",
       "entitlements": null,
