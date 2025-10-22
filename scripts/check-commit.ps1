@@ -1,18 +1,18 @@
-# check-commit.ps1 - Windows 版本提交前本地 CI 检查
+# check-commit.ps1 - Windows Pre-Commit Local CI Checks
 #
-# 此脚本在提交前运行所有 CI 检查，确保代码能够通过 GitHub Actions CI
-# 避免提交后 CI 失败的循环
+# This script runs all CI checks before commit to ensure code passes GitHub Actions CI
+# Avoids the cycle of failed CI after commit
 #
-# 使用方法:
+# Usage:
 #   .\scripts\check-commit.ps1
 
 $ErrorActionPreference = "Stop"
 
-# 检查计数器
+# Check counters
 $Script:ChecksPassed = 0
 $Script:ChecksFailed = 0
 
-# 打印函数
+# Print functions
 function Print-Separator {
     Write-Host ("━" * 60) -ForegroundColor Blue
 }
@@ -41,14 +41,14 @@ function Print-Warning {
     Write-Host "⚠️  $Message" -ForegroundColor Yellow
 }
 
-# 检测包管理器
+# Detect package manager
 function Get-PackageManager {
     if (Get-Command pnpm -ErrorAction SilentlyContinue) {
         return "pnpm"
     } elseif (Get-Command npm -ErrorAction SilentlyContinue) {
         return "npm"
     } else {
-        Print-Error "未找到 npm 或 pnpm"
+        Print-Error "npm or pnpm not found"
         exit 1
     }
 }
@@ -56,158 +56,158 @@ function Get-PackageManager {
 $PKG_MANAGER = Get-PackageManager
 
 Write-Host "╔══════════════════════════════════════════════════════════════╗" -ForegroundColor Blue
-Write-Host "║         Bing Wallpaper Now - 提交前检查 (Pre-Commit)        ║" -ForegroundColor Blue
+Write-Host "║        Bing Wallpaper Now - Pre-Commit Checks               ║" -ForegroundColor Blue
 Write-Host "╚══════════════════════════════════════════════════════════════╝" -ForegroundColor Blue
 Write-Host ""
-Write-Host "此脚本将运行所有 CI 检查，确保代码能够通过 GitHub Actions" -ForegroundColor Yellow
-Write-Host "包管理器: $PKG_MANAGER" -ForegroundColor Yellow
+Write-Host "This script runs all CI checks to ensure code passes GitHub Actions" -ForegroundColor Yellow
+Write-Host "Package Manager: $PKG_MANAGER" -ForegroundColor Yellow
 Write-Host ""
 
 # ============================================================================
-# 1. Rust 代码格式检查
+# 1. Rust Code Format Check
 # ============================================================================
-Print-Check "1/8 Rust 代码格式检查 (cargo fmt)"
+Print-Check "1/8 Rust Code Format Check (cargo fmt)"
 
 try {
     cargo fmt --manifest-path src-tauri/Cargo.toml -- --check 2>&1 | Out-Null
     if ($LASTEXITCODE -eq 0) {
-        Print-Success "Rust 代码格式正确"
+        Print-Success "Rust code format correct"
     } else {
-        Print-Error "Rust 代码格式不正确，请运行: cargo fmt --manifest-path src-tauri/Cargo.toml"
+        Print-Error "Rust code format incorrect, please run: cargo fmt --manifest-path src-tauri/Cargo.toml"
     }
 } catch {
-    Print-Error "Rust 代码格式检查失败"
+    Print-Error "Rust code format check failed"
 }
 
 # ============================================================================
-# 2. Rust Clippy 检查
+# 2. Rust Clippy Check
 # ============================================================================
-Print-Check "2/8 Rust Clippy 检查 (cargo clippy)"
+Print-Check "2/8 Rust Clippy Check (cargo clippy)"
 
 try {
     cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings 2>&1 | Out-Null
     if ($LASTEXITCODE -eq 0) {
-        Print-Success "Clippy 检查通过"
+        Print-Success "Clippy check passed"
     } else {
-        Print-Error "Clippy 检查失败，请修复 Rust 代码问题"
+        Print-Error "Clippy check failed, please fix Rust code issues"
     }
 } catch {
-    Print-Error "Clippy 检查失败"
+    Print-Error "Clippy check failed"
 }
 
 # ============================================================================
-# 3. Rust 测试
+# 3. Rust Tests
 # ============================================================================
-Print-Check "3/8 Rust 单元测试 (cargo test)"
+Print-Check "3/8 Rust Unit Tests (cargo test)"
 
 try {
     cargo test --manifest-path src-tauri/Cargo.toml --quiet 2>&1 | Out-Null
     if ($LASTEXITCODE -eq 0) {
-        Print-Success "Rust 测试通过"
+        Print-Success "Rust tests passed"
     } else {
-        Print-Error "Rust 测试失败，请修复测试问题"
+        Print-Error "Rust tests failed, please fix test issues"
     }
 } catch {
-    Print-Error "Rust 测试失败"
+    Print-Error "Rust tests failed"
 }
 
 # ============================================================================
-# 4. TypeScript 类型检查
+# 4. TypeScript Type Check
 # ============================================================================
-Print-Check "4/8 TypeScript 类型检查 (tsc)"
+Print-Check "4/8 TypeScript Type Check (tsc)"
 
 try {
     & $PKG_MANAGER run typecheck 2>&1 | Out-Null
     if ($LASTEXITCODE -eq 0) {
-        Print-Success "TypeScript 类型检查通过"
+        Print-Success "TypeScript type check passed"
     } else {
-        Print-Error "TypeScript 类型检查失败，请修复类型错误"
+        Print-Error "TypeScript type check failed, please fix type errors"
     }
 } catch {
-    Print-Error "TypeScript 类型检查失败"
+    Print-Error "TypeScript type check failed"
 }
 
 # ============================================================================
-# 5. ESLint 检查
+# 5. ESLint Check
 # ============================================================================
-Print-Check "5/8 ESLint 检查 (eslint)"
+Print-Check "5/8 ESLint Check (eslint)"
 
 try {
     & $PKG_MANAGER run lint 2>&1 | Out-Null
     if ($LASTEXITCODE -eq 0) {
-        Print-Success "ESLint 检查通过"
+        Print-Success "ESLint check passed"
     } else {
-        Print-Error "ESLint 检查失败，请运行: $PKG_MANAGER run lint:fix"
+        Print-Error "ESLint check failed, please run: $PKG_MANAGER run lint:fix"
     }
 } catch {
-    Print-Error "ESLint 检查失败"
+    Print-Error "ESLint check failed"
 }
 
 # ============================================================================
-# 6. Prettier 格式检查
+# 6. Prettier Format Check
 # ============================================================================
-Print-Check "6/8 Prettier 格式检查 (prettier)"
+Print-Check "6/8 Prettier Format Check (prettier)"
 
 try {
     & $PKG_MANAGER run format:check 2>&1 | Out-Null
     if ($LASTEXITCODE -eq 0) {
-        Print-Success "Prettier 格式检查通过"
+        Print-Success "Prettier format check passed"
     } else {
-        Print-Error "Prettier 格式检查失败，请运行: $PKG_MANAGER run format"
+        Print-Error "Prettier format check failed, please run: $PKG_MANAGER run format"
     }
 } catch {
-    Print-Error "Prettier 格式检查失败"
+    Print-Error "Prettier format check failed"
 }
 
 # ============================================================================
-# 7. 前端测试
+# 7. Frontend Tests
 # ============================================================================
-Print-Check "7/8 前端单元测试 (vitest)"
+Print-Check "7/8 Frontend Unit Tests (vitest)"
 
 try {
     & $PKG_MANAGER run test:frontend 2>&1 | Out-Null
     if ($LASTEXITCODE -eq 0) {
-        Print-Success "前端测试通过"
+        Print-Success "Frontend tests passed"
     } else {
-        Print-Error "前端测试失败，请修复测试问题"
+        Print-Error "Frontend tests failed, please fix test issues"
     }
 } catch {
-    Print-Error "前端测试失败"
+    Print-Error "Frontend tests failed"
 }
 
 # ============================================================================
-# 8. 前端构建
+# 8. Frontend Build
 # ============================================================================
-Print-Check "8/8 前端构建检查 (vite build)"
+Print-Check "8/8 Frontend Build Check (vite build)"
 
 try {
     & $PKG_MANAGER run build 2>&1 | Out-Null
     if ($LASTEXITCODE -eq 0) {
-        Print-Success "前端构建成功"
+        Print-Success "Frontend build succeeded"
     } else {
-        Print-Error "前端构建失败，请修复构建问题"
+        Print-Error "Frontend build failed, please fix build issues"
     }
 } catch {
-    Print-Error "前端构建失败"
+    Print-Error "Frontend build failed"
 }
 
 # ============================================================================
-# 汇总结果
+# Summary Results
 # ============================================================================
 Write-Host ""
 Print-Separator
-Write-Host "检查汇总:" -ForegroundColor Cyan
+Write-Host "Check Summary:" -ForegroundColor Cyan
 Print-Separator
 
 $TotalChecks = $Script:ChecksPassed + $Script:ChecksFailed
-Write-Host "总检查项: $TotalChecks"
-Write-Host "通过: $($Script:ChecksPassed)" -ForegroundColor Green
-Write-Host "失败: $($Script:ChecksFailed)" -ForegroundColor Red
+Write-Host "Total Checks: $TotalChecks"
+Write-Host "Passed: $($Script:ChecksPassed)" -ForegroundColor Green
+Write-Host "Failed: $($Script:ChecksFailed)" -ForegroundColor Red
 
 if ($Script:ChecksFailed -eq 0) {
     Write-Host ""
-    Write-Host "✅ 所有检查通过！可以安全提交代码 🎉" -ForegroundColor Green
-    Write-Host "建议使用以下命令提交:" -ForegroundColor Green
+    Write-Host "✅ All checks passed! Safe to commit 🎉" -ForegroundColor Green
+    Write-Host "Suggested commit commands:" -ForegroundColor Green
     Write-Host "  git add ." -ForegroundColor Blue
     Write-Host "  git commit" -ForegroundColor Blue
     Write-Host "  git push" -ForegroundColor Blue
@@ -215,12 +215,12 @@ if ($Script:ChecksFailed -eq 0) {
     exit 0
 } else {
     Write-Host ""
-    Write-Host "❌ 有 $($Script:ChecksFailed) 项检查失败，请修复后再提交" -ForegroundColor Red
-    Write-Host "提示:" -ForegroundColor Yellow
-    Write-Host "  - 格式问题: cargo fmt && $PKG_MANAGER run format" -ForegroundColor Blue
-    Write-Host "  - Lint 问题: $PKG_MANAGER run lint:fix" -ForegroundColor Blue
-    Write-Host "  - 类型问题: 根据 tsc 错误提示修复"
-    Write-Host "  - 测试问题: 根据测试输出修复"
+    Write-Host "❌ $($Script:ChecksFailed) check(s) failed, please fix before commit" -ForegroundColor Red
+    Write-Host "Tips:" -ForegroundColor Yellow
+    Write-Host "  - Format issues: cargo fmt && $PKG_MANAGER run format" -ForegroundColor Blue
+    Write-Host "  - Lint issues: $PKG_MANAGER run lint:fix" -ForegroundColor Blue
+    Write-Host "  - Type issues: Fix according to tsc error messages"
+    Write-Host "  - Test issues: Fix according to test output"
     Write-Host ""
     exit 1
 }

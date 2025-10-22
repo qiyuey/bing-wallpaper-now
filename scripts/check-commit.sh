@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
-# pre-commit-check.sh - 提交前本地 CI 检查
+# check-commit.sh - Pre-Commit Local CI Checks
 #
-# 此脚本在提交前运行所有 CI 检查，确保代码能够通过 GitHub Actions CI
-# 避免提交后 CI 失败的循环
+# This script runs all CI checks before commit to ensure code passes GitHub Actions CI
+# Avoids the cycle of failed CI after commit
 #
-# 使用方法:
-#   ./scripts/pre-commit-check.sh
-#   或者 make pre-commit
+# Usage:
+#   ./scripts/check-commit.sh
+#   or make pre-commit
 
 set -euo pipefail
 
-# 颜色输出
+# Color output
 COLOR_RESET='\033[0m'
 COLOR_BOLD='\033[1m'
 COLOR_GREEN='\033[32m'
@@ -18,46 +18,46 @@ COLOR_YELLOW='\033[33m'
 COLOR_BLUE='\033[34m'
 COLOR_RED='\033[31m'
 
-# 检查计数器
+# Check counters
 CHECKS_PASSED=0
 CHECKS_FAILED=0
 
-# 打印分隔符
+# Print separator
 print_separator() {
     printf "${COLOR_BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${COLOR_RESET}\n"
 }
 
-# 打印检查标题
+# Print check title
 print_check() {
     printf "\n${COLOR_BOLD}${COLOR_BLUE}🔍 $1${COLOR_RESET}\n"
     print_separator
 }
 
-# 打印成功消息
+# Print success message
 print_success() {
     printf "${COLOR_GREEN}✅ $1${COLOR_RESET}\n"
     CHECKS_PASSED=$((CHECKS_PASSED + 1))
 }
 
-# 打印失败消息
+# Print error message
 print_error() {
     printf "${COLOR_RED}❌ $1${COLOR_RESET}\n"
     CHECKS_FAILED=$((CHECKS_FAILED + 1))
 }
 
-# 打印警告消息
+# Print warning message
 print_warning() {
     printf "${COLOR_YELLOW}⚠️  $1${COLOR_RESET}\n"
 }
 
-# 检测包管理器
+# Detect package manager
 detect_package_manager() {
     if command -v pnpm &> /dev/null; then
         echo "pnpm"
     elif command -v npm &> /dev/null; then
         echo "npm"
     else
-        print_error "未找到 npm 或 pnpm"
+        print_error "npm or pnpm not found"
         exit 1
     fi
 }
@@ -65,126 +65,126 @@ detect_package_manager() {
 PKG_MANAGER=$(detect_package_manager)
 
 printf "${COLOR_BOLD}${COLOR_BLUE}╔══════════════════════════════════════════════════════════════╗${COLOR_RESET}\n"
-printf "${COLOR_BOLD}${COLOR_BLUE}║         Bing Wallpaper Now - 提交前检查 (Pre-Commit)        ║${COLOR_RESET}\n"
+printf "${COLOR_BOLD}${COLOR_BLUE}║        Bing Wallpaper Now - Pre-Commit Checks               ║${COLOR_RESET}\n"
 printf "${COLOR_BOLD}${COLOR_BLUE}╚══════════════════════════════════════════════════════════════╝${COLOR_RESET}\n\n"
 
-printf "${COLOR_YELLOW}此脚本将运行所有 CI 检查，确保代码能够通过 GitHub Actions${COLOR_RESET}\n"
-printf "${COLOR_YELLOW}包管理器: ${PKG_MANAGER}${COLOR_RESET}\n\n"
+printf "${COLOR_YELLOW}This script runs all CI checks to ensure code passes GitHub Actions${COLOR_RESET}\n"
+printf "${COLOR_YELLOW}Package Manager: ${PKG_MANAGER}${COLOR_RESET}\n\n"
 
 # ============================================================================
-# 1. Rust 代码格式检查
+# 1. Rust Code Format Check
 # ============================================================================
-print_check "1/8 Rust 代码格式检查 (cargo fmt)"
+print_check "1/8 Rust Code Format Check (cargo fmt)"
 
 if cargo fmt --manifest-path src-tauri/Cargo.toml -- --check; then
-    print_success "Rust 代码格式正确"
+    print_success "Rust code format correct"
 else
-    print_error "Rust 代码格式不正确，请运行: cargo fmt --manifest-path src-tauri/Cargo.toml"
+    print_error "Rust code format incorrect, please run: cargo fmt --manifest-path src-tauri/Cargo.toml"
 fi
 
 # ============================================================================
-# 2. Rust Clippy 检查
+# 2. Rust Clippy Check
 # ============================================================================
-print_check "2/8 Rust Clippy 检查 (cargo clippy)"
+print_check "2/8 Rust Clippy Check (cargo clippy)"
 
 if cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings; then
-    print_success "Clippy 检查通过"
+    print_success "Clippy check passed"
 else
-    print_error "Clippy 检查失败，请修复 Rust 代码问题"
+    print_error "Clippy check failed, please fix Rust code issues"
 fi
 
 # ============================================================================
-# 3. Rust 测试
+# 3. Rust Tests
 # ============================================================================
-print_check "3/8 Rust 单元测试 (cargo test)"
+print_check "3/8 Rust Unit Tests (cargo test)"
 
 if cargo test --manifest-path src-tauri/Cargo.toml --quiet; then
-    print_success "Rust 测试通过"
+    print_success "Rust tests passed"
 else
-    print_error "Rust 测试失败，请修复测试问题"
+    print_error "Rust tests failed, please fix test issues"
 fi
 
 # ============================================================================
-# 4. TypeScript 类型检查
+# 4. TypeScript Type Check
 # ============================================================================
-print_check "4/8 TypeScript 类型检查 (tsc)"
+print_check "4/8 TypeScript Type Check (tsc)"
 
 if $PKG_MANAGER run typecheck; then
-    print_success "TypeScript 类型检查通过"
+    print_success "TypeScript type check passed"
 else
-    print_error "TypeScript 类型检查失败，请修复类型错误"
+    print_error "TypeScript type check failed, please fix type errors"
 fi
 
 # ============================================================================
-# 5. ESLint 检查
+# 5. ESLint Check
 # ============================================================================
-print_check "5/8 ESLint 检查 (eslint)"
+print_check "5/8 ESLint Check (eslint)"
 
 if $PKG_MANAGER run lint; then
-    print_success "ESLint 检查通过"
+    print_success "ESLint check passed"
 else
-    print_error "ESLint 检查失败，请运行: $PKG_MANAGER run lint:fix"
+    print_error "ESLint check failed, please run: $PKG_MANAGER run lint:fix"
 fi
 
 # ============================================================================
-# 6. Prettier 格式检查
+# 6. Prettier Format Check
 # ============================================================================
-print_check "6/8 Prettier 格式检查 (prettier)"
+print_check "6/8 Prettier Format Check (prettier)"
 
 if $PKG_MANAGER run format:check; then
-    print_success "Prettier 格式检查通过"
+    print_success "Prettier format check passed"
 else
-    print_error "Prettier 格式检查失败，请运行: $PKG_MANAGER run format"
+    print_error "Prettier format check failed, please run: $PKG_MANAGER run format"
 fi
 
 # ============================================================================
-# 7. 前端测试
+# 7. Frontend Tests
 # ============================================================================
-print_check "7/8 前端单元测试 (vitest)"
+print_check "7/8 Frontend Unit Tests (vitest)"
 
 if $PKG_MANAGER run test:frontend; then
-    print_success "前端测试通过"
+    print_success "Frontend tests passed"
 else
-    print_error "前端测试失败，请修复测试问题"
+    print_error "Frontend tests failed, please fix test issues"
 fi
 
 # ============================================================================
-# 8. 前端构建
+# 8. Frontend Build
 # ============================================================================
-print_check "8/8 前端构建检查 (vite build)"
+print_check "8/8 Frontend Build Check (vite build)"
 
 if $PKG_MANAGER run build; then
-    print_success "前端构建成功"
+    print_success "Frontend build succeeded"
 else
-    print_error "前端构建失败，请修复构建问题"
+    print_error "Frontend build failed, please fix build issues"
 fi
 
 # ============================================================================
-# 汇总结果
+# Summary Results
 # ============================================================================
 printf "\n"
 print_separator
-printf "${COLOR_BOLD}检查汇总:${COLOR_RESET}\n"
+printf "${COLOR_BOLD}Check Summary:${COLOR_RESET}\n"
 print_separator
 
 TOTAL_CHECKS=$((CHECKS_PASSED + CHECKS_FAILED))
-printf "总检查项: ${COLOR_BOLD}%d${COLOR_RESET}\n" $TOTAL_CHECKS
-printf "通过: ${COLOR_GREEN}${COLOR_BOLD}%d${COLOR_RESET}\n" $CHECKS_PASSED
-printf "失败: ${COLOR_RED}${COLOR_BOLD}%d${COLOR_RESET}\n" $CHECKS_FAILED
+printf "Total Checks: ${COLOR_BOLD}%d${COLOR_RESET}\n" $TOTAL_CHECKS
+printf "Passed: ${COLOR_GREEN}${COLOR_BOLD}%d${COLOR_RESET}\n" $CHECKS_PASSED
+printf "Failed: ${COLOR_RED}${COLOR_BOLD}%d${COLOR_RESET}\n" $CHECKS_FAILED
 
 if [ $CHECKS_FAILED -eq 0 ]; then
-    printf "\n${COLOR_GREEN}${COLOR_BOLD}✅ 所有检查通过！可以安全提交代码 🎉${COLOR_RESET}\n"
-    printf "${COLOR_GREEN}建议使用以下命令提交:${COLOR_RESET}\n"
+    printf "\n${COLOR_GREEN}${COLOR_BOLD}✅ All checks passed! Safe to commit 🎉${COLOR_RESET}\n"
+    printf "${COLOR_GREEN}Suggested commit commands:${COLOR_RESET}\n"
     printf "  ${COLOR_BLUE}git add .${COLOR_RESET}\n"
     printf "  ${COLOR_BLUE}git commit${COLOR_RESET}\n"
     printf "  ${COLOR_BLUE}git push${COLOR_RESET}\n\n"
     exit 0
 else
-    printf "\n${COLOR_RED}${COLOR_BOLD}❌ 有 %d 项检查失败，请修复后再提交${COLOR_RESET}\n" $CHECKS_FAILED
-    printf "${COLOR_YELLOW}提示:${COLOR_RESET}\n"
-    printf "  - 格式问题: ${COLOR_BLUE}cargo fmt && $PKG_MANAGER run format${COLOR_RESET}\n"
-    printf "  - Lint 问题: ${COLOR_BLUE}$PKG_MANAGER run lint:fix${COLOR_RESET}\n"
-    printf "  - 类型问题: 根据 tsc 错误提示修复\n"
-    printf "  - 测试问题: 根据测试输出修复\n\n"
+    printf "\n${COLOR_RED}${COLOR_BOLD}❌ %d check(s) failed, please fix before commit${COLOR_RESET}\n" $CHECKS_FAILED
+    printf "${COLOR_YELLOW}Tips:${COLOR_RESET}\n"
+    printf "  - Format issues: ${COLOR_BLUE}cargo fmt && $PKG_MANAGER run format${COLOR_RESET}\n"
+    printf "  - Lint issues: ${COLOR_BLUE}$PKG_MANAGER run lint:fix${COLOR_RESET}\n"
+    printf "  - Type issues: Fix according to tsc error messages\n"
+    printf "  - Test issues: Fix according to test output\n\n"
     exit 1
 fi

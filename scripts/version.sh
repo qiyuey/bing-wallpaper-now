@@ -1,32 +1,32 @@
 #!/usr/bin/env bash
-# SNAPSHOT 版本管理脚本
+# SNAPSHOT Version Management Script
 #
-# 版本格式：X.Y.Z 或 X.Y.Z-SNAPSHOT
+# Version format: X.Y.Z or X.Y.Z-SNAPSHOT
 #
-# 用法：
-#   ./scripts/version-snapshot.sh snapshot-patch  # 创建下一个 patch SNAPSHOT (0.1.0 -> 0.1.1-SNAPSHOT)
-#   ./scripts/version-snapshot.sh snapshot-minor  # 创建下一个 minor SNAPSHOT (0.1.0 -> 0.2.0-SNAPSHOT)
-#   ./scripts/version-snapshot.sh snapshot-major  # 创建下一个 major SNAPSHOT (0.1.0 -> 1.0.0-SNAPSHOT)
-#   ./scripts/version-snapshot.sh release         # 发布当前 SNAPSHOT 版本、打 tag 并推送到远程 (0.1.1-SNAPSHOT -> 0.1.1)
+# Usage:
+#   ./scripts/version-snapshot.sh snapshot-patch  # Create next patch SNAPSHOT (0.1.0 -> 0.1.1-SNAPSHOT)
+#   ./scripts/version-snapshot.sh snapshot-minor  # Create next minor SNAPSHOT (0.1.0 -> 0.2.0-SNAPSHOT)
+#   ./scripts/version-snapshot.sh snapshot-major  # Create next major SNAPSHOT (0.1.0 -> 1.0.0-SNAPSHOT)
+#   ./scripts/version-snapshot.sh release         # Release current SNAPSHOT version, create tag and push to remote (0.1.1-SNAPSHOT -> 0.1.1)
 #
-# 工作流程：
-#   1. 发布 v0.1.0 后，创建 0.1.1-SNAPSHOT 用于开发
-#   2. 开发完成后，运行 release 转为 0.1.1 正式版本、打 tag 并推送到远程
-#   3. 发布后，再次创建 0.1.2-SNAPSHOT 继续开发
+# Workflow:
+#   1. After releasing v0.1.0, create 0.1.1-SNAPSHOT for development
+#   2. When development is complete, run release to convert to 0.1.1 production version, create tag and push to remote
+#   3. After release, create 0.1.2-SNAPSHOT again to continue development
 #
-# 发布失败回滚：
-#   如果发布后 CI 构建失败，需要回滚：
-#   1. 删除本地标签: git tag -d vX.Y.Z
-#   2. 删除远程标签: git push origin :refs/tags/vX.Y.Z
-#   3. 回退提交:
-#      - 仅回退 release 提交: git reset --hard HEAD~1
-#      - 同时创建了 SNAPSHOT: git reset --hard HEAD~2
-#   4. 强制推送: git push origin main --force-with-lease
-#   5. 修复问题后重新运行: make release
+# Rollback on Release Failure:
+#   If CI build fails after release, you need to rollback:
+#   1. Delete local tag: git tag -d vX.Y.Z
+#   2. Delete remote tag: git push origin :refs/tags/vX.Y.Z
+#   3. Revert commits:
+#      - Only revert release commit: git reset --hard HEAD~1
+#      - Also created SNAPSHOT: git reset --hard HEAD~2
+#   4. Force push: git push origin main --force-with-lease
+#   5. Fix issues and rerun: make release
 
 set -euo pipefail
 
-# 颜色定义
+# Color definitions
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -34,62 +34,62 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
-# 文件路径
+# File paths
 PACKAGE_JSON="package.json"
 CARGO_TOML="src-tauri/Cargo.toml"
 TAURI_CONF="src-tauri/tauri.conf.json"
 
-# 辅助函数
+# Helper functions
 print_info() { echo -e "${BLUE}ℹ${NC} $1"; }
 print_success() { echo -e "${GREEN}✓${NC} $1"; }
 print_warning() { echo -e "${YELLOW}⚠${NC} $1"; }
 print_error() { echo -e "${RED}✗${NC} $1"; }
 print_header() { echo -e "${CYAN}${1}${NC}"; }
 
-# 检查是否在 git 仓库中
+# Check if in git repository
 check_git_repo() {
     if ! git rev-parse --git-dir > /dev/null 2>&1; then
-        print_error "不在 Git 仓库中"
+        print_error "Not in a Git repository"
         exit 1
     fi
 }
 
-# 检查工作目录状态
+# Check working directory status
 check_working_directory() {
     if [[ -n $(git status -s) ]]; then
-        print_warning "工作目录有未提交的更改"
+        print_warning "Working directory has uncommitted changes"
         git status -s
         echo ""
-        read -p "是否继续？(y/N) " -n 1 -r
+        read -p "Continue anyway? (y/N) " -n 1 -r
         echo
         if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            print_info "已取消"
+            print_info "Cancelled"
             exit 0
         fi
     fi
 }
 
-# 获取当前版本
+# Get current version
 get_current_version() {
     grep '"version"' "$PACKAGE_JSON" | head -1 | sed 's/.*"version": "\(.*\)".*/\1/'
 }
 
-# 检查是否是 SNAPSHOT 版本
+# Check if is SNAPSHOT version
 is_snapshot() {
     [[ $1 == *"-SNAPSHOT" ]]
 }
 
-# 移除 SNAPSHOT 后缀
+# Remove SNAPSHOT suffix
 remove_snapshot() {
     echo "$1" | sed 's/-SNAPSHOT$//'
 }
 
-# 添加 SNAPSHOT 后缀
+# Add SNAPSHOT suffix
 add_snapshot() {
     echo "$1-SNAPSHOT"
 }
 
-# 版本号拆分
+# Split version number
 split_version() {
     local version=$(remove_snapshot "$1")
     MAJOR=$(echo "$version" | cut -d. -f1)
@@ -97,7 +97,7 @@ split_version() {
     PATCH=$(echo "$version" | cut -d. -f3)
 }
 
-# 计算下一个版本
+# Calculate next version
 calculate_next_version() {
     local current=$1
     local bump_type=$2
@@ -119,7 +119,7 @@ calculate_next_version() {
             PATCH=0
             ;;
         *)
-            print_error "无效的版本类型: $bump_type"
+            print_error "Invalid version type: $bump_type"
             exit 1
             ;;
     esac
@@ -127,45 +127,45 @@ calculate_next_version() {
     echo "${MAJOR}.${MINOR}.${PATCH}"
 }
 
-# 验证版本格式（MSI 兼容性）
+# Validate version format (MSI compatibility)
 validate_version_format() {
     local version=$1
 
-    # MSI 要求：预发布标识符必须是纯数字（如 1.0.0 或 1.0.0-123）
-    # 不能包含字母后缀（如 1.0.0-alpha, 1.0.0-SNAPSHOT）
+    # MSI requirement: pre-release identifier must be numeric only (e.g. 1.0.0 or 1.0.0-123)
+    # Cannot contain letter suffixes (e.g. 1.0.0-alpha, 1.0.0-SNAPSHOT)
     if [[ "$version" =~ -[^0-9] ]]; then
-        print_error "版本号 '$version' 包含非数字预发布标识符"
-        print_error "MSI 构建要求预发布标识符必须是纯数字（如 1.0.0 或 1.0.0-123）"
-        print_error "当前版本包含字母后缀，这会导致 Windows MSI 构建失败"
+        print_error "Version '$version' contains non-numeric pre-release identifier"
+        print_error "MSI build requires pre-release identifiers to be numeric only (e.g. 1.0.0 or 1.0.0-123)"
+        print_error "Current version contains letter suffix, which will cause Windows MSI build failure"
         return 1
     fi
     return 0
 }
 
-# 更新所有版本文件
+# Update all version files
 update_version_files() {
     local new_version=$1
 
-    # 验证版本格式
+    # Validate version format
     if ! validate_version_format "$new_version"; then
         exit 1
     fi
 
-    print_info "更新 $PACKAGE_JSON..."
+    print_info "Updating $PACKAGE_JSON..."
     if [[ "$OSTYPE" == "darwin"* ]]; then
         sed -i '' "s/\"version\": \".*\"/\"version\": \"$new_version\"/" "$PACKAGE_JSON"
     else
         sed -i "s/\"version\": \".*\"/\"version\": \"$new_version\"/" "$PACKAGE_JSON"
     fi
 
-    print_info "更新 $CARGO_TOML..."
+    print_info "Updating $CARGO_TOML..."
     if [[ "$OSTYPE" == "darwin"* ]]; then
         sed -i '' "s/^version = \".*\"/version = \"$new_version\"/" "$CARGO_TOML"
     else
         sed -i "s/^version = \".*\"/version = \"$new_version\"/" "$CARGO_TOML"
     fi
 
-    print_info "更新 $TAURI_CONF..."
+    print_info "Updating $TAURI_CONF..."
     if command -v jq &> /dev/null; then
         jq ".version = \"$new_version\"" "$TAURI_CONF" > "${TAURI_CONF}.tmp"
         mv "${TAURI_CONF}.tmp" "$TAURI_CONF"
@@ -177,21 +177,21 @@ update_version_files() {
         fi
     fi
 
-    print_info "更新 Cargo.lock..."
+    print_info "Updating Cargo.lock..."
     cargo update -p bing-wallpaper-now --manifest-path src-tauri/Cargo.toml --quiet 2>/dev/null || true
 
-    print_success "版本文件已更新为 $new_version"
+    print_success "Version files updated to $new_version"
 }
 
-# 创建 SNAPSHOT 版本
+# Create SNAPSHOT version
 create_snapshot() {
     local bump_type=$1
     local current=$(get_current_version)
 
     if is_snapshot "$current"; then
-        print_warning "当前已经是 SNAPSHOT 版本: $current"
+        print_warning "Current version is already SNAPSHOT: $current"
         local base=$(remove_snapshot "$current")
-        print_info "将基于 $base 创建新的 SNAPSHOT"
+        print_info "Will create new SNAPSHOT based on $base"
     fi
 
     local base_version=$(remove_snapshot "$current")
@@ -199,17 +199,17 @@ create_snapshot() {
     local snapshot_version=$(add_snapshot "$next_version")
 
     print_header "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    print_header "  创建 SNAPSHOT 版本"
+    print_header "  Create SNAPSHOT Version"
     print_header "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
-    print_info "当前版本: $current"
-    print_info "新版本:   $snapshot_version"
+    print_info "Current version: $current"
+    print_info "New version:     $snapshot_version"
     echo ""
 
-    read -p "确认创建 SNAPSHOT 版本？(y/N) " -n 1 -r
+    read -p "Confirm creating SNAPSHOT version? (y/N) " -n 1 -r
     echo
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        print_info "已取消"
+        print_info "Cancelled"
         exit 0
     fi
 
@@ -218,75 +218,75 @@ create_snapshot() {
     git add "$PACKAGE_JSON" "$CARGO_TOML" "$TAURI_CONF" "src-tauri/Cargo.lock"
     git commit -m "chore(version): bump to $snapshot_version"
 
-    print_success "已创建 SNAPSHOT 版本: $snapshot_version"
-    print_info "可以开始新功能的开发了！"
+    print_success "Created SNAPSHOT version: $snapshot_version"
+    print_info "Ready to start developing new features!"
 }
 
-# 验证 CHANGELOG 是否已更新
+# Validate CHANGELOG is updated
 validate_changelog() {
     local version=$1
 
     if [ ! -f "CHANGELOG.md" ]; then
-        print_error "未找到 CHANGELOG.md 文件"
+        print_error "CHANGELOG.md file not found"
         return 1
     fi
 
     if ! grep -q "## \[$version\]" CHANGELOG.md; then
-        print_error "CHANGELOG.md 中未找到版本 [$version] 的更新日志"
-        print_info "请先在 CHANGELOG.md 中添加以下内容："
+        print_error "Version [$version] not found in CHANGELOG.md"
+        print_info "Please add the following content to CHANGELOG.md first:"
         echo ""
         echo "  ## [$version]"
         echo ""
         echo "  ### Added/Changed/Fixed"
-        echo "  - 您的更新说明..."
+        echo "  - Your changelog notes..."
         echo ""
-        print_info "然后重新运行 make release"
+        print_info "Then rerun make release"
         return 1
     fi
 
-    print_success "CHANGELOG.md 验证通过"
+    print_success "CHANGELOG.md validation passed"
     return 0
 }
 
-# 运行发布前质量检查
+# Run pre-release quality checks
 run_pre_release_checks() {
     print_header "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    print_header "  运行发布前质量检查"
+    print_header "  Running Pre-release Quality Checks"
     print_header "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
 
-    # 检查 make 命令是否存在
+    # Check if make command exists
     if ! command -v make &> /dev/null; then
-        print_warning "未找到 make 命令，跳过质量检查"
-        print_warning "建议手动运行: make pre-commit"
+        print_warning "make command not found, skipping quality checks"
+        print_warning "Recommended to run manually: make pre-commit"
         echo ""
-        read -p "是否继续发布？(y/N) " -n 1 -r
+        read -p "Continue with release? (y/N) " -n 1 -r
         echo
         if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            print_info "已取消"
+            print_info "Cancelled"
             exit 0
         fi
         return 0
     fi
 
-    print_info "运行代码格式检查、lint 和测试..."
+    print_info "Running code formatting checks, linting and tests..."
     if ! make pre-commit; then
-        print_error "质量检查失败"
-        print_info "请修复上述问题后重新运行 make release"
+        print_error "Quality checks failed"
+        print_info "Please fix the above issues and rerun make release"
         exit 1
     fi
 
-    print_success "所有质量检查通过"
+    print_success "All quality checks passed"
     echo ""
 }
 
-# 发布版本（默认推送到远程）
+# Release version (pushes to remote by default)
 release_version() {
     local current=$(get_current_version)
 
     if ! is_snapshot "$current"; then
-        print_error "当前不是 SNAPSHOT 版本: $current"
-        print_info "只能从 SNAPSHOT 版本发布"
+        print_error "Current version is not SNAPSHOT: $current"
+        print_info "Can only release from SNAPSHOT version"
         exit 1
     fi
 
@@ -294,65 +294,65 @@ release_version() {
     local tag="v$release_version"
 
     print_header "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    print_header "  发布正式版本"
+    print_header "  Release Production Version"
     print_header "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
-    print_info "SNAPSHOT 版本: $current"
-    print_info "发布版本:      $release_version"
-    print_info "Git Tag:       $tag"
+    print_info "SNAPSHOT version: $current"
+    print_info "Release version:  $release_version"
+    print_info "Git Tag:          $tag"
     echo ""
 
-    # 验证 CHANGELOG
+    # Validate CHANGELOG
     if ! validate_changelog "$release_version"; then
         exit 1
     fi
     echo ""
 
-    # 运行发布前检查
+    # Run pre-release checks
     run_pre_release_checks
 
-    read -p "确认发布版本？(y/N) " -n 1 -r
+    read -p "Confirm releasing version? (y/N) " -n 1 -r
     echo
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        print_info "已取消"
+        print_info "Cancelled"
         exit 0
     fi
 
-    # 更新版本号（移除 SNAPSHOT）
+    # Update version (remove SNAPSHOT)
     update_version_files "$release_version"
 
-    # 提交并打 tag
+    # Commit and tag
     git add "$PACKAGE_JSON" "$CARGO_TOML" "$TAURI_CONF" "src-tauri/Cargo.lock"
     git commit -m "chore(release): $release_version"
     git tag -a "$tag" -m "Release $release_version"
 
-    print_success "已创建发布版本: $release_version"
-    print_success "已创建 Git 标签: $tag"
+    print_success "Created release version: $release_version"
+    print_success "Created Git tag: $tag"
 
     echo ""
-    read -p "是否立即推送到远程？(Y/n) " -n 1 -r
+    read -p "Push to remote immediately? (Y/n) " -n 1 -r
     echo
     local pushed=false
     if [[ ! $REPLY =~ ^[Nn]$ ]]; then
-        print_info "推送到远程..."
+        print_info "Pushing to remote..."
         git push origin main
         git push origin "$tag"
-        print_success "已推送到远程，CI 将开始构建"
+        print_success "Pushed to remote, CI will start building"
         pushed=true
         echo ""
-        print_info "GitHub Actions 将自动构建并发布到 Releases"
+        print_info "GitHub Actions will automatically build and publish to Releases"
     else
-        print_info "跳过推送，下次手动推送："
+        print_info "Skipped push, manually push later:"
         echo "  git push origin main && git push origin $tag"
     fi
 
-    # 询问是否创建下一个 SNAPSHOT 版本
+    # Ask if create next SNAPSHOT version
     echo ""
-    read -p "是否创建下一个 patch SNAPSHOT 版本？(y/N) " -n 1 -r
+    read -p "Create next patch SNAPSHOT version? (y/N) " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         echo ""
-        print_info "创建下一个 SNAPSHOT 版本..."
+        print_info "Creating next SNAPSHOT version..."
 
         local next_version=$(calculate_next_version "$release_version" "patch")
         local snapshot_version=$(add_snapshot "$next_version")
@@ -362,65 +362,65 @@ release_version() {
         git add "$PACKAGE_JSON" "$CARGO_TOML" "$TAURI_CONF" "src-tauri/Cargo.lock"
         git commit -m "chore(version): bump to $snapshot_version"
 
-        print_success "已创建 SNAPSHOT 版本: $snapshot_version"
+        print_success "Created SNAPSHOT version: $snapshot_version"
 
         if [ "$pushed" = true ]; then
             echo ""
-            read -p "是否推送 SNAPSHOT 版本到远程？(y/N) " -n 1 -r
+            read -p "Push SNAPSHOT version to remote? (y/N) " -n 1 -r
             echo
             if [[ $REPLY =~ ^[Yy]$ ]]; then
                 git push origin main
-                print_success "已推送 SNAPSHOT 版本到远程"
+                print_success "Pushed SNAPSHOT version to remote"
             else
-                print_info "稍后手动推送: git push origin main"
+                print_info "Push manually later: git push origin main"
             fi
         fi
 
         echo ""
-        print_success "可以开始新功能的开发了！"
+        print_success "Ready to start developing new features!"
     else
         echo ""
-        print_info "稍后可以手动创建 SNAPSHOT 版本: make snapshot-patch"
+        print_info "Create SNAPSHOT version manually later: make snapshot-patch"
     fi
 }
 
-# 显示当前版本信息
+# Show current version information
 show_version_info() {
     local current=$(get_current_version)
 
     print_header "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    print_header "  版本信息"
+    print_header "  Version Information"
     print_header "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
-    print_info "当前版本: $current"
+    print_info "Current version: $current"
 
     if is_snapshot "$current"; then
         local release=$(remove_snapshot "$current")
-        print_info "类型:     SNAPSHOT (开发版本)"
-        print_info "发布版本: $release (发布时)"
+        print_info "Type:            SNAPSHOT (development version)"
+        print_info "Release version: $release (when released)"
     else
-        print_info "类型:     Release (正式版本)"
-        print_warning "建议创建下一个 SNAPSHOT 版本以继续开发"
+        print_info "Type:            Release (production version)"
+        print_warning "Recommend creating next SNAPSHOT version to continue development"
     fi
 
     echo ""
-    print_info "最近的 Git 标签:"
+    print_info "Recent Git tags:"
     git tag --sort=-v:refname | head -3
     echo ""
 }
 
-# 主函数
+# Main function
 main() {
     check_git_repo
 
     if [ $# -eq 0 ]; then
         show_version_info
         echo ""
-        print_info "用法:"
-        echo "  $0 snapshot-patch      # 创建下一个 patch SNAPSHOT"
-        echo "  $0 snapshot-minor      # 创建下一个 minor SNAPSHOT"
-        echo "  $0 snapshot-major      # 创建下一个 major SNAPSHOT"
-        echo "  $0 release             # 发布当前 SNAPSHOT 版本、打 tag 并推送到远程"
+        print_info "Usage:"
+        echo "  $0 snapshot-patch      # Create next patch SNAPSHOT"
+        echo "  $0 snapshot-minor      # Create next minor SNAPSHOT"
+        echo "  $0 snapshot-major      # Create next major SNAPSHOT"
+        echo "  $0 release             # Release current SNAPSHOT version, create tag and push to remote"
         echo ""
         exit 0
     fi
@@ -444,8 +444,8 @@ main() {
             show_version_info
             ;;
         *)
-            print_error "未知命令: $1"
-            print_info "用法: $0 <snapshot-patch|snapshot-minor|snapshot-major|release|info>"
+            print_error "Unknown command: $1"
+            print_info "Usage: $0 <snapshot-patch|snapshot-minor|snapshot-major|release|info>"
             exit 1
             ;;
     esac
