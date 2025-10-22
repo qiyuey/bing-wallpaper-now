@@ -153,8 +153,14 @@ jobs:
             或在「系统设置 → 隐私与安全性」中点击「仍要打开」。详见 [macOS 安装指南](https://github.com/${{ github.repository }}/blob/main/docs/MACOS_INSTALL.md)。
 
             ### Linux
-            - **x64 (Intel/AMD)**: Debian/Ubuntu 下载 [**DEB 包**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/bing-wallpaper-now_${{ github.ref_name }}_amd64.deb)，其他发行版下载 [**AppImage**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/bing-wallpaper-now_${{ github.ref_name }}_amd64.AppImage)
-            - **ARM64**: Debian/Ubuntu 下载 [**DEB 包**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/bing-wallpaper-now_${{ github.ref_name }}_arm64.deb)，其他发行版下载 [**AppImage**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/bing-wallpaper-now_${{ github.ref_name }}_aarch64.AppImage)
+            - **x64 (Intel/AMD)**:
+              - Debian/Ubuntu: [**DEB 包**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/bing-wallpaper-now_${{ github.ref_name }}_amd64.deb)
+              - Fedora/RHEL: [**RPM 包**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/bing-wallpaper-now-${{ github.ref_name }}-1.x86_64.rpm)
+              - 其他发行版: [**AppImage**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/bing-wallpaper-now_${{ github.ref_name }}_amd64.AppImage)
+            - **ARM64**:
+              - Debian/Ubuntu: [**DEB 包**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/bing-wallpaper-now_${{ github.ref_name }}_arm64.deb)
+              - Fedora/RHEL: [**RPM 包**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/bing-wallpaper-now-${{ github.ref_name }}-1.aarch64.rpm)
+              - 其他发行版: [**AppImage**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/bing-wallpaper-now_${{ github.ref_name }}_aarch64.AppImage)
 
             ---
 
