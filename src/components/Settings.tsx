@@ -35,7 +35,6 @@ export function Settings({ onClose }: SettingsProps) {
   const handleSave = async () => {
     try {
       await updateSettings(formData);
-      alert("设置已保存");
       onClose();
     } catch (err) {
       alert("保存失败: " + err);

@@ -94,8 +94,21 @@ async fn get_local_wallpapers(
 
 /// 获取应用设置
 #[tauri::command]
-async fn get_settings(state: tauri::State<'_, AppState>) -> Result<AppSettings, String> {
-    let settings = state.settings.lock().await;
+async fn get_settings(
+    state: tauri::State<'_, AppState>,
+    app: tauri::AppHandle,
+) -> Result<AppSettings, String> {
+    let mut settings = state.settings.lock().await;
+
+    // 从系统读取真实的自启动状态
+    let autostart_manager = app.autolaunch();
+    let is_enabled = autostart_manager
+        .is_enabled()
+        .map_err(|e| format!("读取自启动状态失败: {}", e))?;
+
+    // 更新设置中的自启动状态为系统实际状态
+    settings.launch_at_startup = is_enabled;
+
     Ok(settings.clone())
 }
 
@@ -624,7 +637,7 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
-            Some(vec![]),
+            Some(vec!["--hidden".to_string()]),
         ))
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_dialog::init())
@@ -651,6 +664,19 @@ pub fn run() {
         .setup(|app| {
             wallpaper_manager::initialize_observer();
             setup_tray(app.handle())?;
+
+            // 检查是否是自启动（通过命令行参数）
+            let is_autostart = std::env::args()
+                .any(|arg| arg == "--minimized" || arg == "--hidden" || arg == "--startup");
+
+            // 如果不是自启动，显示主窗口
+            if !is_autostart {
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.show();
+                    let _ = window.set_focus();
+                }
+            }
+
             // 使用 tauri-plugin-log 进行标准化日志输出（已在 Builder 中初始化）
             start_auto_update_task(app.handle().clone());
             Ok(())

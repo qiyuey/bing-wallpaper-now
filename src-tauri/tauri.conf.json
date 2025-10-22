@@ -19,8 +19,8 @@
         "minHeight": 500,
         "hiddenTitle": true,
         "center": true,
-        "visible": true,
-        "focus": true,
+        "visible": false,
+        "focus": false,
         "transparent": false,
         "alwaysOnTop": false
       }
