@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- 天空渐变 -->
+    <linearGradient id="sky" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#5DB4FF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1E88E5;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- 山体渐变 -->
+    <linearGradient id="mountain1" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1976D2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0D47A1;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="mountain2" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#42A5F5;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1976D2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- 外边框 - 非常小的边距 -->
+  <rect x="1" y="1" width="30" height="30" rx="5" fill="url(#sky)" stroke="#0D47A1" stroke-width="1"/>
+  
+  <!-- 山景 - 占据大部分空间 -->
+  <!-- 后山 -->
+  <path d="M 1 20 L 10 8 L 18 16 L 24 10 L 30 16 L 30 31 L 1 31 Z" 
+        fill="url(#mountain2)" opacity="0.7"/>
+  
+  <!-- 前山 -->
+  <path d="M 1 24 L 8 14 L 16 22 L 24 12 L 30 20 L 30 31 L 1 31 Z" 
+        fill="url(#mountain1)"/>
+  
+  <!-- 太阳 - 更大更明显 -->
+  <circle cx="24" cy="8" r="4" fill="#FFF" opacity="0.95"/>
+  <circle cx="24" cy="8" r="3" fill="#FFD54F" opacity="0.9"/>
+</svg>
