@@ -203,13 +203,13 @@ jobs:
             ## 📦 Installation
 
             ### Windows
-            - **Recommended**: `Bing.Wallpaper.Now_v__VERSION___x64_en-US.msi` - Windows 10/11 (64-bit)
-            - **Alternative**: `Bing.Wallpaper.Now_v__VERSION___x64-setup.exe` - NSIS installer
+            - **推荐**: [Bing.Wallpaper.Now_v__VERSION___x64_zh-CN.msi](https://github.com/${{ github.repository }}/releases/download/v__VERSION__/Bing.Wallpaper.Now_v__VERSION___x64_zh-CN.msi) - Windows 10/11 (64-bit)
+            - **备选**: [Bing.Wallpaper.Now_v__VERSION___x64-setup.exe](https://github.com/${{ github.repository }}/releases/download/v__VERSION__/Bing.Wallpaper.Now_v__VERSION___x64-setup.exe) - NSIS 安装程序
 
             ### macOS
-            - **Apple Silicon (M1/M2/M3)**: `Bing.Wallpaper.Now_v__VERSION___aarch64.dmg`
-            - **Intel**: `Bing.Wallpaper.Now_v__VERSION___x64.dmg`
-            - **Universal**: `Bing.Wallpaper.Now.app.tar.gz`
+            - **Apple Silicon (M1/M2/M3)**: [Bing.Wallpaper.Now_v__VERSION___aarch64.dmg](https://github.com/${{ github.repository }}/releases/download/v__VERSION__/Bing.Wallpaper.Now_v__VERSION___aarch64.dmg)
+            - **Intel**: [Bing.Wallpaper.Now_v__VERSION___x64.dmg](https://github.com/${{ github.repository }}/releases/download/v__VERSION__/Bing.Wallpaper.Now_v__VERSION___x64.dmg)
+            - **Universal**: [Bing.Wallpaper.Now.app.tar.gz](https://github.com/${{ github.repository }}/releases/download/v__VERSION__/Bing.Wallpaper.Now.app.tar.gz)
 
             **⚠️ macOS Security Notice**:
 
@@ -230,8 +230,8 @@ jobs:
             This is standard for open-source apps. See [macOS Installation Guide](https://github.com/qiyuey/bing-wallpaper-now/blob/main/docs/MACOS_INSTALL.md) for details.
 
             ### Linux
-            - **Debian/Ubuntu**: `bing-wallpaper-now_v__VERSION___amd64.deb`
-            - **Universal**: `bing-wallpaper-now_v__VERSION___amd64.AppImage`
+            - **Debian/Ubuntu**: [bing-wallpaper-now_v__VERSION___amd64.deb](https://github.com/${{ github.repository }}/releases/download/v__VERSION__/bing-wallpaper-now_v__VERSION___amd64.deb)
+            - **Universal**: [bing-wallpaper-now_v__VERSION___amd64.AppImage](https://github.com/${{ github.repository }}/releases/download/v__VERSION__/bing-wallpaper-now_v__VERSION___amd64.AppImage)
 
             ## ✨ Highlights
 

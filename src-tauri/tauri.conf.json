@@ -45,7 +45,7 @@
     ],
     "windows": {
       "wix": {
-        "language": "en-US"
+        "language": "zh-CN"
       }
     },
     "macOS": {
