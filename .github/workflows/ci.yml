@@ -189,14 +189,14 @@ jobs:
       - name: Install Linux dependencies (ARM64)
         if: runner.os == 'Linux' && matrix.target == 'aarch64-unknown-linux-gnu'
         run: |
+          # Add ARM64 architecture first
+          sudo dpkg --add-architecture arm64
           sudo apt-get update
           sudo apt-get install -y \
             libwebkit2gtk-4.1-dev:arm64 \
             libayatana-appindicator3-dev:arm64 \
             librsvg2-dev:arm64 \
             patchelf
-          # Add ARM64 architecture
-          sudo dpkg --add-architecture arm64
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
