@@ -234,24 +234,25 @@ jobs:
           # Get Ubuntu codename
           CODENAME=$(lsb_release -cs)
 
-          # Create new sources.list with proper architecture separation
+          # Remove all existing sources to prevent conflicts
+          sudo rm -rf /etc/apt/sources.list.d/*
+
+          # Create new sources.list with ONLY ports.ubuntu.com for ARM64
           cat << EOF | sudo tee /etc/apt/sources.list
-          # AMD64/i386 repositories
+          # AMD64/i386 repositories (archive.ubuntu.com only)
           deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu/ $CODENAME main restricted universe multiverse
           deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu/ $CODENAME-updates main restricted universe multiverse
           deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu/ $CODENAME-backports main restricted universe multiverse
-          deb [arch=amd64,i386] http://security.ubuntu.com/ubuntu/ $CODENAME-security main restricted universe multiverse
 
-          # ARM64 repositories
+          # ARM64 repositories (ports.ubuntu.com only - includes security)
           deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ $CODENAME main restricted universe multiverse
           deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ $CODENAME-updates main restricted universe multiverse
           deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ $CODENAME-backports main restricted universe multiverse
           deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ $CODENAME-security main restricted universe multiverse
           EOF
 
-          # Remove Azure/Microsoft specific sources if they exist
-          sudo rm -f /etc/apt/sources.list.d/azure*.list
-          sudo rm -f /etc/apt/sources.list.d/microsoft*.list
+          # Add security.ubuntu.com ONLY for amd64/i386 in a separate file
+          echo "deb [arch=amd64,i386] http://security.ubuntu.com/ubuntu/ $CODENAME-security main restricted universe multiverse" | sudo tee /etc/apt/sources.list.d/security.list
 
           # Update package lists
           sudo apt-get update
