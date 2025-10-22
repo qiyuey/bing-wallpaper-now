@@ -214,9 +214,11 @@ jobs:
           shared-key: stable-cache
 
       - name: Setup sccache
+        if: matrix.target != 'aarch64-pc-windows-msvc'
         uses: mozilla-actions/sccache-action@v0.0.6
 
       - name: Configure sccache
+        if: matrix.target != 'aarch64-pc-windows-msvc'
         shell: bash
         run: |
           echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
@@ -270,5 +272,6 @@ jobs:
           args: ${{ matrix.target != '' && format('--target {0}', matrix.target) || '' }}
 
       - name: Show sccache stats
+        if: matrix.target != 'aarch64-pc-windows-msvc'
         shell: bash
         run: sccache --show-stats
