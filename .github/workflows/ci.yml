@@ -157,7 +157,7 @@ jobs:
 
             ### Linux
             - **x64 (Intel/AMD)**: Debian/Ubuntu 下载 [**DEB 包**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/bing-wallpaper-now_${{ github.ref_name }}_amd64.deb)，其他发行版下载 [**AppImage**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/bing-wallpaper-now_${{ github.ref_name }}_amd64.AppImage)
-            - **ARM64**: Debian/Ubuntu 下载 [**DEB 包**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/bing-wallpaper-now_${{ github.ref_name }}_arm64.deb)，其他发行版下载 [**RPM 包**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now-${{ steps.changelog.outputs.version }}-1.aarch64.rpm)
+            - **ARM64**: Debian/Ubuntu 下载 [**DEB 包**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/bing-wallpaper-now_${{ github.ref_name }}_arm64.deb)，其他发行版下载 [**AppImage**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/bing-wallpaper-now_${{ github.ref_name }}_aarch64.AppImage)
 
             ---
 
@@ -176,19 +176,19 @@ jobs:
             os: windows-latest
             target: x86_64-pc-windows-msvc
           - platform: "Windows (ARM64)"
-            os: windows-latest
+            os: windows-11-arm
             target: aarch64-pc-windows-msvc
           - platform: "macOS (Apple Silicon)"
             os: macos-latest
             target: aarch64-apple-darwin
           - platform: "macOS (Intel)"
-            os: macos-13
+            os: macos-15-intel
             target: x86_64-apple-darwin
           - platform: "Ubuntu (x64)"
-            os: ubuntu-latest
+            os: ubuntu-24.04
             target: x86_64-unknown-linux-gnu
           - platform: "Ubuntu (ARM64)"
-            os: ubuntu-latest
+            os: ubuntu-24.04-arm
             target: aarch64-unknown-linux-gnu
 
     steps:
@@ -207,9 +207,6 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Add Rust Target
-        run: rustup target add ${{ matrix.target }}
-
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
         with:
@@ -225,56 +222,8 @@ jobs:
           echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
           echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
 
-      - name: Setup Linux ARM64 cross-compilation
-        if: matrix.target == 'aarch64-unknown-linux-gnu'
-        run: |
-          # Add ARM64 architecture
-          sudo dpkg --add-architecture arm64
-
-          # Backup original sources
-          sudo cp /etc/apt/sources.list /etc/apt/sources.list.bak
-
-          # Get Ubuntu codename
-          CODENAME=$(lsb_release -cs)
-
-          # Remove all existing sources to prevent conflicts
-          sudo rm -rf /etc/apt/sources.list.d/*
-
-          # Create new sources.list with ONLY ports.ubuntu.com for ARM64
-          cat << EOF | sudo tee /etc/apt/sources.list
-          # AMD64/i386 repositories (archive.ubuntu.com only)
-          deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu/ $CODENAME main restricted universe multiverse
-          deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu/ $CODENAME-updates main restricted universe multiverse
-          deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu/ $CODENAME-backports main restricted universe multiverse
-
-          # ARM64 repositories (ports.ubuntu.com only - includes security)
-          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ $CODENAME main restricted universe multiverse
-          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ $CODENAME-updates main restricted universe multiverse
-          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ $CODENAME-backports main restricted universe multiverse
-          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ $CODENAME-security main restricted universe multiverse
-          EOF
-
-          # Add security.ubuntu.com ONLY for amd64/i386 in a separate file
-          echo "deb [arch=amd64,i386] http://security.ubuntu.com/ubuntu/ $CODENAME-security main restricted universe multiverse" | sudo tee /etc/apt/sources.list.d/security.list
-
-          # Update package lists
-          sudo apt-get update
-
-          # Install cross-compilation toolchain
-          sudo apt-get install -y \
-            gcc-aarch64-linux-gnu \
-            g++-aarch64-linux-gnu \
-            patchelf
-
-          # Install ARM64 dependencies
-          sudo apt-get install -y \
-            libwebkit2gtk-4.1-dev:arm64 \
-            libayatana-appindicator3-dev:arm64 \
-            librsvg2-dev:arm64 \
-            libssl-dev:arm64
-
-      - name: Install Linux dependencies (x64)
-        if: matrix.target == 'x86_64-unknown-linux-gnu'
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -316,16 +265,9 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PKG_CONFIG_ALLOW_CROSS: ${{ matrix.target == 'aarch64-unknown-linux-gnu' && '1' || '' }}
-          PKG_CONFIG_PATH: ${{ matrix.target == 'aarch64-unknown-linux-gnu' && '/usr/lib/aarch64-linux-gnu/pkgconfig' || '' }}
-          PKG_CONFIG_SYSROOT_DIR: ${{ matrix.target == 'aarch64-unknown-linux-gnu' && '/' || '' }}
-          CC_aarch64_unknown_linux_gnu: ${{ matrix.target == 'aarch64-unknown-linux-gnu' && 'aarch64-linux-gnu-gcc' || '' }}
-          CXX_aarch64_unknown_linux_gnu: ${{ matrix.target == 'aarch64-unknown-linux-gnu' && 'aarch64-linux-gnu-g++' || '' }}
-          AR_aarch64_unknown_linux_gnu: ${{ matrix.target == 'aarch64-unknown-linux-gnu' && 'aarch64-linux-gnu-ar' || '' }}
-          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: ${{ matrix.target == 'aarch64-unknown-linux-gnu' && 'aarch64-linux-gnu-gcc' || '' }}
         with:
           tagName: ${{ github.ref_name }}
-          args: --target ${{ matrix.target }} ${{ matrix.target == 'aarch64-unknown-linux-gnu' && '--bundles deb,rpm' || '' }}
+          args: ${{ matrix.target != '' && format('--target {0}', matrix.target) || '' }}
 
       - name: Show sccache stats
         shell: bash
