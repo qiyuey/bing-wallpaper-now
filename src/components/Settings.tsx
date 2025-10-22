@@ -111,7 +111,7 @@ export function Settings({ onClose }: SettingsProps) {
               <input
                 type="number"
                 min="8"
-                max="200"
+                max="999"
                 value={formData.keep_image_count}
                 onChange={(e) =>
                   handleChange(
