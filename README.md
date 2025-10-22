@@ -88,20 +88,20 @@ Click the "Settings" button (gear icon) to customize:
 
 ## ❓ FAQ
 
-**Q: How often does it update wallpapers?**
-A: Bing releases new wallpapers daily. Enable "Auto Update" in settings to fetch them automatically.
+**Q: How often does it update wallpapers?**  
+**A:** Bing releases new wallpapers daily. Enable "Auto Update" in settings to fetch them automatically.
 
-**Q: Where are wallpapers saved?**
-A: By default, they're saved in your system's pictures directory under "BingWallpapers". You can change this in Settings.
+**Q: Where are wallpapers saved?**  
+**A:** By default, they're saved in your system's pictures directory under "BingWallpapers". You can change this in Settings.
 
-**Q: Does it work offline?**
-A: Yes! Previously downloaded wallpapers are available offline and can be set anytime.
+**Q: Does it work offline?**  
+**A:** Yes! Previously downloaded wallpapers are available offline and can be set anytime.
 
-**Q: How much storage does it use?**
-A: Each UHD wallpaper is about 1-3MB. With the default retention of 8 wallpapers, it uses approximately 8-24MB.
+**Q: How much storage does it use?**  
+**A:** Each UHD wallpaper is about 1-3MB. With the default retention of 8 wallpapers, it uses approximately 8-24MB.
 
-**Q: Can I keep wallpapers forever?**
-A: Currently, wallpapers are auto-cleaned based on retention count. A favorites feature is planned for future releases.
+**Q: Can I keep wallpapers forever?**  
+**A:** Currently, wallpapers are auto-cleaned based on retention count. A favorites feature is planned for future releases.
 
 ## 🗺️ Roadmap
 
