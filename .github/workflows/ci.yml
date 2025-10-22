@@ -259,6 +259,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: ${{ github.ref_name }}
+          includeRelease: true
+          includeUpdaterJson: false
 
       - name: Show sccache stats
         if: matrix.os != 'windows-11-arm'
