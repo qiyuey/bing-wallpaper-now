@@ -2,6 +2,33 @@
 
 All notable changes to Bing Wallpaper Now will be documented in this file.
 
+## [0.1.4]
+
+### Added
+
+- 🏗️ **ARM64 架构支持**: 新增 Windows ARM64 和 Linux ARM64 构建
+  - Windows ARM64: 支持 Surface Pro X 等 ARM 设备
+  - Linux ARM64: 支持树莓派 4/5 及 ARM 服务器
+  - 现支持 6 个平台：Windows (x64/ARM64), macOS (x64/ARM64), Linux (x64/ARM64)
+
+### Changed
+
+- 🎨 **图标优化**: 重新设计系统托盘图标，提升可见性和清晰度
+  - 增大图标尺寸，填满 32x32 画布（100% 覆盖率）
+  - 采用圆角矩形设计，清晰的山景轮廓
+  - 移除移动平台图标文件（iOS/Android 共 30 个文件）
+- ⚙️ **默认保存数量提升**: 壁纸保留数量从 8 张增至 999 张
+- 🎯 **UI 改进**: 设置界面支持最大值 999（之前 200）
+- 🔧 **版本管理优化**: 开发版本使用数字后缀 `-0` 替代 `-SNAPSHOT`，兼容 Windows MSI 构建
+- 📝 **Release 说明优化**: 
+  - 突出显示更新内容（Changelog 置于顶部）
+  - 简化安装说明
+  - 统一使用 "Apple Silicon" 替代 "M1/M2/M3"
+
+### Fixed
+
+- 🐛 **修复 Release 下载链接**: 修正版本号前缀（移除文件名中多余的 `v`）
+
 ## [0.1.3]
 
 ### Fixed
