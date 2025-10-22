@@ -190,6 +190,7 @@ jobs:
 
       - name: Extract changelog for current version
         id: changelog
+        shell: bash
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
 
@@ -267,6 +268,6 @@ jobs:
       - name: Upload bundles
         uses: actions/upload-artifact@v4
         with:
-          name: tauri-bundles-${{ runner.os }}
+          name: tauri-bundles-${{ matrix.platform }}
           path: src-tauri/target/release/bundle
           retention-days: 7
