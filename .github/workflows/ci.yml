@@ -5,6 +5,7 @@ on:
     branches: [main]
     tags:
       - "v*.*.*"
+      - "[0-9]*.*.*"
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -24,7 +25,7 @@ env:
 jobs:
   test:
     name: Test
-    if: "!startsWith(github.ref, 'refs/tags/v')"
+    if: "!startsWith(github.ref, 'refs/tags/')"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -86,7 +87,7 @@ jobs:
 
   create-release:
     name: Create Release
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -96,11 +97,13 @@ jobs:
         id: changelog
         shell: bash
         run: |
+          # Remove v prefix if present, otherwise use as-is
           VERSION="${GITHUB_REF_NAME#v}"
           CHANGELOG=$(sed -n "/^## \[$VERSION\]/,/^## \[/p" CHANGELOG.md | sed '1d;$d')
           if [ -z "$CHANGELOG" ]; then
             CHANGELOG="请查看完整的更新日志: [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)"
           fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "content<<EOF" >> $GITHUB_OUTPUT
           echo "$CHANGELOG" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
@@ -136,12 +139,12 @@ jobs:
             ## 📦 快速安装
 
             ### Windows
-            - **x64 (Intel/AMD)**: 下载 [**MSI 安装包**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_x64_zh-CN.msi) (推荐) 或 [**EXE 安装程序**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_x64-setup.exe)
-            - **ARM64**: 下载 [**MSI 安装包**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_arm64_zh-CN.msi) 或 [**EXE 安装程序**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_arm64-setup.exe)
+            - **x64 (Intel/AMD)**: 下载 [**MSI 安装包**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ steps.changelog.outputs.version }}_x64_zh-CN.msi) (推荐) 或 [**EXE 安装程序**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ steps.changelog.outputs.version }}_x64-setup.exe)
+            - **ARM64**: 下载 [**MSI 安装包**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ steps.changelog.outputs.version }}_arm64_zh-CN.msi) 或 [**EXE 安装程序**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ steps.changelog.outputs.version }}_arm64-setup.exe)
 
             ### macOS
-            - **Apple Silicon**: 下载 [**ARM64 DMG**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_aarch64.dmg)
-            - **Intel**: 下载 [**x64 DMG**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_x64.dmg)
+            - **Apple Silicon**: 下载 [**ARM64 DMG**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ steps.changelog.outputs.version }}_aarch64.dmg)
+            - **Intel**: 下载 [**x64 DMG**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ steps.changelog.outputs.version }}_x64.dmg)
 
             **首次打开提示**：应用未经过 Apple 签名（需要每年 $99 的开发者账号），macOS 会阻止运行。
 
@@ -163,7 +166,7 @@ jobs:
   bundle:
     name: Bundle (${{ matrix.platform }})
     needs: create-release
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/')
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -299,6 +302,7 @@ jobs:
         id: changelog
         shell: bash
         run: |
+          # Remove v prefix if present, otherwise use as-is
           VERSION="${GITHUB_REF_NAME#v}"
           CHANGELOG=$(sed -n "/^## \[$VERSION\]/,/^## \[/p" CHANGELOG.md | sed '1d;$d')
           if [ -z "$CHANGELOG" ]; then

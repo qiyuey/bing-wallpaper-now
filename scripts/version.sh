@@ -10,7 +10,7 @@
 #   ./scripts/version.sh release         # Release current development version, create tag and push to remote (0.1.1-0 -> 0.1.1)
 #
 # Workflow:
-#   1. After releasing v0.1.0, create 0.1.1-0 for development
+#   1. After releasing 0.1.0, create 0.1.1-0 for development
 #   2. When development is complete, run release to convert to 0.1.1 production version, create tag and push to remote
 #   3. After release, create 0.1.2-0 again to continue development
 #
