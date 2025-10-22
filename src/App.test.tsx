@@ -1,5 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  cleanup,
+} from "@testing-library/react";
 import App from "./App";
 import { invoke } from "@tauri-apps/api/core";
 import { openPath } from "@tauri-apps/plugin-opener";
@@ -45,6 +51,10 @@ describe("App", () => {
     });
     // Mock event listener
     vi.mocked(listen).mockResolvedValue(() => {});
+  });
+
+  afterEach(() => {
+    cleanup();
   });
 
   it("should render app header with title", async () => {
@@ -266,7 +276,21 @@ describe("App", () => {
       if (cmd === "ensure_wallpaper_directory_exists") {
         return Promise.resolve();
       }
-      return Promise.resolve(mockWallpapers);
+      if (cmd === "get_local_wallpapers") {
+        return Promise.resolve(mockWallpapers);
+      }
+      if (cmd === "get_settings") {
+        return Promise.resolve({
+          auto_update: true,
+          save_directory: null,
+          keep_image_count: 8,
+          launch_at_startup: false,
+        });
+      }
+      if (cmd === "get_last_update_time") {
+        return Promise.resolve(null);
+      }
+      return Promise.resolve();
     });
 
     render(<App />);
