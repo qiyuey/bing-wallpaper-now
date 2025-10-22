@@ -23,8 +23,6 @@ If you see "App is damaged and can't be opened", this is normal for unsigned ope
 xattr -rd com.apple.quarantine "/Applications/Bing Wallpaper Now.app"
 ```
 
-See [macOS Installation Guide](docs/MACOS_INSTALL.md) for more details.
-
 ## ✨ Features
 
 ### Core Functionality
@@ -124,7 +122,6 @@ A: Currently, wallpapers are auto-cleaned based on retention count. A favorites 
 ## 📞 Support & Feedback
 
 - **Report Issues**: [GitHub Issues](https://github.com/qiyuey/bing-wallpaper-now/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/qiyuey/bing-wallpaper-now/discussions)
 - **Feature Requests**: Always welcome!
 
 ## 🤝 Contributing

@@ -23,8 +23,6 @@
 xattr -rd com.apple.quarantine "/Applications/Bing Wallpaper Now.app"
 ```
 
-详细说明请参考 [macOS 安装指南](docs/MACOS_INSTALL.md)。
-
 ## ✨ 特性
 
 ### 核心功能
@@ -124,7 +122,6 @@ xattr -rd com.apple.quarantine "/Applications/Bing Wallpaper Now.app"
 ## 📞 支持与反馈
 
 - **问题反馈**: [GitHub Issues](https://github.com/qiyuey/bing-wallpaper-now/issues)
-- **讨论交流**: [GitHub Discussions](https://github.com/qiyuey/bing-wallpaper-now/discussions)
 - **功能建议**: 随时欢迎！
 
 ## 🤝 参与贡献
