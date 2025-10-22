@@ -8,18 +8,22 @@ describe("WallpaperGrid", () => {
     {
       id: "20240101",
       start_date: "20240101",
+      end_date: "20240102",
       title: "Test Wallpaper 1",
       copyright: "Test Copyright 1",
+      copyright_link: "https://example.com/link1",
       file_path: "/path/to/wallpaper1.jpg",
-      url: "https://example.com/wallpaper1.jpg",
+      download_time: "2024-01-01T00:00:00Z",
     },
     {
       id: "20240102",
       start_date: "20240102",
+      end_date: "20240103",
       title: "Test Wallpaper 2",
       copyright: "Test Copyright 2",
+      copyright_link: "https://example.com/link2",
       file_path: "/path/to/wallpaper2.jpg",
-      url: "https://example.com/wallpaper2.jpg",
+      download_time: "2024-01-02T00:00:00Z",
     },
   ];
 

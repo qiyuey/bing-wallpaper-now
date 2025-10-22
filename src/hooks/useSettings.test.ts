@@ -9,11 +9,9 @@ vi.mock("@tauri-apps/api/core");
 describe("useSettings", () => {
   const mockSettings: AppSettings = {
     auto_update: true,
-    update_interval: 24,
-    keep_count: 30,
-    wallpaper_directory: "C:\\Users\\Test\\Wallpapers",
-    auto_apply_latest: true,
-    autostart: false,
+    save_directory: "C:\\Users\\Test\\Wallpapers",
+    keep_image_count: 30,
+    launch_at_startup: false,
   };
 
   beforeEach(() => {

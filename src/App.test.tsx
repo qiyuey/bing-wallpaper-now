@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import App from "./App";
 import { invoke } from "@tauri-apps/api/core";
 import { openPath } from "@tauri-apps/plugin-opener";
-import { listen } from "@tauri-apps/api/event";
+import { listen, type Event } from "@tauri-apps/api/event";
 
 vi.mock("@tauri-apps/api/core");
 vi.mock("@tauri-apps/plugin-opener");
@@ -208,10 +208,10 @@ describe("App", () => {
   });
 
   it("should listen for open-settings event", async () => {
-    let openSettingsCallback: (() => void) | null = null;
+    let openSettingsCallback: ((event: Event<unknown>) => void) | undefined;
 
     vi.mocked(listen).mockImplementation(
-      (event: string, callback: () => void) => {
+      (event: string, callback: (event: Event<unknown>) => void) => {
         if (event === "open-settings") {
           openSettingsCallback = callback;
         }
@@ -230,7 +230,10 @@ describe("App", () => {
 
     // Trigger the event
     if (openSettingsCallback) {
-      openSettingsCallback();
+      openSettingsCallback({
+        event: "open-settings",
+        payload: undefined,
+      } as Event<unknown>);
     }
 
     // Settings should open
@@ -241,10 +244,10 @@ describe("App", () => {
 
   it("should listen for open-folder event", async () => {
     const mockFolderPath = "C:\\Users\\Test\\Wallpapers";
-    let openFolderCallback: (() => void) | null = null;
+    let openFolderCallback: ((event: Event<unknown>) => void) | undefined;
 
     vi.mocked(listen).mockImplementation(
-      (event: string, callback: () => void) => {
+      (event: string, callback: (event: Event<unknown>) => void) => {
         if (event === "open-folder") {
           openFolderCallback = callback;
         }
@@ -270,7 +273,10 @@ describe("App", () => {
 
     // Trigger the event
     if (openFolderCallback) {
-      openFolderCallback();
+      openFolderCallback({
+        event: "open-folder",
+        payload: undefined,
+      } as Event<unknown>);
     }
 
     await waitFor(() => {
