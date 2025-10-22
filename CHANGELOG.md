@@ -2,6 +2,18 @@
 
 All notable changes to Bing Wallpaper Now will be documented in this file.
 
+## [0.1.3]
+
+### Fixed
+
+- 🐛 **修复 CI/CD 构建失败问题**:
+  - 修复 Windows 构建中 PowerShell 语法错误，强制使用 bash shell 执行 changelog 提取脚本
+  - 修复 macOS 构建中 artifact 名称冲突问题，使用 platform 名称替代 runner.os 以确保唯一性
+
+### Changed
+
+- 📝 **代码质量改进**: 添加 markdown 格式检查和配置优化
+
 ## [0.1.2]
 
 ### Added
@@ -62,6 +74,7 @@ All notable changes to Bing Wallpaper Now will be documented in this file.
 - Space 自动恢复
 - 原生 NSWorkspace API
 
+[0.1.3]: https://github.com/qiyuey/bing-wallpaper-now/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/qiyuey/bing-wallpaper-now/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/qiyuey/bing-wallpaper-now/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/qiyuey/bing-wallpaper-now/releases/tag/v0.1.0
