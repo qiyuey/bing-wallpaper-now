@@ -65,7 +65,7 @@ impl Default for AppSettings {
         Self {
             auto_update: true,
             save_directory: None,
-            keep_image_count: 8,
+            keep_image_count: 999,
             launch_at_startup: false,
         }
     }
@@ -80,7 +80,7 @@ mod tests {
         let settings = AppSettings::default();
         assert!(settings.auto_update);
         assert_eq!(settings.save_directory, None);
-        assert_eq!(settings.keep_image_count, 8);
+        assert_eq!(settings.keep_image_count, 999);
         assert!(!settings.launch_at_startup);
     }
 
@@ -154,13 +154,13 @@ mod tests {
         let json = r#"{
             "auto_update": true,
             "save_directory": null,
-            "keep_image_count": 8,
+            "keep_image_count": 999,
             "launch_at_startup": false,
             "auto_apply_latest": true
         }"#;
 
         let settings: AppSettings = serde_json::from_str(json).unwrap();
         assert!(settings.auto_update);
-        assert_eq!(settings.keep_image_count, 8);
+        assert_eq!(settings.keep_image_count, 999);
     }
 }
