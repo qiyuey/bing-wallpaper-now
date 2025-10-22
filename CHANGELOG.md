@@ -22,7 +22,7 @@ All notable changes to Bing Wallpaper Now will be documented in this file.
   - 默认保存数量从 8 张提升至 999 张
   - 设置界面支持最大值调整至 999（原为 200）
   
-- 🔧 **CI/CD 流程重构**: 基于 clash-verge-rev 最佳实践全面优化
+- 🔧 **CI/CD 流程重构**: 全面优化构建和发布流程
   - 实现统一的 bundle job，所有平台在同一任务中构建
   - 添加独立的 create-release job，解决并发创建 Release 的竞态条件
   - 优化依赖安装，移除不必要的包
