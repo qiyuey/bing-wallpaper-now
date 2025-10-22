@@ -44,10 +44,12 @@ export default defineConfig({
       reportsDirectory: "coverage-frontend",
       reporter: ["text", "lcov", "json"],
       // Initial soft thresholds (match README / quality baseline plan)
-      lines: 70,
-      functions: 70,
-      branches: 60,
-      statements: 70,
+      thresholds: {
+        lines: 70,
+        functions: 70,
+        branches: 60,
+        statements: 70,
+      },
       // Exclude non-source or generated files from coverage calculations
       exclude: [
         "vite.config.ts",

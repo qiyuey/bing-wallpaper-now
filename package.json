@@ -11,6 +11,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts,.tsx",
     "lint:fix": "eslint src --ext .ts,.tsx --fix",
+    "lint:md": "markdownlint \"*.md\" \"docs/**/*.md\" --ignore node_modules --ignore src-tauri/target",
+    "lint:md:fix": "markdownlint \"*.md\" \"docs/**/*.md\" --ignore node_modules --ignore src-tauri/target --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\"",
     "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
@@ -28,8 +30,8 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2.9.0",
     "@eslint/js": "^9.38.0",
+    "@tauri-apps/cli": "^2.9.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
@@ -49,6 +51,7 @@
     "eslint-plugin-react": "^7.33.2",
     "eslint-plugin-react-hooks": "^5.0.0",
     "jsdom": "^25.0.0",
+    "markdownlint-cli": "^0.45.0",
     "prettier": "^3.2.5",
     "typescript": "^5.9.0",
     "vite": "^6.4.1",

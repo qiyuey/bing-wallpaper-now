@@ -73,9 +73,10 @@ Download pre-built binaries from [GitHub Releases](https://github.com/qiyuey/bin
 
 ### macOS Installation Note
 
-If you see "App is damaged and can't be opened" or need to run `xattr` command, this is normal for unsigned open-source apps. 
+If you see "App is damaged and can't be opened" or need to run `xattr` command, this is normal for unsigned open-source apps.
 
 **Quick fix:**
+
 ```bash
 xattr -rd com.apple.quarantine "/Applications/Bing Wallpaper Now.app"
 ```
@@ -156,21 +157,25 @@ bing-wallpaper-now/
 ### 🎯 Next Release (v0.2.0)
 
 **Multi-Platform Optimization**
+
 - [ ] Windows multi-monitor support enhancement
 - [ ] Linux desktop environment compatibility (GNOME, KDE, XFCE, etc.)
 - [ ] Wallpaper fit modes for different platforms (fill, fit, stretch, etc.)
 
 **UI Improvements**
+
 - [ ] Dark mode / Light mode toggle
 - [ ] Theme customization (color schemes)
 - [ ] Grid layout customization (card size, column count)
 
 **Notifications & Feedback**
+
 - [ ] New wallpaper downloaded notification
 - [ ] Wallpaper set success notification
 - [ ] Update progress display (downloading, processing)
 
 **Performance Optimization**
+
 - [ ] Image lazy loading optimization
 - [ ] Thumbnail generation and caching
 - [ ] Incremental updates (only download new wallpapers)
@@ -179,15 +184,18 @@ bing-wallpaper-now/
 ### 🌟 Future Plans
 
 **Internationalization**
+
 - [ ] Multi-language support (English, Chinese, Japanese, etc.)
 - [ ] Timezone handling optimization
 - [ ] Regionalized wallpaper fetching (different regions of Bing)
 
 **AI Features**
+
 - [ ] AI-powered wallpaper description generation
 - [ ] Wallpaper color analysis and theme color extraction
 
 **Advanced Features**
+
 - [ ] Wallpaper preview mode (click card for fullscreen view)
 - [ ] Favorite wallpapers (prevent auto-cleanup)
 - [ ] Search/filter wallpapers (by date, title, keywords)
@@ -230,6 +238,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 This project also supports the [Anti-996 License](https://github.com/996icu/996.ICU/blob/master/LICENSE). By using this software, you agree to comply with labor laws and regulations, and not to force employees to work overtime without reasonable compensation.
 
 **Additional Terms:**
+
 - This software is for learning, research, and legitimate personal use
 - Users must comply with local labor laws and regulations
 - Prohibited from using this software to exploit workers or violate labor rights

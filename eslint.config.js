@@ -9,6 +9,31 @@ export default [
   // 基础 JavaScript 推荐规则
   js.configs.recommended,
 
+  // 配置文件（根目录）
+  {
+    files: ["*.config.{js,ts}", "*.setup.{js,ts}"],
+    languageOptions: {
+      parser: tsParser,
+      parserOptions: {
+        ecmaVersion: "latest",
+        sourceType: "module",
+      },
+      globals: {
+        console: "readonly",
+        process: "readonly",
+        global: "readonly",
+      },
+    },
+    plugins: {
+      "@typescript-eslint": tsPlugin,
+    },
+    rules: {
+      "@typescript-eslint/no-unused-vars": "off",
+      "@typescript-eslint/no-explicit-any": "off",
+      "no-unused-vars": "off",
+    },
+  },
+
   // TypeScript + React 文件配置
   {
     files: ["src/**/*.{ts,tsx}"],

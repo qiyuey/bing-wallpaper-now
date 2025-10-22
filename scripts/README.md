@@ -270,7 +270,7 @@ chmod +x .git/hooks/pre-push
 
 **错误信息：**
 
-```
+```text
 Permission denied: ./scripts/check-commit.sh
 ```
 
@@ -286,7 +286,7 @@ chmod +x scripts/*.sh
 
 **错误信息：**
 
-```
+```text
 command not found: rustup
 ```
 
@@ -303,7 +303,7 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
 **错误信息：**
 
-```
+```text
 error: toolchain 'stable-x86_64-unknown-linux-gnu' does not support target 'x86_64-unknown-linux-gnu'
 ```
 
@@ -323,7 +323,7 @@ rustup target add aarch64-apple-darwin
 
 **错误信息：**
 
-```
+```text
 error: unused variable: `foo`
 ```
 
@@ -339,7 +339,7 @@ error: unused variable: `foo`
 
 **错误信息：**
 
-```
+```text
 error: 'foo' is assigned a value but never used
 ```
 
