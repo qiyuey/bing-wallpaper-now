@@ -532,6 +532,20 @@ fn setup_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
         .item(&quit_item)
         .build()?;
 
+    // Windows 高 DPI 下托盘图标优化：使用更高分辨率的 PNG 图标
+    // 在 200% 缩放下，128x128 的图标可以提供清晰的显示效果（等效 64x64 物理像素）
+    #[cfg(target_os = "windows")]
+    let icon = {
+        let icon_bytes = include_bytes!("../icons/128x128.png");
+        let icon_img = image::load_from_memory(icon_bytes)
+            .map_err(|e| {
+                tauri::Error::InvalidIcon(std::io::Error::new(std::io::ErrorKind::InvalidData, e))
+            })?
+            .to_rgba8();
+        tauri::image::Image::new_owned(icon_img.to_vec(), icon_img.width(), icon_img.height())
+    };
+
+    #[cfg(not(target_os = "windows"))]
     let icon = app.default_window_icon().unwrap().clone();
 
     let _tray = TrayIconBuilder::new()
@@ -633,6 +647,14 @@ pub fn run() {
     };
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            // 当检测到第二个实例启动时，将第一个实例的窗口显示出来
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.set_focus();
+                let _ = window.unminimize();
+            }
+        }))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_autostart::init(
