@@ -4,8 +4,8 @@
 
 A cross-platform desktop application that automatically fetches and sets beautiful Bing daily wallpapers.
 
-![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)
-![License](https://img.shields.io/badge/license-Anti--996-blue)
+[![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)](https://github.com/qiyuey/bing-wallpaper-now/releases)
+[![License](https://img.shields.io/badge/license-Anti--996-blue)](https://github.com/996icu/996.ICU)
 
 ## 📦 Download & Install
 
