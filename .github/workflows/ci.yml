@@ -225,30 +225,49 @@ jobs:
       - name: Setup Linux ARM64 cross-compilation
         if: matrix.target == 'aarch64-unknown-linux-gnu'
         run: |
-          # Add ARM64 architecture first
+          # Add ARM64 architecture
           sudo dpkg --add-architecture arm64
 
-          # Update sources to use ports.ubuntu.com for ARM64
-          sudo sed -i 's/deb http/deb [arch=amd64,i386] http/g' /etc/apt/sources.list
-          sudo sed -i 's/deb-src http/deb-src [arch=amd64,i386] http/g' /etc/apt/sources.list
+          # Backup original sources
+          sudo cp /etc/apt/sources.list /etc/apt/sources.list.bak
 
-          # Add ARM64 sources
-          echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports $(lsb_release -cs) main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list
-          echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports $(lsb_release -cs)-updates main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list
-          echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports $(lsb_release -cs)-backports main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list
-          echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports $(lsb_release -cs)-security main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list
+          # Get Ubuntu codename
+          CODENAME=$(lsb_release -cs)
 
+          # Create new sources.list with proper architecture separation
+          cat << EOF | sudo tee /etc/apt/sources.list
+          # AMD64/i386 repositories
+          deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu/ $CODENAME main restricted universe multiverse
+          deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu/ $CODENAME-updates main restricted universe multiverse
+          deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu/ $CODENAME-backports main restricted universe multiverse
+          deb [arch=amd64,i386] http://security.ubuntu.com/ubuntu/ $CODENAME-security main restricted universe multiverse
+
+          # ARM64 repositories
+          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ $CODENAME main restricted universe multiverse
+          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ $CODENAME-updates main restricted universe multiverse
+          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ $CODENAME-backports main restricted universe multiverse
+          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ $CODENAME-security main restricted universe multiverse
+          EOF
+
+          # Remove Azure/Microsoft specific sources if they exist
+          sudo rm -f /etc/apt/sources.list.d/azure*.list
+          sudo rm -f /etc/apt/sources.list.d/microsoft*.list
+
+          # Update package lists
           sudo apt-get update
 
-          # Install cross-compilation toolchain and ARM64 libraries
+          # Install cross-compilation toolchain
           sudo apt-get install -y \
             gcc-aarch64-linux-gnu \
             g++-aarch64-linux-gnu \
+            patchelf
+
+          # Install ARM64 dependencies
+          sudo apt-get install -y \
             libwebkit2gtk-4.1-dev:arm64 \
             libayatana-appindicator3-dev:arm64 \
             librsvg2-dev:arm64 \
-            libssl-dev:arm64 \
-            patchelf
+            libssl-dev:arm64
 
       - name: Install Linux dependencies (x64)
         if: matrix.target == 'x86_64-unknown-linux-gnu'
@@ -295,6 +314,10 @@ jobs:
           PKG_CONFIG_ALLOW_CROSS: ${{ matrix.target == 'aarch64-unknown-linux-gnu' && '1' || '' }}
           PKG_CONFIG_PATH: ${{ matrix.target == 'aarch64-unknown-linux-gnu' && '/usr/lib/aarch64-linux-gnu/pkgconfig' || '' }}
           PKG_CONFIG_SYSROOT_DIR: ${{ matrix.target == 'aarch64-unknown-linux-gnu' && '/usr/aarch64-linux-gnu/' || '' }}
+          CC_aarch64_unknown_linux_gnu: ${{ matrix.target == 'aarch64-unknown-linux-gnu' && 'aarch64-linux-gnu-gcc' || '' }}
+          CXX_aarch64_unknown_linux_gnu: ${{ matrix.target == 'aarch64-unknown-linux-gnu' && 'aarch64-linux-gnu-g++' || '' }}
+          AR_aarch64_unknown_linux_gnu: ${{ matrix.target == 'aarch64-unknown-linux-gnu' && 'aarch64-linux-gnu-ar' || '' }}
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: ${{ matrix.target == 'aarch64-unknown-linux-gnu' && 'aarch64-linux-gnu-gcc' || '' }}
         with:
           tagName: ${{ github.ref_name }}
           args: --target ${{ matrix.target }}
