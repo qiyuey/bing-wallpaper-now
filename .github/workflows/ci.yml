@@ -217,48 +217,41 @@ jobs:
           releaseBody: |
             # 🎉 Bing Wallpaper Now v__VERSION__
 
-            > A cross-platform desktop application that automatically fetches and sets beautiful Bing daily wallpapers.
+            一款跨平台桌面应用，自动获取并设置必应每日精美壁纸。
 
-            ## 📦 Installation
+            ---
 
-            ### Windows
-            - **推荐**: [Bing.Wallpaper.Now_v__VERSION___x64_zh-CN.msi](https://github.com/${{ github.repository }}/releases/download/v__VERSION__/Bing.Wallpaper.Now_v__VERSION___x64_zh-CN.msi) - Windows 10/11 (64-bit)
-            - **备选**: [Bing.Wallpaper.Now_v__VERSION___x64-setup.exe](https://github.com/${{ github.repository }}/releases/download/v__VERSION__/Bing.Wallpaper.Now_v__VERSION___x64-setup.exe) - NSIS 安装程序
-
-            ### macOS
-            - **Apple Silicon (M1/M2/M3)**: [Bing.Wallpaper.Now_v__VERSION___aarch64.dmg](https://github.com/${{ github.repository }}/releases/download/v__VERSION__/Bing.Wallpaper.Now_v__VERSION___aarch64.dmg)
-            - **Intel**: [Bing.Wallpaper.Now_v__VERSION___x64.dmg](https://github.com/${{ github.repository }}/releases/download/v__VERSION__/Bing.Wallpaper.Now_v__VERSION___x64.dmg)
-            - **Universal**: [Bing.Wallpaper.Now.app.tar.gz](https://github.com/${{ github.repository }}/releases/download/v__VERSION__/Bing.Wallpaper.Now.app.tar.gz)
-
-            **⚠️ macOS Security Notice**:
-
-            This app is **not signed or notarized** by Apple (requires $99/year Apple Developer account). When you first open the app, macOS Gatekeeper will block it.
-
-            **Solution (choose one):**
-
-            1. **Command Line** (Recommended - Most Precise):
-               ```bash
-               xattr -rd com.apple.quarantine "/Applications/Bing Wallpaper Now.app"
-               ```
-               This removes only the quarantine attribute, preserving other metadata.
-
-            2. **System Settings**: Open "Settings → Privacy & Security", find the app and click "Open Anyway"
-
-            3. **Right-click**: Control-click the app icon and select "Open"
-
-            This is standard for open-source apps. See [macOS Installation Guide](https://github.com/qiyuey/bing-wallpaper-now/blob/main/docs/MACOS_INSTALL.md) for details.
-
-            ### Linux
-            - **Debian/Ubuntu**: [bing-wallpaper-now_v__VERSION___amd64.deb](https://github.com/${{ github.repository }}/releases/download/v__VERSION__/bing-wallpaper-now_v__VERSION___amd64.deb)
-            - **Universal**: [bing-wallpaper-now_v__VERSION___amd64.AppImage](https://github.com/${{ github.repository }}/releases/download/v__VERSION__/bing-wallpaper-now_v__VERSION___amd64.AppImage)
-
-            ## ✨ What's New in v__VERSION__
+            ## ✨ 更新内容
 
             ${{ steps.changelog.outputs.content }}
 
             ---
 
-            [Full Changelog](https://github.com/qiyuey/bing-wallpaper-now/blob/main/CHANGELOG.md)
+            ## 📦 快速安装
+
+            ### Windows
+            下载 **[MSI 安装包](https://github.com/${{ github.repository }}/releases/download/v__VERSION__/Bing.Wallpaper.Now_v__VERSION___x64_zh-CN.msi)** (推荐) 或 **[EXE 安装程序](https://github.com/${{ github.repository }}/releases/download/v__VERSION__/Bing.Wallpaper.Now_v__VERSION___x64-setup.exe)**
+
+            ### macOS
+            - **M1/M2/M3 芯片**: 下载 **[Apple Silicon DMG](https://github.com/${{ github.repository }}/releases/download/v__VERSION__/Bing.Wallpaper.Now_v__VERSION___aarch64.dmg)**
+            - **Intel 芯片**: 下载 **[Intel DMG](https://github.com/${{ github.repository }}/releases/download/v__VERSION__/Bing.Wallpaper.Now_v__VERSION___x64.dmg)**
+
+            **首次打开提示**：应用未经过 Apple 签名（需要每年 $99 的开发者账号），macOS 会阻止运行。
+
+            **解决方法**：在终端运行以下命令移除隔离属性：
+            ```bash
+            xattr -rd com.apple.quarantine "/Applications/Bing Wallpaper Now.app"
+            ```
+
+            或在「系统设置 → 隐私与安全性」中点击「仍要打开」。详见 [macOS 安装指南](https://github.com/qiyuey/bing-wallpaper-now/blob/main/docs/MACOS_INSTALL.md)。
+
+            ### Linux
+            - **Debian/Ubuntu**: 下载 **[DEB 包](https://github.com/${{ github.repository }}/releases/download/v__VERSION__/bing-wallpaper-now_v__VERSION___amd64.deb)**
+            - **其他发行版**: 下载 **[AppImage](https://github.com/${{ github.repository }}/releases/download/v__VERSION__/bing-wallpaper-now_v__VERSION___amd64.AppImage)**
+
+            ---
+
+            📝 [完整更新日志](https://github.com/qiyuey/bing-wallpaper-now/blob/main/CHANGELOG.md) | 🐛 [反馈问题](https://github.com/qiyuey/bing-wallpaper-now/issues)
           releaseDraft: false
           prerelease: false
 
