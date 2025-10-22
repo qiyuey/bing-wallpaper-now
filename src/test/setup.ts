@@ -17,11 +17,14 @@ Object.defineProperty(window, "__TAURI_INTERNALS__", {
 // Mock @tauri-apps/api/core
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn(),
+  convertFileSrc: vi.fn((path: string) => `asset://localhost/${path}`),
 }));
 
 // Mock @tauri-apps/plugin-opener
 vi.mock("@tauri-apps/plugin-opener", () => ({
   open: vi.fn(),
+  openPath: vi.fn(),
+  openUrl: vi.fn(),
 }));
 
 // Mock @tauri-apps/plugin-dialog

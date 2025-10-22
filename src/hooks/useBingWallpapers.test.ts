@@ -85,4 +85,255 @@ describe("useBingWallpapers", () => {
 
     expect(typeof result.current.fetchLocalWallpapers).toBe("function");
   });
+
+  it("should call setDesktopWallpaper successfully", async () => {
+    vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "set_desktop_wallpaper") {
+        return Promise.resolve(undefined);
+      }
+      if (cmd === "get_local_wallpapers") {
+        return Promise.resolve([]);
+      }
+      if (cmd === "get_last_update_time") {
+        return Promise.resolve(null);
+      }
+      return Promise.resolve(undefined);
+    });
+
+    const { result } = renderHook(() => useBingWallpapers());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    await result.current.setDesktopWallpaper("/path/to/wallpaper.jpg");
+
+    expect(invoke).toHaveBeenCalledWith("set_desktop_wallpaper", {
+      filePath: "/path/to/wallpaper.jpg",
+    });
+  });
+
+  it("should call cleanupWallpapers and return deleted count", async () => {
+    const deletedCount = 5;
+    vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "cleanup_wallpapers") {
+        return Promise.resolve(deletedCount);
+      }
+      if (cmd === "get_local_wallpapers") {
+        return Promise.resolve([]);
+      }
+      if (cmd === "get_last_update_time") {
+        return Promise.resolve(null);
+      }
+      return Promise.resolve(undefined);
+    });
+
+    const { result } = renderHook(() => useBingWallpapers());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    const count = await result.current.cleanupWallpapers();
+
+    expect(invoke).toHaveBeenCalledWith("cleanup_wallpapers");
+    expect(count).toBe(deletedCount);
+  });
+
+  it("should handle cleanupWallpapers errors", async () => {
+    const errorMessage = "Cleanup failed";
+    vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "cleanup_wallpapers") {
+        return Promise.reject(new Error(errorMessage));
+      }
+      if (cmd === "get_local_wallpapers") {
+        return Promise.resolve([]);
+      }
+      if (cmd === "get_last_update_time") {
+        return Promise.resolve(null);
+      }
+      return Promise.resolve(undefined);
+    });
+
+    const { result } = renderHook(() => useBingWallpapers());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    await expect(result.current.cleanupWallpapers()).rejects.toThrow();
+
+    await waitFor(() => {
+      expect(result.current.error).toContain(errorMessage);
+    });
+  });
+
+  it("should call forceUpdate and refresh wallpapers", async () => {
+    const mockWallpapers = [
+      {
+        start_date: "20240101",
+        title: "Test Wallpaper",
+        copyright: "Test Copyright",
+        file_path: "/path/to/wallpaper.jpg",
+        url: "https://example.com/wallpaper.jpg",
+      },
+    ];
+
+    vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "force_update") {
+        return Promise.resolve(undefined);
+      }
+      return Promise.resolve(mockWallpapers);
+    });
+
+    const { result } = renderHook(() => useBingWallpapers());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    await result.current.forceUpdate();
+
+    expect(invoke).toHaveBeenCalledWith("force_update");
+  });
+
+  it("should skip force_update if wallpapers are already up to date", async () => {
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, "0")}${String(today.getDate()).padStart(2, "0")}`;
+
+    const todayWallpaper = [
+      {
+        start_date: todayStr,
+        title: "Today's Wallpaper",
+        copyright: "Test",
+        file_path: "/path/to/today.jpg",
+        url: "https://example.com/today.jpg",
+      },
+    ];
+
+    let forceUpdateCalled = false;
+    vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "force_update") {
+        forceUpdateCalled = true;
+        return Promise.resolve(undefined);
+      }
+      return Promise.resolve(todayWallpaper);
+    });
+
+    const { result } = renderHook(() => useBingWallpapers());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    await result.current.forceUpdate();
+
+    expect(forceUpdateCalled).toBe(false);
+    expect(result.current.isUpToDate).toBe(true);
+  });
+
+  it("should compute isUpToDate correctly", async () => {
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, "0")}${String(today.getDate()).padStart(2, "0")}`;
+
+    const todayWallpaper = [
+      {
+        start_date: todayStr,
+        title: "Today's Wallpaper",
+        copyright: "Test",
+        file_path: "/path/to/today.jpg",
+        url: "https://example.com/today.jpg",
+      },
+    ];
+
+    vi.mocked(invoke).mockResolvedValue(todayWallpaper);
+
+    const { result } = renderHook(() => useBingWallpapers());
+
+    await waitFor(() => {
+      expect(result.current.isUpToDate).toBe(true);
+    });
+  });
+
+  it("should return false for isUpToDate when no wallpapers", async () => {
+    vi.mocked(invoke).mockResolvedValue([]);
+
+    const { result } = renderHook(() => useBingWallpapers());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.isUpToDate).toBe(false);
+  });
+
+  it("should fetch lastUpdateTime from backend", async () => {
+    const mockTime = "2024-01-01 12:00:00";
+
+    vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "get_last_update_time") {
+        return Promise.resolve(mockTime);
+      }
+      return Promise.resolve([]);
+    });
+
+    const { result } = renderHook(() => useBingWallpapers());
+
+    await waitFor(() => {
+      expect(result.current.lastUpdateTime).toBe(mockTime);
+    });
+  });
+
+  it("should handle fetchLocalWallpapers with showLoading parameter", async () => {
+    const mockWallpapers = [
+      {
+        start_date: "20240101",
+        title: "Test",
+        copyright: "Test",
+        file_path: "/path/to/test.jpg",
+        url: "https://example.com/test.jpg",
+      },
+    ];
+
+    vi.mocked(invoke).mockResolvedValue(mockWallpapers);
+
+    const { result } = renderHook(() => useBingWallpapers());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    await result.current.fetchLocalWallpapers(true);
+
+    expect(result.current.localWallpapers).toEqual(mockWallpapers);
+  });
+
+  it("should not update state if wallpapers data hasn't changed", async () => {
+    const mockWallpapers = [
+      {
+        start_date: "20240101",
+        title: "Test",
+        copyright: "Test",
+        file_path: "/path/to/test.jpg",
+        url: "https://example.com/test.jpg",
+      },
+    ];
+
+    vi.mocked(invoke).mockResolvedValue(mockWallpapers);
+
+    const { result, rerender } = renderHook(() => useBingWallpapers());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    const firstWallpapers = result.current.localWallpapers;
+
+    // Fetch again with same data
+    await result.current.fetchLocalWallpapers(false);
+    rerender();
+
+    // Should be the same reference (no state update)
+    expect(result.current.localWallpapers).toBe(firstWallpapers);
+  });
 });

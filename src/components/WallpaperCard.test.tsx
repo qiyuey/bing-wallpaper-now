@@ -82,4 +82,37 @@ describe("WallpaperCard", () => {
     expect(screen.getByText("美景")).toBeInTheDocument();
     expect(screen.getByText("巴黎，法国")).toBeInTheDocument();
   });
+
+  it("should call openUrl when image container is clicked", async () => {
+    const { openUrl } = await import("@tauri-apps/plugin-opener");
+
+    render(
+      <WallpaperCard
+        wallpaper={mockWallpaper}
+        onSetWallpaper={mockOnSetWallpaper}
+      />,
+    );
+
+    const imageContainer = screen.getByTitle("点击查看详情");
+    fireEvent.click(imageContainer);
+
+    expect(openUrl).toHaveBeenCalledWith(mockWallpaper.copyright_link);
+  });
+
+  it("should handle click when copyright_link is empty", () => {
+    const wallpaperWithoutLink = { ...mockWallpaper, copyright_link: "" };
+
+    render(
+      <WallpaperCard
+        wallpaper={wallpaperWithoutLink}
+        onSetWallpaper={mockOnSetWallpaper}
+      />,
+    );
+
+    const imageContainer = screen.getByTitle("点击查看详情");
+    fireEvent.click(imageContainer);
+
+    // Should not throw error
+    expect(screen.getByText("测试壁纸")).toBeInTheDocument();
+  });
 });
