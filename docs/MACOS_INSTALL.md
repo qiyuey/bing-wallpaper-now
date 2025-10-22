@@ -16,8 +16,19 @@
 打开终端（Terminal），运行以下命令：
 
 ```bash
-xattr -cr "/Applications/Bing Wallpaper Now.app"
+xattr -rd com.apple.quarantine "/Applications/Bing Wallpaper Now.app"
 ```
+
+**命令说明：**
+- `xattr`: macOS 扩展属性管理工具
+- `-r`: 递归处理应用包内的所有文件
+- `-d`: 删除指定的扩展属性
+- `com.apple.quarantine`: macOS Gatekeeper 的隔离标记
+
+**为什么用这个命令？**
+- ✅ 精准：只删除导致问题的隔离属性
+- ✅ 安全：保留其他有用的文件元数据
+- ✅ 标准：这是 macOS 开发社区的推荐做法
 
 ### 方法 2：系统设置中允许
 

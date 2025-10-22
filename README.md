@@ -77,7 +77,7 @@ If you see "App is damaged and can't be opened" or need to run `xattr` command, 
 
 **Quick fix:**
 ```bash
-xattr -cr "/Applications/Bing Wallpaper Now.app"
+xattr -rd com.apple.quarantine "/Applications/Bing Wallpaper Now.app"
 ```
 
 See [macOS Installation Guide](docs/MACOS_INSTALL.md) for detailed solutions and explanation.

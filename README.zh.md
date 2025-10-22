@@ -77,7 +77,7 @@ pnpm run tauri build
 
 **快速解决：**
 ```bash
-xattr -cr "/Applications/Bing Wallpaper Now.app"
+xattr -rd com.apple.quarantine "/Applications/Bing Wallpaper Now.app"
 ```
 
 详细解决方案和说明请参考 [macOS 安装指南](docs/MACOS_INSTALL.md)。

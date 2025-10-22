@@ -209,10 +209,11 @@ jobs:
 
             **Solution (choose one):**
 
-            1. **Command Line** (Recommended):
+            1. **Command Line** (Recommended - Most Precise):
                ```bash
-               xattr -cr "/Applications/Bing Wallpaper Now.app"
+               xattr -rd com.apple.quarantine "/Applications/Bing Wallpaper Now.app"
                ```
+               This removes only the quarantine attribute, preserving other metadata.
 
             2. **System Settings**: Open "Settings → Privacy & Security", find the app and click "Open Anyway"
 
