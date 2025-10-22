@@ -1,7 +1,7 @@
 name: CI
 
 on:
-  # 在 main 分支 push 与版本 tag 及手动触发时运行
+  # main 分支只运行测试，tag 推送时构建和发布
   push:
     branches: [main]
     tags:
@@ -22,8 +22,10 @@ env:
   NODE_VERSION: "22" # LTS 版本 (v22.21.0)，支持到 2027年4月
 
 jobs:
-  build:
-    name: Build & Test
+  test:
+    name: Test
+    # 只在非 tag 的 push 和 PR 时运行测试
+    if: "!startsWith(github.ref, 'refs/tags/v')"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -100,16 +102,8 @@ jobs:
       - name: Frontend tests
         run: pnpm run test:frontend
 
-      - name: Upload dist artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: dist
-          path: dist
-          retention-days: 7
-
   bundle:
     name: Tauri Bundle (${{ matrix.platform }})
-    needs: build
     # 只在推送 tag 时运行 bundle，节省普通 push 的构建时间
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ${{ matrix.os }}
@@ -215,11 +209,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Download dist artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: dist
-          path: dist
+      - name: Build frontend
+        run: pnpm run build
 
       - name: Extract changelog for current version
         id: changelog
