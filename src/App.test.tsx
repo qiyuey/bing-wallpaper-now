@@ -14,10 +14,12 @@ describe("App", () => {
     {
       id: "20240101",
       start_date: "20240101",
+      end_date: "20240102",
       title: "Test Wallpaper",
       copyright: "Test Copyright",
+      copyright_link: "https://example.com/link",
       file_path: "/path/to/wallpaper.jpg",
-      url: "https://example.com/wallpaper.jpg",
+      download_time: "2024-01-01T00:00:00Z",
     },
   ];
 
@@ -151,10 +153,12 @@ describe("App", () => {
       {
         id: todayStr,
         start_date: todayStr,
+        end_date: todayStr,
         title: "Today's Wallpaper",
         copyright: "Test",
+        copyright_link: "https://example.com/link",
         file_path: "/path/to/today.jpg",
-        url: "https://example.com/today.jpg",
+        download_time: new Date().toISOString(),
       },
     ];
 
