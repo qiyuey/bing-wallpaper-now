@@ -8,6 +8,7 @@ import { LocalWallpaper } from "./types";
 import { invoke } from "@tauri-apps/api/core";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { listen } from "@tauri-apps/api/event";
+import { version } from "../package.json";
 
 function App() {
   const {
@@ -209,7 +210,7 @@ function App() {
       {showSettings && <Settings onClose={() => setShowSettings(false)} />}
 
       <footer className="app-footer">
-        <span className="version-info">v0.1.7-0</span>
+        <span className="version-info">v{version}</span>
       </footer>
     </div>
   );
