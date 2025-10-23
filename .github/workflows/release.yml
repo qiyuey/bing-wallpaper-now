@@ -234,18 +234,28 @@ jobs:
           security list-keychain -d user -s $KEYCHAIN_PATH login.keychain
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
           # Find and export the certificate identity for Tauri
-          IDENTITY=$(security find-identity -v -p codesigning $KEYCHAIN_PATH | grep -o '"[^"]*"' | head -1 | tr -d '"')
+          echo "=== Finding code signing identities in keychain ==="
+          security find-identity -v -p codesigning $KEYCHAIN_PATH
+          # Extract the identity name (between quotes)
+          IDENTITY=$(security find-identity -v -p codesigning $KEYCHAIN_PATH | head -1 | sed -n 's/.*"\(.*\)"/\1/p')
+          if [ -z "$IDENTITY" ]; then
+            echo "❌ ERROR: No signing identity found!"
+            exit 1
+          fi
           echo "APPLE_SIGNING_IDENTITY=$IDENTITY" >> $GITHUB_ENV
           echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> $GITHUB_ENV
-          echo "Found signing identity: $IDENTITY"
+          echo "✅ Found signing identity: $IDENTITY"
           echo "Keychain path: $KEYCHAIN_PATH"
-          # Verify certificate is accessible
-          echo "All code signing identities:"
-          security find-identity -v -p codesigning
 
       - name: Patch tauri.conf.json (skip beforeBuildCommand and set signing identity)
         shell: bash
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ env.APPLE_SIGNING_IDENTITY }}
         run: |
+          # Debug: Show environment
+          echo "RUNNER_OS: $RUNNER_OS"
+          echo "APPLE_SIGNING_IDENTITY: '$APPLE_SIGNING_IDENTITY'"
+
           # Temporarily clear beforeBuildCommand to skip frontend rebuild
           if command -v jq &> /dev/null; then
             jq '.build.beforeBuildCommand = ""' src-tauri/tauri.conf.json > src-tauri/tauri.conf.json.tmp
@@ -254,8 +264,13 @@ jobs:
             if [ "$RUNNER_OS" = "macOS" ] && [ -n "$APPLE_SIGNING_IDENTITY" ]; then
               jq --arg identity "$APPLE_SIGNING_IDENTITY" '.bundle.macOS.signingIdentity = $identity' src-tauri/tauri.conf.json > src-tauri/tauri.conf.json.tmp
               mv src-tauri/tauri.conf.json.tmp src-tauri/tauri.conf.json
-              echo "Set macOS signing identity to: $APPLE_SIGNING_IDENTITY"
+              echo "✅ Set macOS signing identity to: $APPLE_SIGNING_IDENTITY"
+            else
+              echo "⚠️ Skipping signing identity setup (RUNNER_OS=$RUNNER_OS, APPLE_SIGNING_IDENTITY='$APPLE_SIGNING_IDENTITY')"
             fi
+            # Show the patched config
+            echo "=== Patched tauri.conf.json (macOS section) ==="
+            jq '.bundle.macOS' src-tauri/tauri.conf.json
           else
             # Fallback: use sed if jq not available
             sed -i.bak 's/"beforeBuildCommand"[[:space:]]*:[[:space:]]*"[^"]*"/"beforeBuildCommand": ""/' src-tauri/tauri.conf.json
