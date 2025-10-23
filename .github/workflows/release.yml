@@ -261,8 +261,6 @@ jobs:
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "**sccache:**" >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
-            sccache --show-stats | grep -E '(Compile requests|Cache hits|Cache misses|Hit rate)' >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
           fi
 
   release:
