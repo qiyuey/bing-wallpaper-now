@@ -236,20 +236,31 @@ jobs:
           # Find and export the certificate identity for Tauri
           IDENTITY=$(security find-identity -v -p codesigning $KEYCHAIN_PATH | grep -o '"[^"]*"' | head -1 | tr -d '"')
           echo "APPLE_SIGNING_IDENTITY=$IDENTITY" >> $GITHUB_ENV
+          echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> $GITHUB_ENV
           echo "Found signing identity: $IDENTITY"
+          echo "Keychain path: $KEYCHAIN_PATH"
+          # Verify certificate is accessible
+          echo "All code signing identities:"
+          security find-identity -v -p codesigning
 
-      - name: Patch tauri.conf.json to skip beforeBuildCommand
+      - name: Patch tauri.conf.json (skip beforeBuildCommand and set signing identity)
         shell: bash
         run: |
           # Temporarily clear beforeBuildCommand to skip frontend rebuild
           if command -v jq &> /dev/null; then
             jq '.build.beforeBuildCommand = ""' src-tauri/tauri.conf.json > src-tauri/tauri.conf.json.tmp
             mv src-tauri/tauri.conf.json.tmp src-tauri/tauri.conf.json
+            # Set signing identity for macOS
+            if [ "$RUNNER_OS" = "macOS" ] && [ -n "$APPLE_SIGNING_IDENTITY" ]; then
+              jq --arg identity "$APPLE_SIGNING_IDENTITY" '.bundle.macOS.signingIdentity = $identity' src-tauri/tauri.conf.json > src-tauri/tauri.conf.json.tmp
+              mv src-tauri/tauri.conf.json.tmp src-tauri/tauri.conf.json
+              echo "Set macOS signing identity to: $APPLE_SIGNING_IDENTITY"
+            fi
           else
             # Fallback: use sed if jq not available
             sed -i.bak 's/"beforeBuildCommand"[[:space:]]*:[[:space:]]*"[^"]*"/"beforeBuildCommand": ""/' src-tauri/tauri.conf.json
           fi
-          echo "Patched tauri.conf.json to skip beforeBuildCommand"
+          echo "Patched tauri.conf.json"
 
       - name: Build Tauri app (skip frontend build)
         uses: tauri-apps/tauri-action@v0
