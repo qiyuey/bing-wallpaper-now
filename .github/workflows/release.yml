@@ -204,6 +204,19 @@ jobs:
           security list-keychain -d user -s $KEYCHAIN_PATH
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
 
+      - name: Patch tauri.conf.json to skip beforeBuildCommand
+        shell: bash
+        run: |
+          # Temporarily clear beforeBuildCommand to skip frontend rebuild
+          if command -v jq &> /dev/null; then
+            jq '.build.beforeBuildCommand = ""' src-tauri/tauri.conf.json > src-tauri/tauri.conf.json.tmp
+            mv src-tauri/tauri.conf.json.tmp src-tauri/tauri.conf.json
+          else
+            # Fallback: use sed if jq not available
+            sed -i.bak 's/"beforeBuildCommand"[[:space:]]*:[[:space:]]*"[^"]*"/"beforeBuildCommand": ""/' src-tauri/tauri.conf.json
+          fi
+          echo "Patched tauri.conf.json to skip beforeBuildCommand"
+
       - name: Build Tauri app (skip frontend build)
         uses: tauri-apps/tauri-action@v0
         env:
@@ -213,7 +226,6 @@ jobs:
           includeRelease: false
           includeUpdaterJson: false
           tauriScript: pnpm tauri
-          args: -c '{"build":{"beforeBuildCommand":""}}'
 
       - name: Upload bundle artifact
         uses: actions/upload-artifact@v4
