@@ -2,22 +2,64 @@
 
 All notable changes to Bing Wallpaper Now will be documented in this file.
 
-## 0.1.9
+## [0.1.9]
+
+### Added
+
+- ✨ **UI 版本号自动导入**: 从 package.json 自动导入版本号到设置界面，无需手动维护
+- 📋 **CHANGELOG 验证**: 添加 pre-commit 检查，确保发布前 CHANGELOG 已更新
+- 📝 **Release Notes 增强**: 
+  - 自动为所有平台安装包生成直接下载链接
+  - 改进格式，更清晰的平台分类和说明
 
 ### Changed
 
-- 🔄 **CI/CD 流程优化**: 分离 Release 和日常 CI 工作流
-  - 将 `ci.yml` 重命名为 `release.yml`，仅在 tag 推送时触发完整构建
-  - 新增轻量级 `ci.yml` 用于 PR 和 main 分支的快速验证（lint + type check + Rust check）
+- 🔄 **CI/CD 流程全面重构**: 分离 Release 和日常 CI 工作流
+  - 将 `ci.yml` 重构为 `release.yml`，仅在 tag 推送时触发完整构建
+  - 新增轻量级 `ci.yml` 用于 PR 和 main 分支的快速验证
   - 优化 Release 构建流程：前端单次构建 + 多平台并行 bundle
-  - 减少不必要的 CI 运行，节省资源和时间
+  - 使用 Tauri 2 默认签名，移除复杂的证书管理流程
+
+- 🏗️ **脚本模块化重构**: 创建共享库架构，大幅提升代码复用性和可维护性
+  - 新增 `scripts/lib/` 模块化库结构：
+    - `ui.sh`: UI/输出工具（颜色、打印、格式化）
+    - `git.sh`: Git 操作（状态检查、标签管理、提交）
+    - `version.sh`: 语义化版本处理（解析、比较、增量）
+    - `project.sh`: 项目配置（路径管理、工具检测）
+    - `validators.sh`: 验证逻辑（CHANGELOG、代码质量）
+  - 主脚本重命名优化：
+    - `check-commit.sh` → `check-quality.sh`（更准确反映用途）
+    - `version.sh` → `manage-version.sh`（避免与库文件命名冲突）
+  - 简化 Makefile：移除冗余目标，保留核心命令（dev, check, snapshot-*, release）
+
+### Fixed
+
+- 🐛 **CI 构建修复**:
+  - 修复 bundle artifact 路径，正确包含所有平台安装包
+  - 修复 sccache 统计生成，完整显示缓存命中信息
+  - 修复 Windows ARM64 的 pnpm store 路径检测
+  - 仅上传可分发文件，过滤内部构建产物（如 .app.tar.gz）
+- 🔧 **macOS 签名修复**: 
+  - 解决证书检测和 keychain 导入问题
+  - 动态设置签名身份，适配不同构建环境
+- 📝 **Release Notes 修复**: 下载链接使用点号而非空格，避免链接失效
+- 🎨 **代码质量**: 修复 Clippy 警告，移除文档注释后的空行
 
 ### Performance
 
 - 🚀 **构建优化**:
   - Release 构建：前端只构建一次，通过 artifact 共享给所有平台
-  - 日常 CI：仅运行必要检查，跳过完整构建
+  - 日常 CI：仅运行必要检查（lint + typecheck + Rust check），跳过完整构建
   - 预期节省 80%+ 的 CI 运行次数
+  - 减少不必要的构建产物和上传流量
+
+### Technical
+
+- 代码复用：共享函数减少重复代码 900+ 行
+- 易于维护：修改一次，所有脚本受益
+- 清晰架构：统一的动词-名词命名模式
+- 向后兼容：保持 Makefile 主要命令接口不变
+- 简化签名：使用 Tauri 2 内置签名，无需管理证书
 
 ## 0.1.8
 
