@@ -1,4 +1,4 @@
-name: Release Build
+name: Release
 
 on:
   push:
@@ -212,7 +212,7 @@ jobs:
           tagName: ${{ github.ref_name }}
           includeRelease: false
           includeUpdaterJson: false
-          beforeBuildCommand: ""
+          tauriScript: pnpm tauri
 
       - name: Upload bundle artifact
         uses: actions/upload-artifact@v4
