@@ -300,8 +300,7 @@ fn set_wallpaper_for_all_screens(image_path: &Path) -> Result<()> {
     Ok(())
 }
 
-/// (已移除 get_current_wallpaper 函数以消除未使用警告)
-
+// (已移除 get_current_wallpaper 函数以消除未使用警告)
 #[cfg(test)]
 mod tests {
     // get_current_wallpaper 已移除，测试删除以避免引用不存在的函数
