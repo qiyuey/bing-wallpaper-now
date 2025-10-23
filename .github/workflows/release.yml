@@ -213,7 +213,7 @@ jobs:
           includeRelease: false
           includeUpdaterJson: false
           tauriScript: pnpm tauri
-          skipFrontend: true
+          args: -c '{"build":{"beforeBuildCommand":""}}'
 
       - name: Upload bundle artifact
         uses: actions/upload-artifact@v4
