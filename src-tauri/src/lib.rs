@@ -545,7 +545,20 @@ fn setup_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
         tauri::image::Image::new_owned(icon_img.to_vec(), icon_img.width(), icon_img.height())
     };
 
-    #[cfg(not(target_os = "windows"))]
+    // macOS 使用黑白托盘图标（符合系统设计规范）
+    #[cfg(target_os = "macos")]
+    let icon = {
+        let icon_bytes = include_bytes!("../icons/tray-icon-macos@2x.png");
+        let icon_img = image::load_from_memory(icon_bytes)
+            .map_err(|e| {
+                tauri::Error::InvalidIcon(std::io::Error::new(std::io::ErrorKind::InvalidData, e))
+            })?
+            .to_rgba8();
+        tauri::image::Image::new_owned(icon_img.to_vec(), icon_img.width(), icon_img.height())
+    };
+
+    // Linux 和其他平台使用默认图标
+    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
     let icon = app.default_window_icon().unwrap().clone();
 
     let _tray = TrayIconBuilder::new()

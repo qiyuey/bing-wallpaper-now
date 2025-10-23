@@ -22,17 +22,15 @@
         "visible": false,
         "focus": false,
         "transparent": false,
-        "alwaysOnTop": false
+        "alwaysOnTop": false,
+        "skipTaskbar": true
       }
     ],
     "security": {
       "csp": null,
       "assetProtocol": {
         "enable": true,
-        "scope": [
-          "$PICTURE/**",
-          "$HOME/Pictures/**"
-        ]
+        "scope": ["$PICTURE/**", "$HOME/Pictures/**"]
       }
     }
   },
