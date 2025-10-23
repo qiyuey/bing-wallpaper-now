@@ -95,7 +95,8 @@ jobs:
         id: changelog
         shell: bash
         run: |
-          CHANGELOG=$(sed -n "/^## \[${{ github.ref_name }}\]/,/^## \[/p" CHANGELOG.md | sed '1d;$d')
+          # Extract changelog for current version
+          CHANGELOG=$(sed -n "/^## \[${{ github.ref_name }}\]/,/^## \[/p" CHANGELOG.md | sed '1d;$d' | sed 's/^$/\n/g')
           if [ -z "$CHANGELOG" ]; then
             CHANGELOG="请查看完整的更新日志: [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)"
           fi
@@ -300,19 +301,32 @@ jobs:
             release_assets/**/bundle/rpm/*.rpm
             release_assets/**/bundle/appimage/*.AppImage
           body: |
-            # 🎉 Bing Wallpaper Now ${{ github.ref_name }}
+            ## 下载 / Downloads
 
-            一款跨平台桌面应用，自动获取并设置必应每日精美壁纸。
+            ### Windows
+            - [Bing Wallpaper Now_${{ github.ref_name }}_x64-setup.exe](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing%20Wallpaper%20Now_${{ github.ref_name }}_x64-setup.exe) - x64 安装程序
+            - [Bing Wallpaper Now_${{ github.ref_name }}_x64_zh-CN.msi](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing%20Wallpaper%20Now_${{ github.ref_name }}_x64_zh-CN.msi) - x64 MSI 安装包
+            - [Bing Wallpaper Now_${{ github.ref_name }}_arm64-setup.exe](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing%20Wallpaper%20Now_${{ github.ref_name }}_arm64-setup.exe) - ARM64 安装程序
+            - [Bing Wallpaper Now_${{ github.ref_name }}_arm64_zh-CN.msi](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing%20Wallpaper%20Now_${{ github.ref_name }}_arm64_zh-CN.msi) - ARM64 MSI 安装包
+
+            ### macOS
+            - [Bing Wallpaper Now_${{ github.ref_name }}_aarch64.dmg](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing%20Wallpaper%20Now_${{ github.ref_name }}_aarch64.dmg) - Apple Silicon (M1/M2/M3)
+            - [Bing Wallpaper Now_${{ github.ref_name }}_x64.dmg](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing%20Wallpaper%20Now_${{ github.ref_name }}_x64.dmg) - Intel
+
+            ### Linux
+            - [Bing Wallpaper Now_${{ github.ref_name }}_amd64.deb](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing%20Wallpaper%20Now_${{ github.ref_name }}_amd64.deb) - Debian/Ubuntu (x64)
+            - [Bing Wallpaper Now_${{ github.ref_name }}_arm64.deb](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing%20Wallpaper%20Now_${{ github.ref_name }}_arm64.deb) - Debian/Ubuntu (ARM64)
+            - [Bing Wallpaper Now-${{ github.ref_name }}-1.x86_64.rpm](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing%20Wallpaper%20Now-${{ github.ref_name }}-1.x86_64.rpm) - Fedora/RHEL (x64)
+            - [Bing Wallpaper Now-${{ github.ref_name }}-1.aarch64.rpm](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing%20Wallpaper%20Now-${{ github.ref_name }}-1.aarch64.rpm) - Fedora/RHEL (ARM64)
+            - [Bing Wallpaper Now_${{ github.ref_name }}_amd64.AppImage](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing%20Wallpaper%20Now_${{ github.ref_name }}_amd64.AppImage) - AppImage (x64)
+            - [Bing Wallpaper Now_${{ github.ref_name }}_aarch64.AppImage](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing%20Wallpaper%20Now_${{ github.ref_name }}_aarch64.AppImage) - AppImage (ARM64)
 
             ---
 
-            ## ✨ 更新内容
+            ## 更新内容 / What's Changed
 
-            (来自 CHANGELOG)
             ${{ needs.prepare.outputs.changelog }}
 
             ---
 
-            📝 [完整更新日志](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) | ${{ needs.prepare.outputs.previous_tag && format('🔍 [对比变更](https://github.com/{0}/compare/{1}...{2})', github.repository, needs.prepare.outputs.previous_tag, github.ref_name) || format('🔍 [提交历史](https://github.com/{0}/commits/{1})', github.repository, github.ref_name) }} | 🐛 [反馈问题](https://github.com/${{ github.repository }}/issues)
-
-            （本 Release 由多平台并行构建 + 前端单次预构建流程生成）
+            **完整更新日志**: ${{ needs.prepare.outputs.previous_tag && format('[{0}...{1}](https://github.com/{2}/compare/{0}...{1})', needs.prepare.outputs.previous_tag, github.ref_name, github.repository) || format('[查看提交历史](https://github.com/{0}/commits/{1})', github.repository, github.ref_name) }}

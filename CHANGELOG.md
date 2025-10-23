@@ -2,7 +2,7 @@
 
 All notable changes to Bing Wallpaper Now will be documented in this file.
 
-## [0.1.9]
+## 0.1.9
 
 ### Changed
 
@@ -19,7 +19,7 @@ All notable changes to Bing Wallpaper Now will be documented in this file.
   - 日常 CI：仅运行必要检查，跳过完整构建
   - 预期节省 80%+ 的 CI 运行次数
 
-## [0.1.8]
+## 0.1.8
 
 ### Changed
 
@@ -40,7 +40,7 @@ All notable changes to Bing Wallpaper Now will be documented in this file.
   - 首次构建：无变化（缓存未命中）
   - 后续构建：前端构建加速 30-70%（依赖未变时）
 
-## [0.1.7]
+## 0.1.7
 
 ### Added
 
@@ -91,7 +91,7 @@ All notable changes to Bing Wallpaper Now will be documented in this file.
 - 平台特定编译：macOS 特性使用 #[cfg(target_os = "macos")]
 - Release 脚本重构：移除所有人工确认提示，实现全自动化发布
 
-## [0.1.6]
+## 0.1.6
 
 ### Changed
 
