@@ -315,22 +315,22 @@ jobs:
             ## 下载 / Downloads
 
             ### Windows
-            - [Bing Wallpaper Now_${{ github.ref_name }}_x64-setup.exe](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing%20Wallpaper%20Now_${{ github.ref_name }}_x64-setup.exe) - x64 安装程序
-            - [Bing Wallpaper Now_${{ github.ref_name }}_x64_zh-CN.msi](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing%20Wallpaper%20Now_${{ github.ref_name }}_x64_zh-CN.msi) - x64 MSI 安装包
-            - [Bing Wallpaper Now_${{ github.ref_name }}_arm64-setup.exe](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing%20Wallpaper%20Now_${{ github.ref_name }}_arm64-setup.exe) - ARM64 安装程序
-            - [Bing Wallpaper Now_${{ github.ref_name }}_arm64_zh-CN.msi](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing%20Wallpaper%20Now_${{ github.ref_name }}_arm64_zh-CN.msi) - ARM64 MSI 安装包
+            - [Bing.Wallpaper.Now_${{ github.ref_name }}_x64-setup.exe](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_x64-setup.exe) - x64 安装程序
+            - [Bing.Wallpaper.Now_${{ github.ref_name }}_x64_zh-CN.msi](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_x64_zh-CN.msi) - x64 MSI 安装包
+            - [Bing.Wallpaper.Now_${{ github.ref_name }}_arm64-setup.exe](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_arm64-setup.exe) - ARM64 安装程序
+            - [Bing.Wallpaper.Now_${{ github.ref_name }}_arm64_zh-CN.msi](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_arm64_zh-CN.msi) - ARM64 MSI 安装包
 
             ### macOS
-            - [Bing Wallpaper Now_${{ github.ref_name }}_aarch64.dmg](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing%20Wallpaper%20Now_${{ github.ref_name }}_aarch64.dmg) - Apple Silicon (M1/M2/M3)
-            - [Bing Wallpaper Now_${{ github.ref_name }}_x64.dmg](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing%20Wallpaper%20Now_${{ github.ref_name }}_x64.dmg) - Intel
+            - [Bing.Wallpaper.Now_${{ github.ref_name }}_aarch64.dmg](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_aarch64.dmg) - Apple Silicon (M1/M2/M3)
+            - [Bing.Wallpaper.Now_${{ github.ref_name }}_x64.dmg](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_x64.dmg) - Intel
 
             ### Linux
-            - [Bing Wallpaper Now_${{ github.ref_name }}_amd64.deb](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing%20Wallpaper%20Now_${{ github.ref_name }}_amd64.deb) - Debian/Ubuntu (x64)
-            - [Bing Wallpaper Now_${{ github.ref_name }}_arm64.deb](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing%20Wallpaper%20Now_${{ github.ref_name }}_arm64.deb) - Debian/Ubuntu (ARM64)
-            - [Bing Wallpaper Now-${{ github.ref_name }}-1.x86_64.rpm](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing%20Wallpaper%20Now-${{ github.ref_name }}-1.x86_64.rpm) - Fedora/RHEL (x64)
-            - [Bing Wallpaper Now-${{ github.ref_name }}-1.aarch64.rpm](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing%20Wallpaper%20Now-${{ github.ref_name }}-1.aarch64.rpm) - Fedora/RHEL (ARM64)
-            - [Bing Wallpaper Now_${{ github.ref_name }}_amd64.AppImage](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing%20Wallpaper%20Now_${{ github.ref_name }}_amd64.AppImage) - AppImage (x64)
-            - [Bing Wallpaper Now_${{ github.ref_name }}_aarch64.AppImage](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing%20Wallpaper%20Now_${{ github.ref_name }}_aarch64.AppImage) - AppImage (ARM64)
+            - [Bing.Wallpaper.Now_${{ github.ref_name }}_amd64.deb](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_amd64.deb) - Debian/Ubuntu (x64)
+            - [Bing.Wallpaper.Now_${{ github.ref_name }}_arm64.deb](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_arm64.deb) - Debian/Ubuntu (ARM64)
+            - [Bing.Wallpaper.Now-${{ github.ref_name }}-1.x86_64.rpm](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now-${{ github.ref_name }}-1.x86_64.rpm) - Fedora/RHEL (x64)
+            - [Bing.Wallpaper.Now-${{ github.ref_name }}-1.aarch64.rpm](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now-${{ github.ref_name }}-1.aarch64.rpm) - Fedora/RHEL (ARM64)
+            - [Bing.Wallpaper.Now_${{ github.ref_name }}_amd64.AppImage](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_amd64.AppImage) - AppImage (x64)
+            - [Bing.Wallpaper.Now_${{ github.ref_name }}_aarch64.AppImage](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_aarch64.AppImage) - AppImage (ARM64)
 
             ---
 
