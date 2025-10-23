@@ -259,7 +259,9 @@ jobs:
           fi
           if command -v sccache >/dev/null 2>&1; then
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**sccache:**" >> $GITHUB_STEP_SUMMARY
+            echo "**sccache Statistics:**" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            sccache --show-stats >> $GITHUB_STEP_SUMMARY || echo "Unable to retrieve sccache stats" >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
           fi
 
