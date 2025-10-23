@@ -222,17 +222,35 @@ jobs:
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
         run: |
-          CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
+          CERTIFICATE_P12=$RUNNER_TEMP/build_certificate.p12
+          CERTIFICATE_PEM=$RUNNER_TEMP/certificate.pem
+          KEY_PEM=$RUNNER_TEMP/key.pem
           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
-          echo -n "$APPLE_CERTIFICATE" | base64 --decode -o $CERTIFICATE_PATH
+
+          # Decode P12 certificate
+          echo -n "$APPLE_CERTIFICATE" | base64 --decode -o $CERTIFICATE_P12
+
+          # Extract certificate and key using openssl
+          echo "=== Extracting certificate and key from P12 ==="
+          openssl pkcs12 -in $CERTIFICATE_P12 -clcerts -nokeys -out $CERTIFICATE_PEM -passin pass:"$APPLE_CERTIFICATE_PASSWORD"
+          openssl pkcs12 -in $CERTIFICATE_P12 -nocerts -nodes -out $KEY_PEM -passin pass:"$APPLE_CERTIFICATE_PASSWORD"
+
+          # Create keychain
           security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
           security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-          security import $CERTIFICATE_PATH -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+
+          # Import certificate and key separately
+          echo "=== Importing certificate ==="
+          security import $CERTIFICATE_PEM -k $KEYCHAIN_PATH -T /usr/bin/codesign -T /usr/bin/security
+          echo "=== Importing private key ==="
+          security import $KEY_PEM -k $KEYCHAIN_PATH -T /usr/bin/codesign -T /usr/bin/security
+
           # Set the keychain as the default and add to search list
           security default-keychain -s $KEYCHAIN_PATH
           security list-keychain -d user -s $KEYCHAIN_PATH login.keychain
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+
           # Find and export the certificate identity for Tauri
           echo "=== Finding code signing identities in keychain ==="
           security find-identity -v -p codesigning $KEYCHAIN_PATH
