@@ -149,9 +149,33 @@ else
 fi
 
 # ============================================================================
-# 8. Frontend Build
+# 8. CHANGELOG Validation
 # ============================================================================
-print_check "8/8 Frontend Build Check (vite build)"
+print_check "8/9 CHANGELOG Validation"
+
+# Get current version from package.json
+CURRENT_VERSION=$(grep '"version"' package.json | head -1 | sed 's/.*"version": "\(.*\)".*/\1/')
+
+# Check if version is a development version (ends with -0)
+if [[ "$CURRENT_VERSION" == *"-0" ]]; then
+    # Development version - skip changelog check
+    print_success "Development version ($CURRENT_VERSION) - CHANGELOG check skipped"
+else
+    # Release version - must have changelog entry
+    if [ ! -f "CHANGELOG.md" ]; then
+        print_error "CHANGELOG.md file not found"
+    elif ! grep -q "## \[$CURRENT_VERSION\]" CHANGELOG.md; then
+        print_error "Version [$CURRENT_VERSION] not found in CHANGELOG.md"
+        print_warning "Please add changelog entry for release version $CURRENT_VERSION"
+    else
+        print_success "CHANGELOG entry found for version $CURRENT_VERSION"
+    fi
+fi
+
+# ============================================================================
+# 9. Frontend Build
+# ============================================================================
+print_check "9/9 Frontend Build Check (vite build)"
 
 if $PKG_MANAGER run build; then
     print_success "Frontend build succeeded"
