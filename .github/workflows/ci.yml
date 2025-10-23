@@ -39,6 +39,14 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: "pnpm"
 
+      - name: Restore Vite cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules/.vite
+          key: vite-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            vite-${{ runner.os }}-${{ runner.arch }}-
+
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -210,6 +218,14 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: "pnpm"
 
+      - name: Restore Vite cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules/.vite
+          key: vite-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            vite-${{ runner.os }}-${{ runner.arch }}-
+
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
@@ -254,7 +270,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build frontend
+      - name: Build frontend (parallel with Rust setup)
         run: pnpm run build
 
       - name: Import Apple Code Signing Certificate
