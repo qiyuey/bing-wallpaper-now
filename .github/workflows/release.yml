@@ -286,6 +286,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: release_assets
+          pattern: bundle-*
           merge-multiple: true
 
       - name: List downloaded files (debug)
