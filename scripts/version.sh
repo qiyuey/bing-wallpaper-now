@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Development Version Management Script
+# Development Version Management Script (Fully Automated)
 #
 # Version format: X.Y.Z or X.Y.Z-0 (development version)
 #
@@ -7,20 +7,30 @@
 #   ./scripts/version.sh snapshot-patch  # Create next patch development version (0.1.0 -> 0.1.1-0)
 #   ./scripts/version.sh snapshot-minor  # Create next minor development version (0.1.0 -> 0.2.0-0)
 #   ./scripts/version.sh snapshot-major  # Create next major development version (0.1.0 -> 1.0.0-0)
-#   ./scripts/version.sh release         # Release current development version, create tag and push to remote (0.1.1-0 -> 0.1.1)
+#   ./scripts/version.sh release         # FULLY AUTOMATED: Release, push, and create next snapshot (0.1.1-0 -> 0.1.1 -> 0.1.2-0)
 #
 # Workflow:
 #   1. After releasing 0.1.0, create 0.1.1-0 for development
-#   2. When development is complete, run release to convert to 0.1.1 production version, create tag and push to remote
-#   3. After release, create 0.1.2-0 again to continue development
+#   2. When development is complete, run `make release` (fully automated):
+#      - Validates working directory is clean (no uncommitted changes)
+#      - Runs all pre-commit checks (format, lint, tests)
+#      - Updates version from 0.1.1-0 to 0.1.1
+#      - Creates release commit and git tag
+#      - Pushes to remote (triggers CI/CD)
+#      - Automatically creates 0.1.2-0 for next development
+#      - Pushes development version to remote
+#
+# Release Requirements:
+#   1. Working directory must be clean (no uncommitted changes) - will error and exit
+#   2. CHANGELOG.md must contain entry for the release version - will error and exit
+#   3. All pre-commit checks must pass - will error and exit
 #
 # Rollback on Release Failure:
 #   If CI build fails after release, you need to rollback:
-#   1. Delete local tag: git tag -d vX.Y.Z
-#   2. Delete remote tag: git push origin :refs/tags/vX.Y.Z
-#   3. Revert commits:
-#      - Only revert release commit: git reset --hard HEAD~1
-#      - Also created development version: git reset --hard HEAD~2
+#   1. Delete local tag: git tag -d X.Y.Z
+#   2. Delete remote tag: git push origin :refs/tags/X.Y.Z
+#   3. Revert commits (2 commits: release + next snapshot):
+#      git reset --hard HEAD~2
 #   4. Force push: git push origin main --force-with-lease
 #   5. Fix issues and rerun: make release
 
@@ -57,15 +67,10 @@ check_git_repo() {
 # Check working directory status
 check_working_directory() {
     if [[ -n $(git status -s) ]]; then
-        print_warning "Working directory has uncommitted changes"
+        print_error "Working directory has uncommitted changes"
         git status -s
-        echo ""
-        read -p "Continue anyway? (y/N) " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            print_info "Cancelled"
-            exit 0
-        fi
+        print_info "Please commit or stash changes before release"
+        exit 1
     fi
 }
 
@@ -273,16 +278,9 @@ run_pre_release_checks() {
 
     # Check if make command exists
     if ! command -v make &> /dev/null; then
-        print_warning "make command not found, skipping quality checks"
-        print_warning "Recommended to run manually: make pre-commit"
-        echo ""
-        read -p "Continue with release? (y/N) " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            print_info "Cancelled"
-            exit 0
-        fi
-        return 0
+        print_error "make command not found"
+        print_info "Please install make or run checks manually: cargo fmt --check && cargo clippy && cargo test"
+        exit 1
     fi
 
     print_info "Running code formatting checks, linting and tests..."
@@ -296,7 +294,7 @@ run_pre_release_checks() {
     echo ""
 }
 
-# Release version (pushes to remote by default)
+# Release version (fully automated: push to remote and create next snapshot)
 release_version() {
     local current=$(get_current_version)
 
@@ -310,7 +308,7 @@ release_version() {
     local tag="$release_version"
 
     print_header "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    print_header "  Release Production Version"
+    print_header "  Release Production Version (Automated)"
     print_header "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
     print_info "Development version: $current"
@@ -332,17 +330,12 @@ release_version() {
     # Run pre-release checks
     run_pre_release_checks
 
-    read -p "Confirm releasing version? (y/N) " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        print_info "Cancelled"
-        exit 0
-    fi
-
     # Update version (remove SNAPSHOT)
+    print_info "Updating version files to $release_version..."
     update_version_files "$release_version"
 
     # Commit and tag
+    print_info "Creating release commit and tag..."
     git add "$PACKAGE_JSON" "$CARGO_TOML" "$TAURI_CONF" "src-tauri/Cargo.lock"
     git commit -m "chore(release): $release_version"
     git tag -a "$tag" -m "Release $release_version"
@@ -350,59 +343,39 @@ release_version() {
     print_success "Created release version: $release_version"
     print_success "Created Git tag: $tag"
 
+    # Automatically push to remote
     echo ""
-    read -p "Push to remote immediately? (Y/n) " -n 1 -r
-    echo
-    local pushed=false
-    if [[ ! $REPLY =~ ^[Nn]$ ]]; then
-        print_info "Pushing to remote..."
-        git push origin main
-        git push origin "$tag"
-        print_success "Pushed to remote, CI will start building"
-        pushed=true
-        echo ""
-        print_info "GitHub Actions will automatically build and publish to Releases"
-    else
-        print_info "Skipped push, manually push later:"
-        echo "  git push origin main && git push origin $tag"
-    fi
-
-    # Ask if create next development version
+    print_info "Pushing to remote..."
+    git push origin main
+    git push origin "$tag"
+    print_success "Pushed to remote, CI will start building"
     echo ""
-    read -p "Create next patch development version? (y/N) " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        echo ""
-        print_info "Creating next development version..."
+    print_info "GitHub Actions will automatically build and publish to Releases"
 
-        local next_version=$(calculate_next_version "$release_version" "patch")
-        local dev_version=$(add_dev_suffix "$next_version")
+    # Automatically create next development version
+    echo ""
+    print_info "Creating next development version..."
 
-        update_version_files "$dev_version"
+    local next_version=$(calculate_next_version "$release_version" "patch")
+    local dev_version=$(add_dev_suffix "$next_version")
 
-        git add "$PACKAGE_JSON" "$CARGO_TOML" "$TAURI_CONF" "src-tauri/Cargo.lock"
-        git commit -m "chore(version): bump to $dev_version"
+    update_version_files "$dev_version"
 
-        print_success "Created development version: $dev_version"
+    git add "$PACKAGE_JSON" "$CARGO_TOML" "$TAURI_CONF" "src-tauri/Cargo.lock"
+    git commit -m "chore(version): bump to $dev_version"
 
-        if [ "$pushed" = true ]; then
-            echo ""
-            read -p "Push development version to remote? (y/N) " -n 1 -r
-            echo
-            if [[ $REPLY =~ ^[Yy]$ ]]; then
-                git push origin main
-                print_success "Pushed development version to remote"
-            else
-                print_info "Push manually later: git push origin main"
-            fi
-        fi
+    print_success "Created development version: $dev_version"
 
-        echo ""
-        print_success "Ready to start developing new features!"
-    else
-        echo ""
-        print_info "Create development version manually later: make snapshot-patch"
-    fi
+    # Automatically push development version
+    print_info "Pushing development version to remote..."
+    git push origin main
+    print_success "Pushed development version to remote"
+
+    echo ""
+    print_success "Release completed successfully!"
+    print_info "Released: $release_version"
+    print_info "Next development version: $dev_version"
+    print_info "Ready to start developing new features!"
 }
 
 # Show current version information
