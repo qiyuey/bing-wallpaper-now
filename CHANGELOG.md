@@ -2,6 +2,21 @@
 
 All notable changes to Bing Wallpaper Now will be documented in this file.
 
+## [0.1.6]
+
+### Changed
+
+- ⬆️ **依赖升级**: 升级构建工具链和开发依赖到最新版本
+  - Vite 6.4.1 → 7.1.11 (更快的构建和 HMR)
+  - @vitejs/plugin-react 4.7.0 → 5.0.4
+  - Vitest 3.2.4 → 4.0.1 (更好的测试性能)
+  - @vitest/coverage-v8 3.2.4 → 4.0.1
+  - @tauri-apps/cli 2.9.0 → 2.9.1
+  - eslint-plugin-react-hooks 5.2.0 → 7.0.0
+  - jsdom 25.0.1 → 27.0.1
+  - 保持 React 18.3.1 稳定版本
+  - 所有测试通过 (58/58)，代码覆盖率 83.33%
+
 ## 0.1.5
 
 ### Added
