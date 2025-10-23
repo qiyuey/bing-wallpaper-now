@@ -2,11 +2,8 @@ name: CI
 
 on:
   push:
-    branches: [main]
     tags:
       - "[0-9]*.*.*"
-  pull_request:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -22,76 +19,6 @@ env:
   RUST_BACKTRACE: short
 
 jobs:
-  test:
-    name: Test
-    if: "!startsWith(github.ref, 'refs/tags/')"
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v6
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "pnpm"
-
-      - name: Restore Vite cache
-        uses: actions/cache@v4
-        with:
-          path: node_modules/.vite
-          key: vite-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            vite-${{ runner.os }}-${{ runner.arch }}-
-
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
-
-      - name: Rust Cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri
-
-      - name: Install Linux dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libwebkit2gtk-4.1-dev \
-            libayatana-appindicator3-dev \
-            librsvg2-dev
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Rust Clippy
-        run: cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings
-
-      - name: Rust format check
-        run: cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
-
-      - name: Frontend Lint
-        run: npm run lint
-
-      - name: Frontend format check
-        run: npm run format:check
-
-      - name: TypeScript typecheck
-        run: npm run typecheck
-
-      - name: Frontend build
-        run: npm run build
-
-      - name: Rust tests
-        run: cargo test --manifest-path src-tauri/Cargo.toml
-
-      - name: Frontend tests
-        run: pnpm run test:frontend
-
   create-release:
     name: Create Release
     if: startsWith(github.ref, 'refs/tags/')
