@@ -1,0 +1,293 @@
+name: Release Build
+
+on:
+  push:
+    tags:
+      - "[0-9]*.*.*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "22"
+  RUST_BACKTRACE: short
+  CARGO_INCREMENTAL: 0
+  # Faster compile (trade a little optimization time for speed)
+  CARGO_PROFILE_RELEASE_CODEGEN_UNITS: 256
+  CARGO_PROFILE_RELEASE_LTO: "false"
+
+jobs:
+  prepare:
+    name: Prepare (Frontend + Changelog)
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    outputs:
+      changelog: ${{ steps.changelog.outputs.content }}
+      previous_tag: ${{ steps.previous_tag.outputs.tag }}
+    steps:
+      - name: Checkout (full history for tags/changelog)
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+
+      - name: Compute pnpm store path
+        id: pnpm-store
+        run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_ENV
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: pnpm-store-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-store-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --prefer-offline
+
+      - name: Build frontend (single build for all targets)
+        run: pnpm run build
+
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: dist
+          retention-days: 3
+
+      - name: Get previous tag
+        id: previous_tag
+        shell: bash
+        run: |
+          PREVIOUS_TAG=$(git tag --sort=-v:refname | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | grep -v "${{ github.ref_name }}" | head -n 1)
+          echo "tag=$PREVIOUS_TAG" >> $GITHUB_OUTPUT
+          echo "Previous tag: $PREVIOUS_TAG"
+
+      - name: Extract changelog
+        id: changelog
+        shell: bash
+        run: |
+          CHANGELOG=$(sed -n "/^## \[${{ github.ref_name }}\]/,/^## \[/p" CHANGELOG.md | sed '1d;$d')
+          if [ -z "$CHANGELOG" ]; then
+            CHANGELOG="请查看完整的更新日志: [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)"
+          fi
+          echo "content<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+  bundle:
+    name: Bundle (${{ matrix.platform }})
+    needs: prepare
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: "Windows (x64)"
+            os: windows-latest
+          - platform: "Windows (ARM64)"
+            os: windows-11-arm
+          - platform: "macOS (Apple Silicon)"
+            os: macos-latest
+          - platform: "macOS (Intel)"
+            os: macos-15-intel
+          - platform: "Ubuntu (x64)"
+            os: ubuntu-24.04
+          - platform: "Ubuntu (ARM64)"
+            os: ubuntu-24.04-arm
+
+    steps:
+      - name: Checkout (shallow)
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - name: Download frontend dist
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: dist
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+
+      - name: Compute pnpm store path
+        id: pnpm-store
+        run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_ENV
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: pnpm-store-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-store-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Install dependencies (no rebuild)
+        run: pnpm install --frozen-lockfile --prefer-offline
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust Cache
+        id: rust-cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          shared-key: stable-cache
+
+      - name: Setup sccache
+        if: matrix.os != 'windows-11-arm'
+        uses: mozilla-actions/sccache-action@v0.0.6
+
+      - name: Configure sccache
+        if: matrix.os != 'windows-11-arm'
+        run: |
+          echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
+          echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            xdg-utils
+
+      - name: Install x86_64 OpenSSL (macOS Intel only)
+        if: matrix.os == 'macos-15-intel'
+        run: |
+          arch -x86_64 brew install openssl@3
+          echo "OPENSSL_DIR=$(brew --prefix openssl@3)" >> $GITHUB_ENV
+          echo "OPENSSL_INCLUDE_DIR=$(brew --prefix openssl@3)/include" >> $GITHUB_ENV
+          echo "OPENSSL_LIB_DIR=$(brew --prefix openssl@3)/lib" >> $GITHUB_ENV
+          echo "PKG_CONFIG_PATH=$(brew --prefix openssl@3)/lib/pkgconfig" >> $GITHUB_ENV
+
+      - name: Import Apple Code Signing Certificate
+        if: runner.os == 'macOS'
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          echo -n "$APPLE_CERTIFICATE" | base64 --decode -o $CERTIFICATE_PATH
+          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security import $CERTIFICATE_PATH -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security list-keychain -d user -s $KEYCHAIN_PATH
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+
+      - name: Build Tauri app (skip frontend build)
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          includeRelease: false
+          includeUpdaterJson: false
+          beforeBuildCommand: ""
+
+      - name: Upload bundle artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-${{ matrix.os }}
+          path: |
+            src-tauri/target/release/bundle
+          retention-days: 7
+
+      - name: Clean up keychain
+        if: runner.os == 'macOS' && always()
+        run: |
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          security delete-keychain $KEYCHAIN_PATH || true
+
+      - name: Show build cache summary
+        if: always()
+        run: |
+          echo "## 🗂️ Build Cache Summary - ${{ matrix.platform }}" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.rust-cache.outputs.cache-hit }}" = "true" ]; then
+            echo "✅ Rust Cache: Hit" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Rust Cache: Miss" >> $GITHUB_STEP_SUMMARY
+          fi
+          if command -v sccache >/dev/null 2>&1; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**sccache:**" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            sccache --show-stats | grep -E '(Compile requests|Cache hits|Cache misses|Hit rate)' >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
+
+  release:
+    name: Create Release (Attach All Artifacts)
+    needs: bundle
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (for tag context)
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Download all bundle artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release_assets
+          merge-multiple: true
+
+      - name: Create or update GitHub Release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: "Bing Wallpaper Now ${{ github.ref_name }}"
+          draft: false
+          prerelease: false
+          make_latest: true
+          files: |
+            release_assets/**
+          body: |
+            # 🎉 Bing Wallpaper Now ${{ github.ref_name }}
+
+            一款跨平台桌面应用，自动获取并设置必应每日精美壁纸。
+
+            ---
+
+            ## ✨ 更新内容
+
+            (来自 CHANGELOG)
+            ${{ needs.prepare.outputs.changelog }}
+
+            ---
+
+            📝 [完整更新日志](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) | ${{ needs.prepare.outputs.previous_tag && format('🔍 [对比变更](https://github.com/{0}/compare/{1}...{2})', github.repository, needs.prepare.outputs.previous_tag, github.ref_name) || format('🔍 [提交历史](https://github.com/{0}/commits/{1})', github.repository, github.ref_name) }} | 🐛 [反馈问题](https://github.com/${{ github.repository }}/issues)
+
+            （本 Release 由多平台并行构建 + 前端单次预构建流程生成）

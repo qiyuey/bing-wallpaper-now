@@ -1,13 +1,13 @@
 name: CI
 
 on:
+  pull_request:
   push:
-    tags:
-      - "[0-9]*.*.*"
-  workflow_dispatch:
+    branches:
+      - main
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -15,123 +15,11 @@ concurrency:
 
 env:
   NODE_VERSION: "22"
-  CARGO_INCREMENTAL: 0
-  RUST_BACKTRACE: short
 
 jobs:
-  create-release:
-    name: Create Release
-    if: startsWith(github.ref, 'refs/tags/')
+  lint-and-test:
+    name: Lint & Type Check
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-
-      - name: Get previous tag
-        id: previous_tag
-        shell: bash
-        run: |
-          PREVIOUS_TAG=$(git tag --sort=-v:refname | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | grep -v "${{ github.ref_name }}" | head -n 1)
-          echo "tag=$PREVIOUS_TAG" >> $GITHUB_OUTPUT
-          echo "Previous tag: $PREVIOUS_TAG"
-
-      - name: Extract changelog
-        id: changelog
-        shell: bash
-        run: |
-          CHANGELOG=$(sed -n "/^## \[${{ github.ref_name }}\]/,/^## \[/p" CHANGELOG.md | sed '1d;$d')
-          if [ -z "$CHANGELOG" ]; then
-            CHANGELOG="请查看完整的更新日志: [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)"
-          fi
-          echo "content<<EOF" >> $GITHUB_OUTPUT
-          echo "$CHANGELOG" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-      - name: Delete existing release if present (not tag)
-        continue-on-error: true
-        run: |
-          gh release delete ${{ github.ref_name }} --yes
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Create or update GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.ref_name }}
-          name: "Bing Wallpaper Now ${{ github.ref_name }}"
-          draft: false
-          prerelease: false
-          make_latest: true
-          body: |
-            # 🎉 Bing Wallpaper Now ${{ github.ref_name }}
-
-            一款跨平台桌面应用，自动获取并设置必应每日精美壁纸。
-
-            ---
-
-            ## ✨ 更新内容
-
-            ${{ steps.changelog.outputs.content }}
-
-            ---
-
-            ## 📦 快速安装
-
-            ### Windows
-            - **x64 (Intel/AMD)**: [**MSI 安装包**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_x64_zh-CN.msi) (推荐) 或 [**EXE 安装程序**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_x64-setup.exe)
-            - **ARM64**: [**MSI 安装包**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_arm64_zh-CN.msi) 或 [**EXE 安装程序**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_arm64-setup.exe)
-
-            ### macOS
-            - **Apple Silicon**: [**ARM64 DMG**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_aarch64.dmg)
-            - **Intel**: [**x64 DMG**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_x64.dmg)
-
-            **首次打开提示**：应用未经过 Apple 签名（需要每年 $99 的开发者账号），macOS 会阻止运行。
-
-            **解决方法**：在终端运行以下命令移除隔离属性：
-            ```bash
-            xattr -rd com.apple.quarantine "/Applications/Bing Wallpaper Now.app"
-            ```
-
-            或在「系统设置 → 隐私与安全性」中点击「仍要打开」。
-
-            ### Linux
-            - **x64 (Intel/AMD)**:
-              - Debian/Ubuntu: [**DEB 包**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/bing-wallpaper-now_${{ github.ref_name }}_amd64.deb)
-              - Fedora/RHEL: [**RPM 包**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/bing-wallpaper-now-${{ github.ref_name }}-1.x86_64.rpm)
-              - 其他发行版: [**AppImage**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/bing-wallpaper-now_${{ github.ref_name }}_amd64.AppImage)
-            - **ARM64**:
-              - Debian/Ubuntu: [**DEB 包**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/bing-wallpaper-now_${{ github.ref_name }}_arm64.deb)
-              - Fedora/RHEL: [**RPM 包**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/bing-wallpaper-now-${{ github.ref_name }}-1.aarch64.rpm)
-              - 其他发行版: [**AppImage**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/bing-wallpaper-now_${{ github.ref_name }}_aarch64.AppImage)
-
-            ---
-
-            📝 [完整更新日志](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) | 🔍 [对比变更](${{ steps.previous_tag.outputs.tag && format('https://github.com/{0}/compare/{1}...{2}', github.repository, steps.previous_tag.outputs.tag, github.ref_name) || format('https://github.com/{0}/commits/{1}', github.repository, github.ref_name) }}) | 🐛 [反馈问题](https://github.com/${{ github.repository }}/issues)
-
-  bundle:
-    name: Bundle (${{ matrix.platform }})
-    needs: create-release
-    if: startsWith(github.ref, 'refs/tags/')
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - platform: "Windows (x64)"
-            os: windows-latest
-          - platform: "Windows (ARM64)"
-            os: windows-11-arm
-          - platform: "macOS (Apple Silicon)"
-            os: macos-latest
-          - platform: "macOS (Intel)"
-            os: macos-15-intel
-          - platform: "Ubuntu (x64)"
-            os: ubuntu-24.04
-          - platform: "Ubuntu (ARM64)"
-            os: ubuntu-24.04-arm
-
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -145,133 +33,57 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: "pnpm"
 
-      - name: Restore Vite cache
+      - name: Compute pnpm store path
+        id: pnpm-store
+        run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_ENV
+
+      - name: Cache pnpm store
         uses: actions/cache@v4
         with:
-          path: node_modules/.vite
-          key: vite-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          path: ${{ env.STORE_PATH }}
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
-            vite-${{ runner.os }}-${{ runner.arch }}-
+            pnpm-store-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run TypeScript type check
+        run: pnpm run type-check
+
+      - name: Run linter
+        run: pnpm run lint
+
+  rust-check:
+    name: Rust Check & Format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
 
       - name: Rust Cache
-        id: rust-cache
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
-          shared-key: stable-cache
-
-      - name: Setup sccache
-        if: matrix.os != 'windows-11-arm'
-        uses: mozilla-actions/sccache-action@v0.0.6
-
-      - name: Configure sccache
-        if: matrix.os != 'windows-11-arm'
-        shell: bash
-        run: |
-          echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
-          echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
 
       - name: Install Linux dependencies
-        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             libwebkit2gtk-4.1-dev \
             libayatana-appindicator3-dev \
-            librsvg2-dev \
-            patchelf \
-            xdg-utils
+            librsvg2-dev
 
-      - name: Install x86_64 OpenSSL (macOS Intel only)
-        if: matrix.target == 'x86_64-apple-darwin'
-        run: |
-          arch -x86_64 brew install openssl@3
-          echo "OPENSSL_DIR=$(brew --prefix openssl@3)" >> $GITHUB_ENV
-          echo "OPENSSL_INCLUDE_DIR=$(brew --prefix openssl@3)/include" >> $GITHUB_ENV
-          echo "OPENSSL_LIB_DIR=$(brew --prefix openssl@3)/lib" >> $GITHUB_ENV
-          echo "PKG_CONFIG_PATH=$(brew --prefix openssl@3)/lib/pkgconfig" >> $GITHUB_ENV
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Run Clippy
+        run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --all-features -- -D warnings
 
-      - name: Build frontend (parallel with Rust setup)
-        run: pnpm run build
-
-      - name: Import Apple Code Signing Certificate
-        if: runner.os == 'macOS'
-        env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
-        run: |
-          # Create variables
-          CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
-          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
-
-          # Import certificate from secrets
-          echo -n "$APPLE_CERTIFICATE" | base64 --decode -o $CERTIFICATE_PATH
-
-          # Create temporary keychain
-          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-
-          # Import certificate to keychain
-          security import $CERTIFICATE_PATH -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
-          security list-keychain -d user -s $KEYCHAIN_PATH
-
-          # Allow codesign to access the certificate
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-
-      - name: Extract changelog
-        id: changelog
-        shell: bash
-        run: |
-          CHANGELOG=$(sed -n "/^## \[${{ github.ref_name }}\]/,/^## \[/p" CHANGELOG.md | sed '1d;$d')
-          if [ -z "$CHANGELOG" ]; then
-            CHANGELOG="请查看完整的更新日志: [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)"
-          fi
-          echo "content<<EOF" >> $GITHUB_OUTPUT
-          echo "$CHANGELOG" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-      - name: Build Tauri app and upload to GitHub Release
-        uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tagName: ${{ github.ref_name }}
-          includeRelease: true
-          includeUpdaterJson: false
-
-      - name: Clean up keychain
-        if: runner.os == 'macOS' && always()
-        run: |
-          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
-          security delete-keychain $KEYCHAIN_PATH || true
-
-      - name: Show build cache summary
-        if: always()
-        shell: bash
-        run: |
-          echo "## 🗂️ Build Cache Summary - ${{ matrix.platform }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          # Show Rust Cache status
-          if [ "${{ steps.rust-cache.outputs.cache-hit }}" = "true" ]; then
-            echo "✅ **Rust Cache**: Hit (dependencies restored from cache)" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "❌ **Rust Cache**: Miss (building from scratch)" >> $GITHUB_STEP_SUMMARY
-
-            # Show sccache stats only if Rust Cache missed and sccache is available
-            if [ "${{ matrix.os }}" != "windows-11-arm" ]; then
-              echo "" >> $GITHUB_STEP_SUMMARY
-              echo "**sccache Statistics:**" >> $GITHUB_STEP_SUMMARY
-              echo '```' >> $GITHUB_STEP_SUMMARY
-              sccache --show-stats | grep -E '(Compile requests|Cache hits|Cache misses|Hit rate)' >> $GITHUB_STEP_SUMMARY
-              echo '```' >> $GITHUB_STEP_SUMMARY
-            fi
-          fi
+      - name: Run Rust tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml

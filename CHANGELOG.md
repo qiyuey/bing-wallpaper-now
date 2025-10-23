@@ -2,6 +2,23 @@
 
 All notable changes to Bing Wallpaper Now will be documented in this file.
 
+## [0.1.9]
+
+### Changed
+
+- 🔄 **CI/CD 流程优化**: 分离 Release 和日常 CI 工作流
+  - 将 `ci.yml` 重命名为 `release.yml`，仅在 tag 推送时触发完整构建
+  - 新增轻量级 `ci.yml` 用于 PR 和 main 分支的快速验证（lint + type check + Rust check）
+  - 优化 Release 构建流程：前端单次构建 + 多平台并行 bundle
+  - 减少不必要的 CI 运行，节省资源和时间
+
+### Performance
+
+- 🚀 **构建优化**:
+  - Release 构建：前端只构建一次，通过 artifact 共享给所有平台
+  - 日常 CI：仅运行必要检查，跳过完整构建
+  - 预期节省 80%+ 的 CI 运行次数
+
 ## [0.1.8]
 
 ### Changed
