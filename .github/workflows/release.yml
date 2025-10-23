@@ -299,7 +299,6 @@ jobs:
             release_assets/**/bundle/deb/*.deb
             release_assets/**/bundle/rpm/*.rpm
             release_assets/**/bundle/appimage/*.AppImage
-            release_assets/**/bundle/macos/*.app.tar.gz
           body: |
             # 🎉 Bing Wallpaper Now ${{ github.ref_name }}
 
