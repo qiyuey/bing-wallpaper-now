@@ -2,7 +2,7 @@
 
 All notable changes to Bing Wallpaper Now will be documented in this file.
 
-## [0.1.5]
+## 0.1.5
 
 ### Added
 
@@ -18,7 +18,7 @@ All notable changes to Bing Wallpaper Now will be documented in this file.
   - 提供三种打开应用的方法
   - 推荐使用右键点击方式打开
 
-## [0.1.4]
+## 0.1.4
 
 ### Added
 
@@ -59,7 +59,7 @@ All notable changes to Bing Wallpaper Now will be documented in this file.
   
 - 🔧 **Changelog 提取修复**: 修复 awk/sed 命令无法正确提取版本更新内容的问题
 
-## [0.1.3]
+## 0.1.3
 
 ### Fixed
 
@@ -71,7 +71,7 @@ All notable changes to Bing Wallpaper Now will be documented in this file.
 
 - 📝 **代码质量改进**: 添加 markdown 格式检查和配置优化
 
-## [0.1.2]
+## 0.1.2
 
 ### Added
 
@@ -91,7 +91,7 @@ All notable changes to Bing Wallpaper Now will be documented in this file.
 
 - 📝 **优化 macOS xattr 命令文档**: 将 `xattr -cr` 改为更精准的 `xattr -rd com.apple.quarantine`，只移除隔离属性
 
-## [0.1.1]
+## 0.1.1
 
 ### Added
 
@@ -111,7 +111,7 @@ All notable changes to Bing Wallpaper Now will be documented in this file.
 - 🐛 **修复 Clippy 警告**: 使用 Rust 2024 let-chain 语法重构嵌套 if 语句
 - 🐛 **修复 Windows 设置 UI 问题**: 解决设置对话框交互问题
 
-## [0.1.0]
+## 0.1.0
 
 ### Added
 
@@ -130,9 +130,3 @@ All notable changes to Bing Wallpaper Now will be documented in this file.
 - 全屏应用处理
 - Space 自动恢复
 - 原生 NSWorkspace API
-
-[0.1.4]: https://github.com/qiyuey/bing-wallpaper-now/compare/0.1.3...0.1.4
-[0.1.3]: https://github.com/qiyuey/bing-wallpaper-now/compare/0.1.2...0.1.3
-[0.1.2]: https://github.com/qiyuey/bing-wallpaper-now/compare/0.1.1...0.1.2
-[0.1.1]: https://github.com/qiyuey/bing-wallpaper-now/compare/0.1.0...0.1.1
-[0.1.0]: https://github.com/qiyuey/bing-wallpaper-now/releases/tag/0.1.0

@@ -4,7 +4,6 @@ on:
   push:
     branches: [main]
     tags:
-      - "v*.*.*"
       - "[0-9]*.*.*"
   pull_request:
     branches: [main]
@@ -93,6 +92,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      - name: Get previous tag
+        id: previous_tag
+        shell: bash
+        run: |
+          PREVIOUS_TAG=$(git tag --sort=-v:refname | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | grep -v "${{ github.ref_name }}" | head -n 1)
+          echo "tag=$PREVIOUS_TAG" >> $GITHUB_OUTPUT
+          echo "Previous tag: $PREVIOUS_TAG"
+
       - name: Extract changelog
         id: changelog
         shell: bash
@@ -164,7 +171,7 @@ jobs:
 
             ---
 
-            📝 [完整更新日志](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) | 🐛 [反馈问题](https://github.com/${{ github.repository }}/issues)
+            📝 [完整更新日志](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) | 🔍 [对比变更](${{ steps.previous_tag.outputs.tag && format('https://github.com/{0}/compare/{1}...{2}', github.repository, steps.previous_tag.outputs.tag, github.ref_name) || format('https://github.com/{0}/commits/{1}', github.repository, github.ref_name) }}) | 🐛 [反馈问题](https://github.com/${{ github.repository }}/issues)
 
   bundle:
     name: Bundle (${{ matrix.platform }})

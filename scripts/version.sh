@@ -222,6 +222,22 @@ create_snapshot() {
     print_info "Ready to start developing new features!"
 }
 
+# Validate tag format (must not start with 'v')
+validate_tag_format() {
+    local tag=$1
+
+    if [[ $tag == v* ]]; then
+        print_error "Tag format error: tag must not start with 'v'"
+        print_error "Expected: $tag (without 'v' prefix)"
+        print_info "Project uses tags like: 0.1.0, 0.1.1, 0.1.2"
+        print_info "Not: v0.1.0, v0.1.1, v0.1.2"
+        return 1
+    fi
+
+    print_success "Tag format validation passed: $tag"
+    return 0
+}
+
 # Validate CHANGELOG is updated
 validate_changelog() {
     local version=$1
@@ -291,7 +307,7 @@ release_version() {
     fi
 
     local release_version=$(remove_dev_suffix "$current")
-    local tag="v$release_version"
+    local tag="$release_version"
 
     print_header "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     print_header "  Release Production Version"
@@ -301,6 +317,11 @@ release_version() {
     print_info "Release version:     $release_version"
     print_info "Git Tag:             $tag"
     echo ""
+
+    # Validate tag format
+    if ! validate_tag_format "$tag"; then
+        exit 1
+    fi
 
     # Validate CHANGELOG
     if ! validate_changelog "$release_version"; then
