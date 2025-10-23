@@ -37,7 +37,7 @@ CHECK_SCRIPT := scripts/check-commit.sh
 .PHONY: test test-rust test-frontend
 .PHONY: fmt lint check pre-commit
 .PHONY: clean deps install
-.PHONY: snapshot-patch snapshot-minor snapshot-major release version-info
+.PHONY: snapshot-patch snapshot-minor snapshot-major release rollback version-info
 .PHONY: help info
 
 # ============================================================================
@@ -152,6 +152,11 @@ release:
 	@echo Releasing official version...
 	@bash $(VERSION_SCRIPT) release
 
+## rollback: Rollback last release (delete tag and reset to HEAD~2)
+rollback:
+	@echo Rolling back last release...
+	@bash $(VERSION_SCRIPT) rollback
+
 ## version-info: Display current version information
 version-info:
 	@bash $(VERSION_SCRIPT) info
@@ -210,7 +215,8 @@ help:
 	@echo "  make snapshot-patch   - Create patch development version (0.1.0 -> 0.1.1-0)"
 	@echo "  make snapshot-minor   - Create minor development version (0.1.0 -> 0.2.0-0)"
 	@echo "  make snapshot-major   - Create major development version (0.1.0 -> 1.0.0-0)"
-	@echo "  make release          - Release official version, tag and push"
+	@echo "  make release          - Release official version, tag and push (fully automated)"
+	@echo "  make rollback         - Rollback last release (delete tag and reset to HEAD~2)"
 	@echo "  make version-info     - Display current version information"
 	@echo ""
 	@echo "Other Commands:"
@@ -227,8 +233,10 @@ help:
 	@echo ""
 	@echo "  3. Prepare for release:"
 	@echo "     make pre-commit    -> Run all checks"
-	@echo "     make release       -> Release 0.1.1 and push to remote"
-	@echo "                          (Will ask to auto-create 0.1.2-0)"
+	@echo "     make release       -> FULLY AUTOMATED: Release 0.1.1, push, create 0.1.2-0"
 	@echo ""
 	@echo "  4. GitHub Actions will auto-build and publish to Releases"
+	@echo ""
+	@echo "  5. If CI build fails, rollback:"
+	@echo "     make rollback      -> Delete tag, reset to HEAD~2, force push"
 	@echo ""

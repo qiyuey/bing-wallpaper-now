@@ -403,6 +403,90 @@ show_version_info() {
     echo ""
 }
 
+# Rollback last release
+rollback_release() {
+    print_header "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    print_header "  Rollback Last Release"
+    print_header "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+
+    # Get the latest tag
+    local latest_tag=$(git tag --sort=-v:refname | head -1)
+
+    if [ -z "$latest_tag" ]; then
+        print_error "No tags found in repository"
+        exit 1
+    fi
+
+    print_warning "This will rollback the release: $latest_tag"
+    echo ""
+    print_info "Actions to be performed:"
+    echo "  1. Delete local tag: $latest_tag"
+    echo "  2. Delete remote tag: $latest_tag"
+    echo "  3. Reset to 2 commits before (release + snapshot)"
+    echo "  4. Force push to remote"
+    echo ""
+    print_warning "This operation is DESTRUCTIVE and cannot be undone!"
+    print_warning "Make sure you understand what you're doing."
+    echo ""
+
+    # Show recent commits
+    print_info "Recent commits (will reset to HEAD~2):"
+    git log --oneline -5
+    echo ""
+
+    read -p "Are you absolutely sure you want to rollback? (yes/NO) " -r
+    echo
+    if [[ ! $REPLY == "yes" ]]; then
+        print_info "Rollback cancelled"
+        exit 0
+    fi
+
+    echo ""
+    print_info "Step 1/4: Deleting local tag $latest_tag..."
+    if git tag -d "$latest_tag"; then
+        print_success "Local tag deleted"
+    else
+        print_error "Failed to delete local tag"
+        exit 1
+    fi
+
+    echo ""
+    print_info "Step 2/4: Deleting remote tag $latest_tag..."
+    if git push origin ":refs/tags/$latest_tag"; then
+        print_success "Remote tag deleted"
+    else
+        print_warning "Failed to delete remote tag (may not exist)"
+    fi
+
+    echo ""
+    print_info "Step 3/4: Resetting to HEAD~2..."
+    if git reset --hard HEAD~2; then
+        print_success "Reset to HEAD~2 completed"
+    else
+        print_error "Failed to reset"
+        exit 1
+    fi
+
+    echo ""
+    print_info "Step 4/4: Force pushing to remote..."
+    if git push origin main --force-with-lease; then
+        print_success "Force push completed"
+    else
+        print_error "Failed to force push"
+        print_warning "You may need to manually push: git push origin main --force"
+        exit 1
+    fi
+
+    echo ""
+    print_success "Rollback completed successfully!"
+
+    local current=$(get_current_version)
+    print_info "Current version after rollback: $current"
+    echo ""
+    print_info "You can now fix the issues and run 'make release' again"
+}
+
 # Main function
 main() {
     check_git_repo
@@ -415,11 +499,15 @@ main() {
         echo "  $0 snapshot-minor      # Create next minor development version"
         echo "  $0 snapshot-major      # Create next major development version"
         echo "  $0 release             # Release current development version, create tag and push to remote"
+        echo "  $0 rollback            # Rollback last release (delete tag and reset to HEAD~2)"
         echo ""
         exit 0
     fi
 
-    check_working_directory
+    # Rollback doesn't need working directory check (it will reset anyway)
+    if [[ "$1" != "rollback" && "$1" != "info" ]]; then
+        check_working_directory
+    fi
 
     case "$1" in
         snapshot-patch)
@@ -434,12 +522,15 @@ main() {
         release)
             release_version
             ;;
+        rollback)
+            rollback_release
+            ;;
         info)
             show_version_info
             ;;
         *)
             print_error "Unknown command: $1"
-            print_info "Usage: $0 <snapshot-patch|snapshot-minor|snapshot-major|release|info>"
+            print_info "Usage: $0 <snapshot-patch|snapshot-minor|snapshot-major|release|rollback|info>"
             exit 1
             ;;
     esac
