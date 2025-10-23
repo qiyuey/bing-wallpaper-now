@@ -276,6 +276,7 @@ jobs:
 
       - name: Show build cache summary
         if: always()
+        shell: bash
         run: |
           echo "## 🗂️ Build Cache Summary - ${{ matrix.platform }}" >> $GITHUB_STEP_SUMMARY
           if [ "${{ steps.rust-cache.outputs.cache-hit }}" = "true" ]; then
