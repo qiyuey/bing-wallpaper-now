@@ -2,6 +2,22 @@
 
 All notable changes to Bing Wallpaper Now will be documented in this file.
 
+## [0.1.5]
+
+### Added
+
+- 🔐 **Apple 代码签名支持**: 为 macOS 构建添加免费代码签名
+  - 在 CI 中自动进行 ad-hoc 签名
+  - 用户可以右键点击"打开"应用，无需使用终端命令
+  - 添加完整的签名配置文档（SIGNING.md）
+
+### Changed
+
+- 📝 **改进 macOS 安装说明**: 更新 README 提供更清晰的安装指引
+  - 说明应用已签名但使用免费签名
+  - 提供三种打开应用的方法
+  - 推荐使用右键点击方式打开
+
 ## [0.1.4]
 
 ### Added
