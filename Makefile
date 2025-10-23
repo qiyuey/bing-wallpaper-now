@@ -2,9 +2,7 @@
 #
 # Quick Reference:
 #   make dev              # Start development mode
-#   make build            # Build production version
-#   make test             # Run all tests
-#   make pre-commit       # Pre-commit check
+#   make check            # Run quality checks
 #   make snapshot-patch   # Create SNAPSHOT version
 #   make release          # Release official version
 #
@@ -24,27 +22,23 @@ ifeq ($(shell command -v pnpm 2> /dev/null),)
 endif
 
 # Paths
-RUST_DIR := src-tauri
-RUST_MANIFEST := $(RUST_DIR)/Cargo.toml
-VERSION_SCRIPT := scripts/version.sh
-CHECK_SCRIPT := scripts/check-commit.sh
+VERSION_SCRIPT := scripts/manage-version.sh
+CHECK_SCRIPT := scripts/check-quality.sh
 
 # ============================================================================
 # Phony Targets
 # ============================================================================
 
-.PHONY: all dev build bundle
-.PHONY: test test-rust test-frontend
-.PHONY: fmt lint check pre-commit
+.PHONY: all dev check
 .PHONY: clean deps install
-.PHONY: snapshot-patch snapshot-minor snapshot-major release rollback version-info
+.PHONY: snapshot-patch snapshot-minor snapshot-major release
 .PHONY: help info
 
 # ============================================================================
 # Default Target
 # ============================================================================
 
-all: check test build
+all: check
 
 # ============================================================================
 # Development Commands
@@ -54,20 +48,6 @@ all: check test build
 dev:
 	@echo Starting development mode...
 	$(PKG_MANAGER) run tauri dev
-
-# ============================================================================
-# Build Commands
-# ============================================================================
-
-## build: Build frontend production version
-build:
-	@echo Building production version...
-	$(PKG_MANAGER) run build
-
-## bundle: Build complete Tauri application package
-bundle:
-	@echo Building Tauri application package...
-	$(PKG_MANAGER) run tauri build
 
 # ============================================================================
 # Dependency Management
@@ -82,84 +62,32 @@ deps:
 	$(PKG_MANAGER) install
 
 # ============================================================================
-# Test Commands
-# ============================================================================
-
-## test: Run all tests
-test: test-rust test-frontend
-
-## test-rust: Run Rust tests
-test-rust:
-	@echo Running Rust tests...
-	@cargo test --manifest-path $(RUST_MANIFEST) --quiet
-
-## test-frontend: Run frontend tests
-test-frontend:
-	@echo Running frontend tests...
-	@$(PKG_MANAGER) run test:frontend
-
-# ============================================================================
 # Code Quality
 # ============================================================================
 
-## fmt: Format all code
-fmt:
-	@echo Formatting code...
-	@cargo fmt --manifest-path $(RUST_MANIFEST)
-	@$(PKG_MANAGER) run format
-
-## lint: Run all linters
-lint:
-	@echo Running code checks...
-	@cargo clippy --manifest-path $(RUST_MANIFEST) -- -D warnings
-	@$(PKG_MANAGER) run lint
-
-## check: Run all quality checks
+## check: Run all quality checks (format, lint, types, tests)
 check:
-	@echo Running quality checks...
-	@cargo fmt --manifest-path $(RUST_MANIFEST) -- --check
-	@cargo clippy --manifest-path $(RUST_MANIFEST) -- -D warnings
-	@$(PKG_MANAGER) run format:check
-	@$(PKG_MANAGER) run lint
-	@$(PKG_MANAGER) run typecheck
-
-## pre-commit: Complete CI checks before commit (recommended)
-pre-commit:
-	@echo Running pre-commit checks...
 	@bash $(CHECK_SCRIPT)
 
 # ============================================================================
-# Version Management (Development Versions)
+# Version Management
 # ============================================================================
 
 ## snapshot-patch: Create next patch development version (0.1.0 -> 0.1.1-0)
 snapshot-patch:
-	@echo Creating patch development version...
 	@bash $(VERSION_SCRIPT) snapshot-patch
 
 ## snapshot-minor: Create next minor development version (0.1.0 -> 0.2.0-0)
 snapshot-minor:
-	@echo Creating minor development version...
 	@bash $(VERSION_SCRIPT) snapshot-minor
 
 ## snapshot-major: Create next major development version (0.1.0 -> 1.0.0-0)
 snapshot-major:
-	@echo Creating major development version...
 	@bash $(VERSION_SCRIPT) snapshot-major
 
-## release: Release current development version as official version, tag and push to remote
+## release: Release current development version, tag and push (fully automated)
 release:
-	@echo Releasing official version...
 	@bash $(VERSION_SCRIPT) release
-
-## rollback: Rollback last release (delete tag and reset to HEAD~2)
-rollback:
-	@echo Rolling back last release...
-	@bash $(VERSION_SCRIPT) rollback
-
-## version-info: Display current version information
-version-info:
-	@bash $(VERSION_SCRIPT) info
 
 # ============================================================================
 # Clean Commands
@@ -168,7 +96,6 @@ version-info:
 ## clean: Clean build artifacts
 clean:
 	@echo Cleaning build artifacts...
-	@cargo clean --manifest-path $(RUST_MANIFEST)
 	@rm -rf dist node_modules/.vite
 
 # ============================================================================
@@ -195,48 +122,35 @@ help:
 	@echo ""
 	@echo "Bing Wallpaper Now - Makefile Commands"
 	@echo ""
-	@echo "Development Commands:"
+	@echo "Development:"
 	@echo "  make dev              - Start development mode (hot reload)"
-	@echo "  make build            - Build frontend production version"
-	@echo "  make bundle           - Build Tauri application package"
+	@echo "  make install          - Install all dependencies"
 	@echo ""
-	@echo "Test Commands:"
-	@echo "  make test             - Run all tests"
-	@echo "  make test-rust        - Run Rust tests only"
-	@echo "  make test-frontend    - Run frontend tests only"
-	@echo ""
-	@echo "Code Quality:"
-	@echo "  make check            - Run all quality checks"
-	@echo "  make pre-commit       - Complete pre-commit checks (recommended)"
-	@echo "  make fmt              - Format all code"
-	@echo "  make lint             - Run all linters"
+	@echo "Quality:"
+	@echo "  make check            - Run all quality checks (recommended before commit)"
 	@echo ""
 	@echo "Version Management:"
 	@echo "  make snapshot-patch   - Create patch development version (0.1.0 -> 0.1.1-0)"
 	@echo "  make snapshot-minor   - Create minor development version (0.1.0 -> 0.2.0-0)"
 	@echo "  make snapshot-major   - Create major development version (0.1.0 -> 1.0.0-0)"
-	@echo "  make release          - Release official version, tag and push (fully automated)"
-	@echo "  make rollback         - Rollback last release (delete tag and reset to HEAD~2)"
-	@echo "  make version-info     - Display current version information"
+	@echo "  make release          - Release version, tag and push (fully automated)"
 	@echo ""
-	@echo "Other Commands:"
-	@echo "  make install          - Install all dependencies"
+	@echo "Other:"
 	@echo "  make clean            - Clean build artifacts"
 	@echo "  make info             - Display project information"
-	@echo "  make help             - Display this help information"
+	@echo "  make help             - Display this help"
 	@echo ""
-	@echo "Version Management Workflow:"
-	@echo "  1. After releasing v0.1.0:"
-	@echo "     make snapshot-patch  -> Create 0.1.1-0 for development"
+	@echo "Workflow:"
+	@echo "  1. After release, create development version:"
+	@echo "     make snapshot-patch"
 	@echo ""
 	@echo "  2. Develop new features..."
 	@echo ""
-	@echo "  3. Prepare for release:"
-	@echo "     make pre-commit    -> Run all checks"
-	@echo "     make release       -> FULLY AUTOMATED: Release 0.1.1, push, create 0.1.2-0"
+	@echo "  3. Before commit, run quality checks:"
+	@echo "     make check"
 	@echo ""
-	@echo "  4. GitHub Actions will auto-build and publish to Releases"
+	@echo "  4. Ready to release:"
+	@echo "     make release"
 	@echo ""
-	@echo "  5. If CI build fails, rollback:"
-	@echo "     make rollback      -> Delete tag, reset to HEAD~2, force push"
+	@echo "  (GitHub Actions will auto-build and publish)"
 	@echo ""

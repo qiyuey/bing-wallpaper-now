@@ -1,110 +1,67 @@
 #!/usr/bin/env bash
 # validate-changelog.sh - CHANGELOG Validation Script
 #
-# Validates that CHANGELOG.md is properly updated for the current version
+# Validates that CHANGELOG.md is properly updated for a version
 #
 # Usage:
-#   ./scripts/validate-changelog.sh
+#   ./scripts/validate-changelog.sh [version]
+#
+# Arguments:
+#   version  - Optional. Version to validate. If not provided, uses current version from package.json
 #
 # Exit codes:
 #   0 - Validation passed
 #   1 - Validation failed
+#
+# Examples:
+#   ./scripts/validate-changelog.sh        # Validate current version
+#   ./scripts/validate-changelog.sh 0.1.9  # Validate specific version
 
 set -euo pipefail
 
-# Color output
-COLOR_RESET='\033[0m'
-COLOR_GREEN='\033[32m'
-COLOR_YELLOW='\033[33m'
-COLOR_RED='\033[31m'
+# ============================================================================
+# Load Library Functions
+# ============================================================================
 
-# Print messages
-print_success() { printf "${COLOR_GREEN}✅ $1${COLOR_RESET}\n"; }
-print_error() { printf "${COLOR_RED}❌ $1${COLOR_RESET}\n"; }
-print_warning() { printf "${COLOR_YELLOW}⚠️  $1${COLOR_RESET}\n"; }
-print_info() { printf "ℹ️  $1\n"; }
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Get current version from package.json
-get_current_version() {
-    grep '"version"' package.json | head -1 | sed 's/.*"version": "\(.*\)".*/\1/'
-}
+source "$SCRIPT_DIR/lib/ui.sh"
+source "$SCRIPT_DIR/lib/version.sh"
+source "$SCRIPT_DIR/lib/project.sh"
+source "$SCRIPT_DIR/lib/validators.sh"
 
-# Check if version is a development version
-is_dev_version() {
-    [[ $1 == *"-0" ]]
-}
+# ============================================================================
+# Initialize
+# ============================================================================
 
-# Remove development suffix
-remove_dev_suffix() {
-    echo "$1" | sed 's/-0$//'
-}
+init_ui
 
-# Main validation function
-validate_changelog() {
-    local current_version=$(get_current_version)
+# ============================================================================
+# Main Validation
+# ============================================================================
 
-    # Check if version is a development version (ends with -0)
-    if is_dev_version "$current_version"; then
-        # For development versions, check the release version
-        local release_version=$(remove_dev_suffix "$current_version")
+main() {
+    local target_version="${1:-}"
 
-        print_info "Current version: $current_version (development)"
-        print_info "Will validate CHANGELOG for release version: $release_version"
-
-        # Check if CHANGELOG.md exists
-        if [ ! -f "CHANGELOG.md" ]; then
-            print_error "CHANGELOG.md file not found"
-            return 1
-        fi
-
-        # Check if release version entry exists
-        if ! grep -q "## \[$release_version\]" CHANGELOG.md; then
-            print_error "Version [$release_version] not found in CHANGELOG.md"
-            echo ""
-            print_info "Before running 'make release', please add the following to CHANGELOG.md:"
-            echo ""
-            echo "  ## [$release_version]"
-            echo ""
-            echo "  ### Added"
-            echo "  - New feature 1"
-            echo "  - New feature 2"
-            echo ""
-            echo "  ### Changed"
-            echo "  - Changed feature 1"
-            echo ""
-            echo "  ### Fixed"
-            echo "  - Bug fix 1"
-            echo ""
-            return 1
+    # If no version specified, validate for current project version
+    if [[ -z "$target_version" ]]; then
+        if validate_changelog; then
+            exit 0
         else
-            print_success "CHANGELOG entry found for release version $release_version"
-            return 0
+            exit 1
         fi
     else
-        # For release versions, check the current version
-        print_info "Current version: $current_version (release)"
-
-        # Check if CHANGELOG.md exists
-        if [ ! -f "CHANGELOG.md" ]; then
-            print_error "CHANGELOG.md file not found"
-            return 1
-        fi
-
-        # Check if current version entry exists
-        if ! grep -q "## \[$current_version\]" CHANGELOG.md; then
-            print_error "Version [$current_version] not found in CHANGELOG.md"
-            print_warning "Please add changelog entry for release version $current_version"
-            return 1
+        # Validate for specified version
+        print_info "Validating CHANGELOG for version: $target_version"
+        if validate_changelog_has_version "$target_version"; then
+            exit 0
         else
-            print_success "CHANGELOG entry found for version $current_version"
-            return 0
+            exit 1
         fi
     fi
 }
 
-# Run validation
-if validate_changelog; then
-    exit 0
-else
-    exit 1
+# Run validation when script is executed directly
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
 fi
