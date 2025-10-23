@@ -229,7 +229,9 @@ jobs:
           security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
           security import $CERTIFICATE_PATH -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
-          security list-keychain -d user -s $KEYCHAIN_PATH
+          # Set the keychain as the default and add to search list
+          security default-keychain -s $KEYCHAIN_PATH
+          security list-keychain -d user -s $KEYCHAIN_PATH login.keychain
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
           # Find and export the certificate identity for Tauri
           IDENTITY=$(security find-identity -v -p codesigning $KEYCHAIN_PATH | grep -o '"[^"]*"' | head -1 | tr -d '"')
@@ -253,6 +255,7 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPLE_SIGNING_IDENTITY: ${{ env.APPLE_SIGNING_IDENTITY }}
         with:
           # Don't create GitHub Release here (done in release job)
           # tagName: ${{ github.ref_name }}  # Omit to avoid auto-release
