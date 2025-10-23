@@ -245,7 +245,12 @@ jobs:
         with:
           name: bundle-${{ matrix.os }}
           path: |
-            src-tauri/target/release/bundle
+            src-tauri/target/release/bundle/**/*.exe
+            src-tauri/target/release/bundle/**/*.msi
+            src-tauri/target/release/bundle/dmg/*.dmg
+            src-tauri/target/release/bundle/deb/*.deb
+            src-tauri/target/release/bundle/rpm/*.rpm
+            src-tauri/target/release/bundle/appimage/*.AppImage
           retention-days: 7
 
       - name: Show build cache summary
@@ -283,6 +288,12 @@ jobs:
           path: release_assets
           merge-multiple: true
 
+      - name: List downloaded files (debug)
+        shell: bash
+        run: |
+          echo "Downloaded files:"
+          find release_assets -type f || ls -R release_assets
+
       - name: Create or update GitHub Release
         uses: softprops/action-gh-release@v2
         env:
@@ -294,12 +305,12 @@ jobs:
           prerelease: false
           make_latest: true
           files: |
-            release_assets/**/bundle/**/*.exe
-            release_assets/**/bundle/**/*.msi
-            release_assets/**/bundle/dmg/*.dmg
-            release_assets/**/bundle/deb/*.deb
-            release_assets/**/bundle/rpm/*.rpm
-            release_assets/**/bundle/appimage/*.AppImage
+            release_assets/**/*.exe
+            release_assets/**/*.msi
+            release_assets/**/*.dmg
+            release_assets/**/*.deb
+            release_assets/**/*.rpm
+            release_assets/**/*.AppImage
           body: |
             ## 下载 / Downloads
 
