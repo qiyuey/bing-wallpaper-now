@@ -2,7 +2,7 @@
 
 All notable changes to Bing Wallpaper Now will be documented in this file.
 
-## [0.1.9]
+## 0.1.9
 
 ### Added
 
