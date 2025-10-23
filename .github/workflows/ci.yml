@@ -35,7 +35,21 @@ jobs:
 
       - name: Compute pnpm store path
         id: pnpm-store
-        run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_ENV
+        shell: bash
+        run: |
+          STORE_PATH=$(pnpm store path --silent 2>/dev/null || echo "")
+          if [ -z "$STORE_PATH" ]; then
+            # Fallback to default pnpm store location based on OS
+            if [ "$RUNNER_OS" = "Windows" ]; then
+              STORE_PATH="$LOCALAPPDATA/pnpm/store"
+            elif [ "$RUNNER_OS" = "macOS" ]; then
+              STORE_PATH="$HOME/Library/pnpm/store"
+            else
+              STORE_PATH="$HOME/.local/share/pnpm/store"
+            fi
+          fi
+          echo "STORE_PATH=$STORE_PATH" >> $GITHUB_ENV
+          echo "Computed pnpm store path: $STORE_PATH"
 
       - name: Cache pnpm store
         uses: actions/cache@v4
