@@ -2,6 +2,27 @@
 
 All notable changes to Bing Wallpaper Now will be documented in this file.
 
+## [0.1.8]
+
+### Changed
+
+- ⚡ **CI/CD 性能优化**: 改进构建缓存策略，加速 CI 构建流程
+  - 新增 Vite 构建缓存（`node_modules/.vite`），支持增量构建
+  - 优化缓存 key 策略：按 OS、架构和依赖锁文件哈希分组
+  - 简化 CI summary 输出：优先显示 Rust Cache 状态
+  - 仅在 Rust Cache 未命中时显示 sccache 统计信息
+  - 减少冗余信息，聚焦关键指标（编译请求、缓存命中、命中率）
+
+### Performance
+
+- 📊 **缓存策略**:
+  - Vite 缓存：跨构建共享，仅在依赖变更时失效
+  - pnpm 缓存：GitHub Actions 原生支持
+  - Rust Cache + sccache：多层缓存加速 Rust 编译
+- 🚀 **预期提升**:
+  - 首次构建：无变化（缓存未命中）
+  - 后续构建：前端构建加速 30-70%（依赖未变时）
+
 ## [0.1.7]
 
 ### Added
