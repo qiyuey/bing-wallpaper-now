@@ -214,6 +214,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Rust Cache
+        id: rust-cache
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
@@ -309,7 +310,25 @@ jobs:
           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
           security delete-keychain $KEYCHAIN_PATH || true
 
-      - name: Show sccache stats
-        if: matrix.os != 'windows-11-arm'
+      - name: Show build cache summary
+        if: always()
         shell: bash
-        run: sccache --show-stats
+        run: |
+          echo "## 🗂️ Build Cache Summary - ${{ matrix.platform }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Show Rust Cache status
+          if [ "${{ steps.rust-cache.outputs.cache-hit }}" = "true" ]; then
+            echo "✅ **Rust Cache**: Hit (dependencies restored from cache)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Rust Cache**: Miss (building from scratch)" >> $GITHUB_STEP_SUMMARY
+
+            # Show sccache stats only if Rust Cache missed and sccache is available
+            if [ "${{ matrix.os }}" != "windows-11-arm" ]; then
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "**sccache Statistics:**" >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              sccache --show-stats | grep -E '(Compile requests|Cache hits|Cache misses|Hit rate)' >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
