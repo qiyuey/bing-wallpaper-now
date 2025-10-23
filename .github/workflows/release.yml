@@ -293,14 +293,13 @@ jobs:
           prerelease: false
           make_latest: true
           files: |
-            release_assets/**/*.exe
-            release_assets/**/*.msi
-            release_assets/**/*.dmg
-            release_assets/**/*.deb
-            release_assets/**/*.rpm
-            release_assets/**/*.AppImage
-            release_assets/**/*.tar.gz
-            release_assets/**/*.zip
+            release_assets/**/bundle/**/*.exe
+            release_assets/**/bundle/**/*.msi
+            release_assets/**/bundle/dmg/*.dmg
+            release_assets/**/bundle/deb/*.deb
+            release_assets/**/bundle/rpm/*.rpm
+            release_assets/**/bundle/appimage/*.AppImage
+            release_assets/**/bundle/macos/*.app.tar.gz
           body: |
             # 🎉 Bing Wallpaper Now ${{ github.ref_name }}
 
