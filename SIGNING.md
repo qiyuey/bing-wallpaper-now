@@ -25,13 +25,39 @@
    - **证书类型**: 选择 "代码签名"
 3. 点击"创建"，然后"继续"直到完成
 
-## 步骤 2：导出证书
+## 步骤 2：导出证书（⚠️ 重要：必须包含私钥）
 
-1. 在"钥匙串访问"中找到刚创建的证书
-2. 右键点击证书，选择"导出"
-3. 选择文件格式为 `.p12` (Personal Information Exchange)
-4. 设置一个密码（记住这个密码，后面会用到）
-5. 保存文件，例如保存为 `certificate.p12`
+**⚠️ 关键步骤**：导出时必须同时包含证书和私钥，否则 GitHub Actions 无法使用证书进行签名。
+
+### 正确的导出方法：
+
+1. 在"钥匙串访问"的左侧，选择 **"登录"** 钥匙串
+2. 在上方选择 **"我的证书"** 类别
+3. 找到刚创建的证书（名称：`Bing Wallpaper Now Developer`）
+4. **点击左侧的箭头展开证书**，确认下面有一个私钥（🔑 图标）
+5. **同时选中证书和私钥**（按住 Command 键点击两项）
+   - 如果只选中证书，会显示"导出 1 项..."
+   - 正确的话应该显示 **"导出 2 项..."**
+6. 右键点击，选择 **"导出 2 项..."**
+7. 文件格式选择 **`.p12`** (Personal Information Exchange)
+8. 保存文件，例如保存为 `certificate.p12`
+9. 设置一个密码（记住这个密码，后面会用到）
+10. 可能需要输入 macOS 登录密码来授权导出
+
+### 验证导出是否正确：
+
+在终端运行以下命令验证 `.p12` 文件包含证书和私钥：
+
+```bash
+openssl pkcs12 -in certificate.p12 -info -noout
+```
+
+输出应该包含：
+- `MAC: sha1, Iteration 2048`
+- `PKCS7 Encrypted data` (证书)
+- `PKCS7 Data` (私钥)
+
+如果只有一个条目，说明导出不完整，需要重新导出。
 
 ## 步骤 3：将证书转换为 Base64
 
@@ -136,6 +162,16 @@ Signature size=...
 - 检查 GitHub Secrets 是否正确设置
 - 确保 `APPLE_CERTIFICATE` 是正确的 Base64 编码
 - 确保 `APPLE_CERTIFICATE_PASSWORD` 与导出证书时设置的密码一致
+
+### 问题：导入证书后显示 "0 valid identities found"
+
+**原因**：导出的 `.p12` 文件只包含私钥，没有包含证书本身。
+
+**解决方案**：
+1. 重新按照"步骤 2"的说明导出证书
+2. **必须同时选中证书和私钥**，显示"导出 2 项..."
+3. 使用 `openssl pkcs12 -in certificate.p12 -info -noout` 验证导出是否正确
+4. 重新生成 Base64 编码并更新 GitHub Secret `APPLE_CERTIFICATE`
 
 ### 问题：签名后仍然被 Gatekeeper 阻止
 
