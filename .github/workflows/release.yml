@@ -312,31 +312,39 @@ jobs:
             release_assets/**/*.rpm
             release_assets/**/*.AppImage
           body: |
-            ## 下载 / Downloads
+            ## ✨ 更新内容
 
-            ### Windows
-            - [Bing.Wallpaper.Now_${{ github.ref_name }}_x64-setup.exe](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_x64-setup.exe) - x64 安装程序
-            - [Bing.Wallpaper.Now_${{ github.ref_name }}_x64_zh-CN.msi](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_x64_zh-CN.msi) - x64 MSI 安装包
-            - [Bing.Wallpaper.Now_${{ github.ref_name }}_arm64-setup.exe](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_arm64-setup.exe) - ARM64 安装程序
-            - [Bing.Wallpaper.Now_${{ github.ref_name }}_arm64_zh-CN.msi](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_arm64_zh-CN.msi) - ARM64 MSI 安装包
-
-            ### macOS
-            - [Bing.Wallpaper.Now_${{ github.ref_name }}_aarch64.dmg](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_aarch64.dmg) - Apple Silicon
-            - [Bing.Wallpaper.Now_${{ github.ref_name }}_x64.dmg](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_x64.dmg) - Intel
-
-            ### Linux
-            - [Bing.Wallpaper.Now_${{ github.ref_name }}_amd64.deb](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_amd64.deb) - Debian/Ubuntu (x64)
-            - [Bing.Wallpaper.Now_${{ github.ref_name }}_arm64.deb](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_arm64.deb) - Debian/Ubuntu (ARM64)
-            - [Bing.Wallpaper.Now-${{ github.ref_name }}-1.x86_64.rpm](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now-${{ github.ref_name }}-1.x86_64.rpm) - Fedora/RHEL (x64)
-            - [Bing.Wallpaper.Now-${{ github.ref_name }}-1.aarch64.rpm](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now-${{ github.ref_name }}-1.aarch64.rpm) - Fedora/RHEL (ARM64)
-            - [Bing.Wallpaper.Now_${{ github.ref_name }}_amd64.AppImage](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_amd64.AppImage) - AppImage (x64)
-            - [Bing.Wallpaper.Now_${{ github.ref_name }}_aarch64.AppImage](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_aarch64.AppImage) - AppImage (ARM64)
+            ${{ needs.prepare.outputs.changelog }}
 
             ---
 
-            ## 更新内容 / What's Changed
+            ## 📦 快速安装
 
-            ${{ needs.prepare.outputs.changelog }}
+            ### Windows
+            - x64 (Intel/AMD): [MSI 安装包](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_x64_zh-CN.msi) (推荐) 或 [EXE 安装程序](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_x64-setup.exe)
+            - ARM64: [MSI 安装包](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_arm64_zh-CN.msi) 或 [EXE 安装程序](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_arm64-setup.exe)
+
+            ### macOS
+            - Apple Silicon: [ARM64 DMG](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_aarch64.dmg)
+            - Intel: [x64 DMG](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_x64.dmg)
+
+            **首次打开提示**: 应用未经过 Apple 签名(需要每年 $99 的开发者账号),macOS 会阻止运行。
+
+            **解决方法**: 在终端运行以下命令移除隔离属性:
+            ```bash
+            xattr -rd com.apple.quarantine "/Applications/Bing Wallpaper Now.app"
+            ```
+            或在「系统设置 → 隐私与安全性」中点击「仍要打开」。
+
+            ### Linux
+            - **x64 (Intel/AMD)**:
+              - Debian/Ubuntu: [DEB 包](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_amd64.deb)
+              - Fedora/RHEL: [RPM 包](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now-${{ github.ref_name }}-1.x86_64.rpm)
+              - 其他发行版: [AppImage](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_amd64.AppImage)
+            - **ARM64**:
+              - Debian/Ubuntu: [DEB 包](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_arm64.deb)
+              - Fedora/RHEL: [RPM 包](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now-${{ github.ref_name }}-1.aarch64.rpm)
+              - 其他发行版: [AppImage](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Bing.Wallpaper.Now_${{ github.ref_name }}_aarch64.AppImage)
 
             ---
 
