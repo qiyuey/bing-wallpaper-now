@@ -243,8 +243,6 @@ async fn get_wallpaper_directory(state: tauri::State<'_, AppState>) -> Result<St
 #[tauri::command]
 async fn show_main_window(app: tauri::AppHandle) -> Result<(), String> {
     if let Some(window) = app.get_webview_window("main") {
-        // macOS: 显示窗口时显示 Dock 图标
-        macos_app::set_activation_policy_regular();
         window.show().map_err(|e| e.to_string())?;
         window.set_focus().map_err(|e| e.to_string())?;
     }
@@ -591,11 +589,7 @@ fn setup_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
                     if let Some(window) = app.get_webview_window("main") {
                         if window.is_visible().unwrap_or(false) {
                             let _ = window.hide();
-                            // macOS: 隐藏窗口时隐藏 Dock 图标
-                            macos_app::set_activation_policy_accessory();
                         } else {
-                            // macOS: 显示窗口时显示 Dock 图标
-                            macos_app::set_activation_policy_regular();
                             let _ = window.show();
                             let _ = window.set_focus();
                         }
@@ -606,8 +600,6 @@ fn setup_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
         .on_menu_event(|app, event| match event.id().as_ref() {
             "show" => {
                 if let Some(window) = app.get_webview_window("main") {
-                    // macOS: 显示窗口时显示 Dock 图标
-                    macos_app::set_activation_policy_regular();
                     let _ = window.show();
                     let _ = window.set_focus();
                 }
@@ -624,8 +616,6 @@ fn setup_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
             "open_folder" => {
                 // 通过事件通知前端打开目录（复用前端已有逻辑）
                 if let Some(window) = app.get_webview_window("main") {
-                    // macOS: 显示窗口时显示 Dock 图标
-                    macos_app::set_activation_policy_regular();
                     let _ = window.show();
                     let _ = window.set_focus();
                 }
@@ -634,8 +624,6 @@ fn setup_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
             "settings" => {
                 // 显示主窗口并向前端发送事件，前端可监听此事件弹出设置
                 if let Some(window) = app.get_webview_window("main") {
-                    // macOS: 显示窗口时显示 Dock 图标
-                    macos_app::set_activation_policy_regular();
                     let _ = window.show();
                     let _ = window.set_focus();
                 }
@@ -676,8 +664,6 @@ pub fn run() {
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             // 当检测到第二个实例启动时，将第一个实例的窗口显示出来
             if let Some(window) = app.get_webview_window("main") {
-                // macOS: 显示窗口时显示 Dock 图标
-                macos_app::set_activation_policy_regular();
                 let _ = window.show();
                 let _ = window.set_focus();
                 let _ = window.unminimize();
@@ -715,21 +701,17 @@ pub fn run() {
             wallpaper_manager::initialize_observer();
             setup_tray(app.handle())?;
 
+            // macOS: 始终设置为 Accessory 模式（只显示托盘图标，不显示 Dock 图标）
+            macos_app::set_activation_policy_accessory();
+
             // 检查是否是自启动（通过命令行参数）
             let is_autostart = std::env::args()
                 .any(|arg| arg == "--minimized" || arg == "--hidden" || arg == "--startup");
 
             // 如果不是自启动，显示主窗口
-            if !is_autostart {
-                // macOS: 显示窗口时显示 Dock 图标
-                macos_app::set_activation_policy_regular();
-                if let Some(window) = app.get_webview_window("main") {
-                    let _ = window.show();
-                    let _ = window.set_focus();
-                }
-            } else {
-                // macOS: 自启动时隐藏 Dock 图标（仅显示托盘图标）
-                macos_app::set_activation_policy_accessory();
+            if !is_autostart && let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.set_focus();
             }
 
             // 使用 tauri-plugin-log 进行标准化日志输出（已在 Builder 中初始化）
@@ -737,14 +719,9 @@ pub fn run() {
             Ok(())
         })
         .on_window_event(|window, event| {
-            match event {
-                tauri::WindowEvent::CloseRequested { api, .. } => {
-                    window.hide().unwrap();
-                    api.prevent_close();
-                    // macOS: 窗口关闭时隐藏 Dock 图标
-                    macos_app::set_activation_policy_accessory();
-                }
-                _ => {}
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                window.hide().unwrap();
+                api.prevent_close();
             }
         })
         .run(tauri::generate_context!())

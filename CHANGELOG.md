@@ -2,6 +2,37 @@
 
 All notable changes to Bing Wallpaper Now will be documented in this file.
 
+## [0.1.7]
+
+### Added
+
+- 🍎 **macOS Dock 图标动态显示**: 根据窗口状态自动显示/隐藏 Dock 图标
+  - 窗口关闭时隐藏 Dock 图标，仅保留菜单栏图标（类似原生 macOS 菜单栏应用）
+  - 窗口显示时自动显示 Dock 图标
+  - 使用 NSApplication activation policy 实现（Accessory/Regular 模式切换）
+  - 新增 macos_app.rs 模块，封装 Objective-C 调用
+
+### Changed
+
+- 🎨 **macOS 菜单栏图标优化**: 改用单色模板图标，完美适配亮色/暗色模式
+  - 使用白色前景 + alpha 通道，由 macOS 自动渲染为模板图标
+  - 解决之前黑色图标在菜单栏显示为黑色方块的问题
+  - 自动适应系统外观模式（亮色/暗色）
+
+- ⬆️ **Rust 依赖升级**: 升级核心依赖到最新版本
+  - tauri 2.9.0 → 2.9.1
+  - tauri-build 2.5.0 → 2.5.1
+  - tauri-plugin 2.5.0 → 2.5.1
+  - wry 0.53.4 → 0.53.5
+  - rustls 0.23.33 → 0.23.34
+  - 以及其他间接依赖更新
+
+### Technical
+
+- 添加 objc2-app-kit 和 objc2-foundation 依赖，用于 macOS 原生 API 调用
+- 使用 MainThreadMarker 确保 Objective-C 调用的线程安全
+- 平台特定编译：macOS 特性使用 #[cfg(target_os = "macos")]
+
 ## [0.1.6]
 
 ### Changed

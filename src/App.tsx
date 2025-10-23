@@ -207,6 +207,10 @@ function App() {
       </main>
 
       {showSettings && <Settings onClose={() => setShowSettings(false)} />}
+
+      <footer className="app-footer">
+        <span className="version-info">v0.1.7-0</span>
+      </footer>
     </div>
   );
 }
