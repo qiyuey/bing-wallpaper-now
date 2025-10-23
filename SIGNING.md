@@ -1,10 +1,12 @@
 # macOS Code Signing Setup
 
-本文档说明如何设置 GitHub Actions 的 macOS 代码签名，以便自动签名应用并避免用户在打开应用时遇到 Gatekeeper 警告。
+本文档说明如何设置 GitHub Actions 的 macOS 代码签名。
 
 ## 方案说明
 
-我们使用 **ad-hoc 签名**（免费方案），不需要付费的 Apple Developer 账号。这种方式虽然不能进行公证（notarization），但可以让应用被 Gatekeeper 识别，减少用户打开应用时的麻烦。
+我们使用 **自签名证书**（免费方案），不需要付费的 Apple Developer 账号。
+
+**重要提示**：自签名证书对用户体验的改善有限，因为 macOS Gatekeeper 只信任 Apple 颁发的 Developer ID 证书。使用自签名证书签名后，用户首次运行应用时仍然会遇到安全警告，需要右键点击 -> "打开" 才能运行。
 
 ## 前提条件
 
@@ -62,28 +64,29 @@ base64 -i certificate.p12 | pbcopy
 
 ## 步骤 5：更新 tauri.conf.json（已完成）
 
-在 `src-tauri/tauri.conf.json` 中设置签名标识为 `"-"`（ad-hoc 签名）：
+在 `src-tauri/tauri.conf.json` 中设置签名标识为 `null`，让 Tauri 自动使用钥匙串中的证书：
 
 ```json
 {
   "bundle": {
     "macOS": {
-      "signingIdentity": "-"
+      "signingIdentity": null
     }
   }
 }
 ```
 
-✅ 这一步已经在配置文件中完成。
+✅ 这一步已经在配置文件中完成。GitHub Actions 会自动检测并使用导入的自签名证书。
 
 ## 步骤 6：触发构建
 
 推送代码或创建新的 tag，GitHub Actions 会自动：
 
-1. 导入证书到临时钥匙串
-2. 使用证书签名应用
-3. 上传签名后的应用到 Release
-4. 清理临时钥匙串
+1. 导入自签名证书到临时钥匙串
+2. 检测证书身份并设置环境变量
+3. 使用自签名证书签名应用
+4. 上传签名后的应用到 Release
+5. 清理临时钥匙串
 
 ## 验证签名
 
@@ -99,19 +102,22 @@ codesign -dv --verbose=4 "/Applications/Bing Wallpaper Now.app"
 Identifier=top.qiyuey.wallpaper
 Format=app bundle with Mach-O universal (arm64 x86_64)
 CodeDirectory v=...
-Signature=adhoc
+Authority=Bing Wallpaper Now Developer
+Signature size=...
 ```
 
-`Signature=adhoc` 表示这是一个 ad-hoc 签名。
+`Authority` 字段会显示你在步骤 1 中设置的证书名称。
 
 ## 注意事项
 
-### Ad-hoc 签名的限制
+### 自签名证书的限制
 
 - ❌ **不能进行公证**（notarization）- 需要付费的 Apple Developer 账号
 - ❌ **不能通过 App Store 分发**
-- ✅ **可以减少 Gatekeeper 警告** - 用户首次打开时仍需要右键点击"打开"
+- ❌ **不被 macOS Gatekeeper 信任** - 用户首次打开时仍需要右键点击 -> "打开"
+- ⚠️ **与 ad-hoc 签名的用户体验几乎相同**
 - ✅ **完全免费**
+- ✅ **应用有签名结构**（但不被系统信任）
 
 ### 升级到付费签名
 

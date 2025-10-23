@@ -53,7 +53,7 @@
       "minimumSystemVersion": "10.15",
       "entitlements": null,
       "exceptionDomain": null,
-      "signingIdentity": "-",
+      "signingIdentity": null,
       "providerShortName": null,
       "hardenedRuntime": true
     }
