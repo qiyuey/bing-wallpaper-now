@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
-# check-commit.sh - Pre-Commit Local CI Checks
+# check-commit.sh - Pre-Commit Code Quality Checks
 #
-# This script runs all CI checks before commit to ensure code passes GitHub Actions CI
-# Avoids the cycle of failed CI after commit
+# This script runs quick code quality checks before commit:
+# - Code formatting (Rust + TypeScript)
+# - Linting (Clippy + ESLint)
+# - Type checking (TypeScript)
+# - Unit tests (Rust + Frontend)
+#
+# For complete pre-release validation, use: make pre-release
 #
 # Usage:
 #   ./scripts/check-commit.sh
@@ -65,10 +70,10 @@ detect_package_manager() {
 PKG_MANAGER=$(detect_package_manager)
 
 printf "${COLOR_BOLD}${COLOR_BLUE}╔══════════════════════════════════════════════════════════════╗${COLOR_RESET}\n"
-printf "${COLOR_BOLD}${COLOR_BLUE}║        Bing Wallpaper Now - Pre-Commit Checks               ║${COLOR_RESET}\n"
+printf "${COLOR_BOLD}${COLOR_BLUE}║     Bing Wallpaper Now - Code Quality Checks                ║${COLOR_RESET}\n"
 printf "${COLOR_BOLD}${COLOR_BLUE}╚══════════════════════════════════════════════════════════════╝${COLOR_RESET}\n\n"
 
-printf "${COLOR_YELLOW}This script runs all CI checks to ensure code passes GitHub Actions${COLOR_RESET}\n"
+printf "${COLOR_YELLOW}Quick code quality checks (format, lint, types, tests)${COLOR_RESET}\n"
 printf "${COLOR_YELLOW}Package Manager: ${PKG_MANAGER}${COLOR_RESET}\n\n"
 
 # ============================================================================
@@ -140,47 +145,12 @@ fi
 # ============================================================================
 # 7. Frontend Tests
 # ============================================================================
-print_check "7/8 Frontend Unit Tests (vitest)"
+print_check "7/7 Frontend Unit Tests (vitest)"
 
 if $PKG_MANAGER run test:frontend; then
     print_success "Frontend tests passed"
 else
     print_error "Frontend tests failed, please fix test issues"
-fi
-
-# ============================================================================
-# 8. CHANGELOG Validation
-# ============================================================================
-print_check "8/9 CHANGELOG Validation"
-
-# Get current version from package.json
-CURRENT_VERSION=$(grep '"version"' package.json | head -1 | sed 's/.*"version": "\(.*\)".*/\1/')
-
-# Check if version is a development version (ends with -0)
-if [[ "$CURRENT_VERSION" == *"-0" ]]; then
-    # Development version - skip changelog check
-    print_success "Development version ($CURRENT_VERSION) - CHANGELOG check skipped"
-else
-    # Release version - must have changelog entry
-    if [ ! -f "CHANGELOG.md" ]; then
-        print_error "CHANGELOG.md file not found"
-    elif ! grep -q "## \[$CURRENT_VERSION\]" CHANGELOG.md; then
-        print_error "Version [$CURRENT_VERSION] not found in CHANGELOG.md"
-        print_warning "Please add changelog entry for release version $CURRENT_VERSION"
-    else
-        print_success "CHANGELOG entry found for version $CURRENT_VERSION"
-    fi
-fi
-
-# ============================================================================
-# 9. Frontend Build
-# ============================================================================
-print_check "9/9 Frontend Build Check (vite build)"
-
-if $PKG_MANAGER run build; then
-    print_success "Frontend build succeeded"
-else
-    print_error "Frontend build failed, please fix build issues"
 fi
 
 # ============================================================================
@@ -197,18 +167,19 @@ printf "Passed: ${COLOR_GREEN}${COLOR_BOLD}%d${COLOR_RESET}\n" $CHECKS_PASSED
 printf "Failed: ${COLOR_RED}${COLOR_BOLD}%d${COLOR_RESET}\n" $CHECKS_FAILED
 
 if [ $CHECKS_FAILED -eq 0 ]; then
-    printf "\n${COLOR_GREEN}${COLOR_BOLD}✅ All checks passed! Safe to commit 🎉${COLOR_RESET}\n"
-    printf "${COLOR_GREEN}Suggested commit commands:${COLOR_RESET}\n"
+    printf "\n${COLOR_GREEN}${COLOR_BOLD}✅ All code quality checks passed! 🎉${COLOR_RESET}\n"
+    printf "${COLOR_GREEN}Safe to commit. Next steps:${COLOR_RESET}\n"
     printf "  ${COLOR_BLUE}git add .${COLOR_RESET}\n"
-    printf "  ${COLOR_BLUE}git commit${COLOR_RESET}\n"
+    printf "  ${COLOR_BLUE}git commit -m \"your message\"${COLOR_RESET}\n"
     printf "  ${COLOR_BLUE}git push${COLOR_RESET}\n\n"
+    printf "${COLOR_YELLOW}Note: Before release, run ${COLOR_BLUE}make pre-release${COLOR_RESET} for complete validation${COLOR_RESET}\n\n"
     exit 0
 else
-    printf "\n${COLOR_RED}${COLOR_BOLD}❌ %d check(s) failed, please fix before commit${COLOR_RESET}\n" $CHECKS_FAILED
-    printf "${COLOR_YELLOW}Tips:${COLOR_RESET}\n"
-    printf "  - Format issues: ${COLOR_BLUE}cargo fmt && $PKG_MANAGER run format${COLOR_RESET}\n"
-    printf "  - Lint issues: ${COLOR_BLUE}$PKG_MANAGER run lint:fix${COLOR_RESET}\n"
-    printf "  - Type issues: Fix according to tsc error messages\n"
-    printf "  - Test issues: Fix according to test output\n\n"
+    printf "\n${COLOR_RED}${COLOR_BOLD}❌ %d check(s) failed${COLOR_RESET}\n" $CHECKS_FAILED
+    printf "${COLOR_YELLOW}Quick fixes:${COLOR_RESET}\n"
+    printf "  - Format: ${COLOR_BLUE}cargo fmt && $PKG_MANAGER run format${COLOR_RESET}\n"
+    printf "  - Lint: ${COLOR_BLUE}$PKG_MANAGER run lint:fix${COLOR_RESET}\n"
+    printf "  - Types: Fix according to tsc error messages\n"
+    printf "  - Tests: Fix according to test output\n\n"
     exit 1
 fi
