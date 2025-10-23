@@ -12,6 +12,19 @@ All notable changes to Bing Wallpaper Now will be documented in this file.
   - 使用 NSApplication activation policy 实现（Accessory/Regular 模式切换）
   - 新增 macos_app.rs 模块，封装 Objective-C 调用
 
+- 🚀 **Release 流程完全自动化**: `make release` 命令现在完全无需人工确认
+  - 自动验证工作目录干净（有未提交更改则报错退出）
+  - 自动运行 pre-commit 检查（格式化、lint、测试）
+  - 自动推送 release commit 和 tag 到远程
+  - 自动创建下一个开发版本（如 0.1.7 → 0.1.8-0）
+  - 自动推送开发版本到远程
+
+- 🔄 **新增 `make rollback` 命令**: 快速回滚失败的发布
+  - 删除本地和远程 tag
+  - 回退到 HEAD~2（撤销 release + snapshot 提交）
+  - 强制推送到远程
+  - 需要输入 "yes" 确认以防误操作
+
 ### Changed
 
 - 🎨 **macOS 菜单栏图标优化**: 改用单色模板图标，完美适配亮色/暗色模式
@@ -27,11 +40,18 @@ All notable changes to Bing Wallpaper Now will be documented in this file.
   - rustls 0.23.33 → 0.23.34
   - 以及其他间接依赖更新
 
+### Fixed
+
+- 🐛 **修复 Clippy 警告**: 
+  - 使用 let-chain 语法优化嵌套 if 语句
+  - 使用 if-let 替代单一匹配的 match 语句
+
 ### Technical
 
 - 添加 objc2-app-kit 和 objc2-foundation 依赖，用于 macOS 原生 API 调用
 - 使用 MainThreadMarker 确保 Objective-C 调用的线程安全
 - 平台特定编译：macOS 特性使用 #[cfg(target_os = "macos")]
+- Release 脚本重构：移除所有人工确认提示，实现全自动化发布
 
 ## [0.1.6]
 
