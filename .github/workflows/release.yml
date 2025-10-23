@@ -222,8 +222,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: ${{ github.ref_name }}
-          includeRelease: false
+          # Don't create GitHub Release here (done in release job)
+          # tagName: ${{ github.ref_name }}  # Omit to avoid auto-release
+          includeRelease: true
           includeUpdaterJson: false
           tauriScript: pnpm tauri
 
