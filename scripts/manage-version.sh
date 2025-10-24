@@ -80,12 +80,16 @@ create_snapshot() {
     # Update all version files
     project_update_all_versions "$dev_version"
 
-    # Commit changes
-    git_stage "$PROJECT_PACKAGE_JSON" "$PROJECT_CARGO_TOML" "$PROJECT_TAURI_CONF" "$PROJECT_CARGO_LOCK"
-    git_commit "chore(version): bump to $dev_version"
+    # Skip git operations for snapshot commands
+    # Just update the version files without committing
 
-    print_success "Created development version: $dev_version"
-    print_info "Ready to start developing new features!"
+    print_success "Updated version to: $dev_version"
+    print_info "Version files have been modified (not committed)"
+    print_info "Modified files:"
+    echo "  - $PROJECT_PACKAGE_JSON"
+    echo "  - $PROJECT_CARGO_TOML"
+    echo "  - $PROJECT_TAURI_CONF"
+    echo "  - $PROJECT_CARGO_LOCK"
 }
 
 # ============================================================================
@@ -340,8 +344,9 @@ main() {
         exit 0
     fi
 
-    # Rollback doesn't need working directory check
-    if [[ "$1" != "rollback" && "$1" != "info" ]]; then
+    # Only release command needs working directory check
+    # Snapshot commands can run with uncommitted changes
+    if [[ "$1" == "release" ]]; then
         git_require_clean
     fi
 

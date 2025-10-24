@@ -22,6 +22,7 @@ The app is code-signed, but uses free signing (not from an Apple Developer accou
 **Method 1 (Recommended)**: Right-click the app -> Select "Open" -> Click "Open" button
 
 **Method 2**: Run this command in Terminal:
+
 ```bash
 xattr -rd com.apple.quarantine "/Applications/Bing Wallpaper Now.app"
 ```
@@ -189,6 +190,7 @@ bing-wallpaper-now/
 **Backend**: Tauri 2.0, Rust (Edition 2024)
 
 **Key Libraries**:
+
 - `reqwest` - HTTP client
 - `serde/serde_json` - Serialization
 - `chrono` - Date/time handling
