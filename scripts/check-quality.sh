@@ -46,7 +46,7 @@ printf "${COLOR_YELLOW}Package Manager: ${PKG_MANAGER}${COLOR_RESET}\n\n"
 # ============================================================================
 
 # Check 1: Rust Code Format
-print_step 1 7 "Rust Code Format Check (cargo fmt)"
+print_step 1 8 "Rust Code Format Check (cargo fmt)"
 print_separator
 if validate_rust_format; then
     increment_passed
@@ -55,7 +55,7 @@ else
 fi
 
 # Check 2: Rust Clippy
-print_step 2 7 "Rust Clippy Check (cargo clippy)"
+print_step 2 8 "Rust Clippy Check (cargo clippy)"
 print_separator
 if validate_rust_clippy; then
     increment_passed
@@ -64,7 +64,7 @@ else
 fi
 
 # Check 3: Rust Tests
-print_step 3 7 "Rust Unit Tests (cargo test)"
+print_step 3 8 "Rust Unit Tests (cargo test)"
 print_separator
 if validate_rust_tests; then
     increment_passed
@@ -73,7 +73,7 @@ else
 fi
 
 # Check 4: TypeScript Types
-print_step 4 7 "TypeScript Type Check (tsc)"
+print_step 4 8 "TypeScript Type Check (tsc)"
 print_separator
 if validate_typescript_types "$PKG_MANAGER"; then
     increment_passed
@@ -82,7 +82,7 @@ else
 fi
 
 # Check 5: ESLint
-print_step 5 7 "ESLint Check (eslint)"
+print_step 5 8 "ESLint Check (eslint)"
 print_separator
 if validate_eslint "$PKG_MANAGER"; then
     increment_passed
@@ -91,7 +91,7 @@ else
 fi
 
 # Check 6: Prettier
-print_step 6 7 "Prettier Format Check (prettier)"
+print_step 6 8 "Prettier Format Check (prettier)"
 print_separator
 if validate_prettier "$PKG_MANAGER"; then
     increment_passed
@@ -100,9 +100,18 @@ else
 fi
 
 # Check 7: Frontend Tests
-print_step 7 7 "Frontend Unit Tests (vitest)"
+print_step 7 8 "Frontend Unit Tests (vitest)"
 print_separator
 if validate_frontend_tests "$PKG_MANAGER"; then
+    increment_passed
+else
+    increment_failed
+fi
+
+# Check 8: Markdown Lint
+print_step 8 8 "Markdown Lint Check (markdownlint)"
+print_separator
+if validate_markdown_lint "$PKG_MANAGER"; then
     increment_passed
 else
     increment_failed
@@ -126,6 +135,7 @@ else
     printf "${COLOR_YELLOW}Quick fixes:${COLOR_RESET}\n"
     printf "  - Format: ${COLOR_BLUE}cargo fmt && $PKG_MANAGER run format${COLOR_RESET}\n"
     printf "  - Lint: ${COLOR_BLUE}$PKG_MANAGER run lint:fix${COLOR_RESET}\n"
+    printf "  - Markdown: ${COLOR_BLUE}$PKG_MANAGER run lint:md:fix${COLOR_RESET}\n"
     printf "  - Types: Fix according to tsc error messages\n"
     printf "  - Tests: Fix according to test output\n\n"
     exit 1

@@ -22,6 +22,7 @@
 **方法 1（推荐）**：右键点击应用 -> 选择"打开" -> 点击"打开"按钮
 
 **方法 2**：在终端运行以下命令：
+
 ```bash
 xattr -rd com.apple.quarantine "/Applications/Bing Wallpaper Now.app"
 ```
@@ -189,6 +190,7 @@ bing-wallpaper-now/
 **后端**: Tauri 2.0, Rust（Edition 2024）
 
 **核心库**:
+
 - `reqwest` - HTTP 客户端
 - `serde/serde_json` - 序列化
 - `chrono` - 日期时间处理

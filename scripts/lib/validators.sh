@@ -351,6 +351,35 @@ validate_frontend_tests() {
     fi
 }
 
+# Run Markdown lint check
+# Args: $1 - package manager (optional)
+# Returns: 0 if passed, 1 otherwise
+# Usage: if validate_markdown_lint "$PKG_MANAGER"; then ... fi
+validate_markdown_lint() {
+    local pkg_manager="${1:-}"
+
+    if [[ -z "$pkg_manager" ]]; then
+        pkg_manager=$(project_detect_package_manager 2>/dev/null || echo "npm")
+    fi
+
+    if type print_info &>/dev/null; then
+        print_info "Running Markdown lint..."
+    fi
+
+    if $pkg_manager run lint:md; then
+        if type print_success &>/dev/null; then
+            print_success "Markdown lint passed"
+        fi
+        return 0
+    else
+        if type print_error &>/dev/null; then
+            print_error "Markdown lint failed"
+            print_info "Run: $pkg_manager run lint:md:fix"
+        fi
+        return 1
+    fi
+}
+
 # Run all quality checks
 # Args: $1 - package manager (optional)
 # Returns: 0 if all passed, 1 if any failed

@@ -8,7 +8,7 @@ All notable changes to Bing Wallpaper Now will be documented in this file.
 
 - ✨ **UI 版本号自动导入**: 从 package.json 自动导入版本号到设置界面，无需手动维护
 - 📋 **CHANGELOG 验证**: 添加 pre-commit 检查，确保发布前 CHANGELOG 已更新
-- 📝 **Release Notes 增强**: 
+- 📝 **Release Notes 增强**:
   - 自动为所有平台安装包生成直接下载链接
   - 改进格式，更清晰的平台分类和说明
 
@@ -39,7 +39,7 @@ All notable changes to Bing Wallpaper Now will be documented in this file.
   - 修复 sccache 统计生成，完整显示缓存命中信息
   - 修复 Windows ARM64 的 pnpm store 路径检测
   - 仅上传可分发文件，过滤内部构建产物（如 .app.tar.gz）
-- 🔧 **macOS 签名修复**: 
+- 🔧 **macOS 签名修复**:
   - 解决证书检测和 keychain 导入问题
   - 动态设置签名身份，适配不同构建环境
 - 📝 **Release Notes 修复**: 下载链接使用点号而非空格，避免链接失效
@@ -122,7 +122,7 @@ All notable changes to Bing Wallpaper Now will be documented in this file.
 
 ### Fixed
 
-- 🐛 **修复 Clippy 警告**: 
+- 🐛 **修复 Clippy 警告**:
   - 使用 let-chain 语法优化嵌套 if 语句
   - 使用 if-let 替代单一匹配的 match 语句
 
@@ -180,7 +180,7 @@ All notable changes to Bing Wallpaper Now will be documented in this file.
   - 采用圆角矩形设计，山景轮廓更加清晰
   - 移除不需要的移动平台图标（iOS/Android 共 30 个文件）
   
-- ⚙️ **壁纸管理增强**: 
+- ⚙️ **壁纸管理增强**:
   - 默认保存数量从 8 张提升至 999 张
   - 设置界面支持最大值调整至 999（原为 200）
   
@@ -191,7 +191,7 @@ All notable changes to Bing Wallpaper Now will be documented in this file.
   - 集成 sccache 加速 Rust 编译
   - 使用 Swatinem/rust-cache@v2 替代通用缓存方案
   
-- 📝 **Release 说明改进**: 
+- 📝 **Release 说明改进**:
   - Changelog 自动提取并置于 Release 说明顶部
   - 为所有安装包添加直接下载链接
   - 统一使用 "Apple Silicon" 术语
