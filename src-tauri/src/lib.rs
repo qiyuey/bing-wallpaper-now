@@ -323,87 +323,84 @@ async fn run_update_cycle(app: &AppHandle) {
     };
     debug!(target: "auto_update", "获取到 {} 张图片用于本次处理", images.len());
 
-    // 准备下载任务列表（按日期排序，最新的在前）
-    let mut download_tasks: Vec<(String, std::path::PathBuf, usize)> = images
-        .iter()
-        .enumerate()
-        .filter_map(|(idx, image)| {
-            let save_path = storage::get_wallpaper_path(&dir, &image.startdate);
-            if save_path.exists() {
-                None // 跳过已存在的文件
-            } else {
-                let url = bing_api::get_wallpaper_url(&image.urlbase, "UHD");
-                Some((url, save_path, idx))
-            }
-        })
-        .collect();
-
-    // 首次启动优化：如果目录为空，优先下载最新一张壁纸以快速显示内容
+    // 首次启动优化：立即保存所有元信息，让前端可以马上展示列表
     let is_first_launch = storage::get_local_wallpapers(&dir)
         .await
         .map(|w| w.is_empty())
         .unwrap_or(false);
 
-    if !download_tasks.is_empty() {
-        if is_first_launch && !download_tasks.is_empty() {
-            // 首次启动：先下载最新的一张
-            let first_task = download_tasks.remove(0);
-            let first_image = &images[first_task.2];
+    if is_first_launch {
+        info!(target: "auto_update", "首次启动检测到，立即保存所有元信息供前端展示");
 
-            debug!(target: "auto_update", "首次启动，优先下载最新壁纸: {}", first_image.startdate);
-
-            // 下载第一张
-            let first_result =
-                download_manager::download_images_concurrent(vec![(first_task.0, first_task.1)], 1)
-                    .await;
-
-            // 立即保存第一张的元数据并通知前端
-            if let Some(Ok(save_path)) = first_result.first() {
-                let mut w = LocalWallpaper::from(first_image.clone());
+        // 立即为所有图片创建元信息（不下载图片）
+        let metadata_list: Vec<LocalWallpaper> = images
+            .iter()
+            .map(|image| {
+                let save_path = storage::get_wallpaper_path(&dir, &image.startdate);
+                let mut w = LocalWallpaper::from(image.clone());
                 w.file_path = save_path.to_string_lossy().to_string();
+                w
+            })
+            .collect();
 
-                if let Err(e) = storage::save_wallpapers_metadata(vec![w], &dir).await {
-                    warn!(target: "auto_update", "保存第一张壁纸元数据失败: {e}");
-                } else {
-                    // 立即通知前端显示第一张壁纸
-                    if let Err(e) = app.emit("wallpaper-updated", ()) {
-                        warn!(target: "auto_update", "通知前端失败: {e}");
-                    }
-                    info!(target: "auto_update", "首张壁纸已下载并通知前端");
-                }
+        // 批量保存元数据
+        if let Err(e) = storage::save_wallpapers_metadata(metadata_list, &dir).await {
+            error!(target: "auto_update", "保存元数据失败: {e}");
+        } else {
+            // 立即通知前端刷新列表
+            if let Err(e) = app.emit("wallpaper-updated", ()) {
+                warn!(target: "auto_update", "通知前端失败: {e}");
             }
+            info!(target: "auto_update", "元信息已保存并通知前端，开始后台下载图片");
+        }
+    }
+
+    // 准备下载任务列表
+    let download_tasks: Vec<(String, std::path::PathBuf)> = images
+        .iter()
+        .filter_map(|image| {
+            let save_path = storage::get_wallpaper_path(&dir, &image.startdate);
+            if save_path.exists() {
+                None // 跳过已存在的文件
+            } else {
+                let url = bing_api::get_wallpaper_url(&image.urlbase, "UHD");
+                Some((url, save_path))
+            }
+        })
+        .collect();
+
+    // 并发下载所有需要的图片（后台进行）
+    if !download_tasks.is_empty() {
+        debug!(target: "auto_update", "开始下载 {} 张图片", download_tasks.len());
+
+        let results = download_manager::download_images_concurrent(download_tasks, 4).await;
+
+        // 统计下载结果
+        let success_count = results.iter().filter(|r| r.is_ok()).count();
+        let fail_count = results.len() - success_count;
+
+        if fail_count > 0 {
+            warn!(target: "auto_update", "下载完成: 成功 {}, 失败 {}", success_count, fail_count);
+        } else {
+            info!(target: "auto_update", "全部 {} 张图片下载成功", success_count);
         }
 
-        // 下载其余壁纸（使用并发）
-        if !download_tasks.is_empty() {
-            let remaining_tasks: Vec<(String, std::path::PathBuf)> = download_tasks
-                .into_iter()
-                .map(|(url, path, _)| (url, path))
-                .collect();
-
-            let results = download_manager::download_images_concurrent(remaining_tasks, 4).await;
-
-            // 收集成功下载的壁纸元数据（跳过第一张，因为已经保存）
+        // 非首次启动时，需要保存新下载图片的元数据
+        if !is_first_launch {
             let mut successful_wallpapers = Vec::new();
-            let start_idx = if is_first_launch { 1 } else { 0 };
-            for (result, image) in results.into_iter().zip(images.iter().skip(start_idx)) {
-                match result {
-                    Ok(save_path) => {
-                        let mut w = LocalWallpaper::from(image.clone());
-                        w.file_path = save_path.to_string_lossy().to_string();
-                        successful_wallpapers.push(w);
-                    }
-                    Err(e) => {
-                        warn!(target: "auto_update", "下载失败: {e}");
-                    }
+            for (result, image) in results.into_iter().zip(images.iter()) {
+                if let Ok(save_path) = result {
+                    let mut w = LocalWallpaper::from(image.clone());
+                    w.file_path = save_path.to_string_lossy().to_string();
+                    successful_wallpapers.push(w);
                 }
             }
 
-            // 批量保存元数据
-            if !successful_wallpapers.is_empty()
-                && let Err(e) = storage::save_wallpapers_metadata(successful_wallpapers, &dir).await
-            {
-                warn!(target: "auto_update", "批量保存元数据失败: {e}");
+            if !successful_wallpapers.is_empty() {
+                if let Err(e) = storage::save_wallpapers_metadata(successful_wallpapers, &dir).await
+                {
+                    warn!(target: "auto_update", "批量保存元数据失败: {e}");
+                }
             }
         }
     }
