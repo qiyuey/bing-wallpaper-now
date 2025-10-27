@@ -109,7 +109,7 @@ run_pre_release_checks() {
     fi
 
     print_info "Running code formatting checks, linting and tests..."
-    if ! make pre-commit; then
+    if ! make check; then
         print_error "Quality checks failed"
         print_info "Please fix the above issues and rerun make release"
         exit 1
