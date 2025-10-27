@@ -47,14 +47,14 @@ validate_changelog_has_version() {
 
     local changelog=$(project_get_file_path "$PROJECT_CHANGELOG" 2>/dev/null || echo "CHANGELOG.md")
 
-    # Check for version entry: ## [X.Y.Z]
-    if ! grep -q "^## \[$version\]" "$changelog"; then
+    # Check for version entry: ## X.Y.Z
+    if ! grep -q "^## $version" "$changelog"; then
         if [[ "$quiet" != "true" ]]; then
             if type print_error &>/dev/null; then
-                print_error "Version [$version] not found in CHANGELOG.md"
+                print_error "Version $version not found in CHANGELOG.md"
                 print_info "Please add the following to CHANGELOG.md:"
                 echo ""
-                echo "  ## [$version]"
+                echo "  ## $version"
                 echo ""
                 echo "  ### Added"
                 echo "  - New feature 1"
