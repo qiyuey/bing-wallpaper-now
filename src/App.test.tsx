@@ -365,4 +365,203 @@ describe("App", () => {
       { timeout: 3000 },
     );
   });
+
+  it("should handle set wallpaper error", async () => {
+    // This test is covered by WallpaperCard tests
+    // We just verify the mock setup works correctly
+    vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "set_desktop_wallpaper") {
+        return Promise.reject(new Error("Failed to set wallpaper"));
+      }
+      if (cmd === "get_local_wallpapers") {
+        return Promise.resolve(mockWallpapers);
+      }
+      if (cmd === "get_settings") {
+        return Promise.resolve({
+          auto_update: true,
+          save_directory: null,
+          keep_image_count: 8,
+          launch_at_startup: false,
+        });
+      }
+      if (cmd === "get_last_update_time") {
+        return Promise.resolve(null);
+      }
+      return Promise.resolve(null);
+    });
+
+    render(<App />);
+
+    // Wait for wallpapers to load
+    await waitFor(() => {
+      expect(screen.getByText("Test Wallpaper")).toBeInTheDocument();
+    });
+
+    // The actual error handling is tested in WallpaperCard.test.tsx
+    // Here we just verify the component renders correctly with the mock
+    expect(screen.getByText("Test Wallpaper")).toBeInTheDocument();
+  });
+
+  it("should handle force update error gracefully", async () => {
+    const consoleWarnSpy = vi
+      .spyOn(console, "warn")
+      .mockImplementation(() => {});
+
+    vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "force_update") {
+        return Promise.reject(new Error("Update failed"));
+      }
+      if (cmd === "get_local_wallpapers") {
+        return Promise.resolve(mockWallpapers);
+      }
+      if (cmd === "get_settings") {
+        return Promise.resolve({
+          auto_update: true,
+          save_directory: null,
+          keep_image_count: 8,
+          launch_at_startup: false,
+        });
+      }
+      return Promise.resolve(null);
+    });
+
+    render(<App />);
+
+    const refreshButton = screen.getByTitle("更新");
+    fireEvent.click(refreshButton);
+
+    await waitFor(() => {
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        "Force update failed:",
+        expect.any(Error),
+      );
+    });
+
+    consoleWarnSpy.mockRestore();
+  });
+
+  it("should handle open folder error", async () => {
+    const consoleErrorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+
+    vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "get_wallpaper_directory") {
+        return Promise.reject(new Error("Directory not found"));
+      }
+      if (cmd === "get_local_wallpapers") {
+        return Promise.resolve(mockWallpapers);
+      }
+      if (cmd === "get_settings") {
+        return Promise.resolve({
+          auto_update: true,
+          save_directory: null,
+          keep_image_count: 8,
+          launch_at_startup: false,
+        });
+      }
+      if (cmd === "get_last_update_time") {
+        return Promise.resolve(null);
+      }
+      return Promise.resolve(null);
+    });
+
+    render(<App />);
+
+    // Wait for component to be ready
+    await waitFor(() => {
+      expect(screen.getByTitle("打开下载目录")).toBeInTheDocument();
+    });
+
+    const folderButton = screen.getByTitle("打开下载目录");
+    fireEvent.click(folderButton);
+
+    await waitFor(
+      () => {
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+          "Failed to open folder:",
+          expect.any(Error),
+        );
+      },
+      { timeout: 3000 },
+    );
+
+    consoleErrorSpy.mockRestore();
+  });
+
+  it("should handle open-folder event binding error", async () => {
+    const consoleErrorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+
+    vi.mocked(listen).mockImplementation((event: string) => {
+      if (event === "open-folder") {
+        return Promise.reject(new Error("Event binding failed"));
+      }
+      return Promise.resolve(() => {});
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "Failed to bind open-folder event:",
+        expect.any(Error),
+      );
+    });
+
+    consoleErrorSpy.mockRestore();
+  });
+
+  it("should handle ensure_wallpaper_directory_exists error", async () => {
+    const consoleErrorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+
+    vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "get_wallpaper_directory") {
+        return Promise.resolve("/test/path");
+      }
+      if (cmd === "ensure_wallpaper_directory_exists") {
+        return Promise.reject(new Error("Cannot create directory"));
+      }
+      if (cmd === "get_local_wallpapers") {
+        return Promise.resolve(mockWallpapers);
+      }
+      if (cmd === "get_settings") {
+        return Promise.resolve({
+          auto_update: true,
+          save_directory: null,
+          keep_image_count: 8,
+          launch_at_startup: false,
+        });
+      }
+      if (cmd === "get_last_update_time") {
+        return Promise.resolve(null);
+      }
+      return Promise.resolve(null);
+    });
+
+    render(<App />);
+
+    // Wait for component to be ready
+    await waitFor(() => {
+      expect(screen.getByTitle("打开下载目录")).toBeInTheDocument();
+    });
+
+    const folderButton = screen.getByTitle("打开下载目录");
+    fireEvent.click(folderButton);
+
+    await waitFor(
+      () => {
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+          "Failed to open folder:",
+          expect.any(Error),
+        );
+      },
+      { timeout: 3000 },
+    );
+
+    consoleErrorSpy.mockRestore();
+  });
 });

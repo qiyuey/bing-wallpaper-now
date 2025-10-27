@@ -221,4 +221,183 @@ mod tests {
         // 不实际执行网络请求，仅验证 API 可用性
         assert_eq!(tasks.len(), 2);
     }
+
+    #[tokio::test]
+    async fn test_download_invalid_url() {
+        let unique = SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let temp_dir = std::env::temp_dir().join(format!("bw_invalid_{unique}"));
+        fs::create_dir_all(&temp_dir).await.unwrap();
+
+        let save_path = temp_dir.join("invalid.jpg");
+        let invalid_url = "https://invalid-domain-that-does-not-exist-12345.com/image.jpg";
+
+        // 测试无效 URL 的错误处理
+        let result = download_image(invalid_url, &save_path).await;
+        assert!(result.is_err());
+
+        // 清理
+        let _ = fs::remove_dir_all(&temp_dir).await;
+    }
+
+    #[tokio::test]
+    async fn test_download_to_invalid_directory() {
+        // 测试无效目录的错误处理
+        let invalid_path = PathBuf::from("/nonexistent/directory/that/does/not/exist/test.jpg");
+        let url = "https://example.com/test.jpg";
+
+        let result = download_image(url, &invalid_path).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_concurrent_download_empty_list() {
+        // 测试空任务列表
+        let tasks: Vec<(String, PathBuf)> = vec![];
+        let results = download_images_concurrent(tasks, 4).await;
+
+        assert_eq!(results.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_concurrent_download_single_task() {
+        // 测试单个任务
+        let unique = SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let temp_dir = std::env::temp_dir().join(format!("bw_single_{unique}"));
+        fs::create_dir_all(&temp_dir).await.unwrap();
+
+        let save_path = temp_dir.join("single.jpg");
+        let tasks = vec![(
+            "https://invalid-url.com/test.jpg".to_string(),
+            save_path.clone(),
+        )];
+
+        let results = download_images_concurrent(tasks, 1).await;
+
+        assert_eq!(results.len(), 1);
+        // 应该失败（无效 URL）
+        assert!(results[0].is_err());
+
+        // 清理
+        let _ = fs::remove_dir_all(&temp_dir).await;
+    }
+
+    #[tokio::test]
+    async fn test_concurrent_download_mixed_results() {
+        // 测试混合成功/失败的场景
+        let unique = SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let temp_dir = std::env::temp_dir().join(format!("bw_mixed_{unique}"));
+        fs::create_dir_all(&temp_dir).await.unwrap();
+
+        let tasks = vec![
+            (
+                "https://invalid-url-1.com/test.jpg".to_string(),
+                temp_dir.join("1.jpg"),
+            ),
+            (
+                "https://invalid-url-2.com/test.jpg".to_string(),
+                temp_dir.join("2.jpg"),
+            ),
+            (
+                "https://invalid-url-3.com/test.jpg".to_string(),
+                temp_dir.join("3.jpg"),
+            ),
+        ];
+
+        let results = download_images_concurrent(tasks, 2).await;
+
+        assert_eq!(results.len(), 3);
+        // 所有应该失败（无效 URL）
+        assert!(results.iter().all(|r| r.is_err()));
+
+        // 清理
+        let _ = fs::remove_dir_all(&temp_dir).await;
+    }
+
+    #[tokio::test]
+    async fn test_download_skips_existing_file() {
+        let unique = SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let temp_dir = std::env::temp_dir().join(format!("bw_existing_{unique}"));
+        fs::create_dir_all(&temp_dir).await.unwrap();
+
+        let save_path = temp_dir.join("existing.jpg");
+
+        // 创建一个已存在的文件
+        fs::write(&save_path, b"existing content").await.unwrap();
+        let original_content = fs::read(&save_path).await.unwrap();
+
+        // 尝试下载到已存在的文件
+        let url = "https://example.com/test.jpg";
+        let result = download_image(url, &save_path).await;
+
+        // 应该成功（跳过下载）
+        assert!(result.is_ok());
+
+        // 文件内容应该保持不变
+        let current_content = fs::read(&save_path).await.unwrap();
+        assert_eq!(original_content, current_content);
+
+        // 清理
+        let _ = fs::remove_dir_all(&temp_dir).await;
+    }
+
+    #[tokio::test]
+    async fn test_concurrent_download_max_concurrent_parameter() {
+        // 测试不同的并发参数
+        let tasks: Vec<(String, PathBuf)> = (0..10)
+            .map(|i| {
+                (
+                    format!("https://example.com/{}.jpg", i),
+                    PathBuf::from(format!("/tmp/test_{}.jpg", i)),
+                )
+            })
+            .collect();
+
+        // 测试 max_concurrent = 1 (顺序执行)
+        let results_1 = download_images_concurrent(tasks.clone(), 1).await;
+        assert_eq!(results_1.len(), 10);
+
+        // 测试 max_concurrent = 5
+        let results_5 = download_images_concurrent(tasks.clone(), 5).await;
+        assert_eq!(results_5.len(), 10);
+
+        // 测试 max_concurrent = 20 (超过任务数)
+        let results_20 = download_images_concurrent(tasks, 20).await;
+        assert_eq!(results_20.len(), 10);
+    }
+
+    #[tokio::test]
+    async fn test_http_client_reuse() {
+        // 测试全局 HTTP 客户端可以被多次调用
+        let unique = SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let temp_dir = std::env::temp_dir().join(format!("bw_reuse_{unique}"));
+        fs::create_dir_all(&temp_dir).await.unwrap();
+
+        // 进行多次下载以测试连接池复用
+        for i in 0..3 {
+            let save_path = temp_dir.join(format!("test_{}.jpg", i));
+            let url = "https://invalid-url.com/test.jpg";
+
+            let result = download_image(url, &save_path).await;
+            // 所有请求应该都失败但不会 panic
+            assert!(result.is_err());
+        }
+
+        // 清理
+        let _ = fs::remove_dir_all(&temp_dir).await;
+    }
 }
