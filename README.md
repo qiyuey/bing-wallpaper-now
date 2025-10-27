@@ -111,25 +111,23 @@ Click the "Settings" button (star icon) to customize:
 
 ## 🗺️ Roadmap
 
+### UI/UX Enhancements (Next Priority)
+
+We're planning to enhance the user interface and experience with the help of professional AI-powered design tools:
+
+- 🎨 **Modern UI Design** - Redesign the interface with contemporary design patterns
+- 🌈 **Visual Refinements** - Improved color schemes, typography, and spacing
+- ✨ **Smooth Animations** - Add subtle transitions and micro-interactions
+- 🎯 **Better UX Flow** - Optimize user workflows and interactions
+- 📱 **Responsive Layout** - Better adaptation to different window sizes
+- 🖼️ **Enhanced Image Display** - Improved wallpaper preview and grid layout
+
 ### Feature Enhancements
 
 - Dark mode / Light mode toggle
 - System notifications for new wallpapers
 - Multi-language support
 - Wallpaper favorites
-
-### Performance Optimizations
-
-We've implemented several performance optimizations to ensure a smooth user experience:
-
-**✅ Completed Optimizations:**
-
-- **Concurrent Downloads** - Download multiple wallpapers simultaneously with connection pooling (4x faster)
-- **Efficient Metadata Storage** - MessagePack-based indexing system for instant wallpaper list loading
-- **Smart Caching** - In-memory cache reduces disk I/O operations
-- **React Optimizations** - Memoization and optimized rendering to prevent unnecessary re-renders
-- **Streaming Downloads** - Memory-efficient image streaming reduces RAM usage
-- **Fast Tests** - Optimized test suite runs in under 2 seconds
 
 ## 📞 Support & Feedback
 
