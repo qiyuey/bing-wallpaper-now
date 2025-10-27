@@ -2,6 +2,7 @@ import { memo, useCallback, useMemo, useState, useEffect } from "react";
 import { LocalWallpaper } from "../types";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { convertFileSrc } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 
 interface WallpaperCardProps {
   wallpaper: LocalWallpaper;
@@ -16,12 +17,34 @@ export const WallpaperCard = memo(function WallpaperCard({
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const [waitingForDownload, setWaitingForDownload] = useState(true); // 是否正在等待后端下载
 
   // 当图片路径变化时重置状态
   useEffect(() => {
     setImageLoading(true);
     setImageError(false);
     setRetryCount(0);
+    setWaitingForDownload(true);
+  }, [wallpaper.file_path]);
+
+  // 监听后端下载完成事件，自动重新加载对应的图片
+  useEffect(() => {
+    const unlisten = listen<string>("image-downloaded", (event) => {
+      // 从文件路径中提取日期（例如：/path/to/20251026.jpg -> 20251026）
+      const dateFromPath = wallpaper.file_path.match(/(\d{8})\.jpg$/)?.[1];
+
+      // 如果下载完成的图片就是当前这张
+      if (event.payload === dateFromPath) {
+        setWaitingForDownload(false); // 标记已收到下载通知
+        setImageLoading(true);
+        setImageError(false);
+        setRetryCount((prev) => prev + 1);
+      }
+    });
+
+    return () => {
+      unlisten.then((fn) => fn());
+    };
   }, [wallpaper.file_path]);
 
   // 使用 useCallback 避免函数重新创建
@@ -42,22 +65,21 @@ export const WallpaperCard = memo(function WallpaperCard({
   const handleImageLoad = useCallback(() => {
     setImageLoading(false);
     setImageError(false);
+    setWaitingForDownload(false); // 图片加载成功，不再等待
   }, []);
 
   const handleImageError = useCallback(() => {
-    // 图片加载失败，可能是文件还未下载完成
-    // 自动重试几次（每3秒一次，最多3次）
-    if (retryCount < 3) {
-      window.setTimeout(() => {
-        setRetryCount((prev) => prev + 1);
-      }, 3000);
-    } else {
+    // 图片加载失败，可能是文件还未下载完成（UHD图片较大，下载时间较长）
+    // 如果还在等待后端下载，则保持加载状态，不显示错误
+    // 只有在收到下载通知后加载失败，才显示错误
+    if (!waitingForDownload) {
       setImageLoading(false);
       setImageError(true);
     }
-  }, [retryCount]);
+    // 否则保持 imageLoading=true，继续显示加载中状态
+  }, [waitingForDownload]);
 
-  // 手动重试加载
+  // 手动重试加载（仅在真正加载失败时使用，比如文件已下载但前端加载出错）
   const handleManualRetry = useCallback(() => {
     setImageLoading(true);
     setImageError(false);
@@ -91,7 +113,7 @@ export const WallpaperCard = memo(function WallpaperCard({
         title="点击查看详情"
       >
         {imageError ? (
-          // 图片加载失败 - 显示错误状态和重试按钮
+          // 图片加载失败 - 仅显示错误状态，重试按钮在底部
           <div className="wallpaper-image-placeholder">
             <p style={{ fontSize: "14px", color: "#fff" }}>加载失败</p>
             <p
@@ -101,27 +123,22 @@ export const WallpaperCard = memo(function WallpaperCard({
                 marginTop: "4px",
               }}
             >
-              图片可能还在下载中
+              图片可能还在下载中，请使用下方按钮重试
             </p>
-            <button
-              onClick={handleManualRetry}
-              className="btn btn-secondary"
-              style={{
-                marginTop: "12px",
-                padding: "6px 16px",
-                fontSize: "13px",
-              }}
-            >
-              点击重试
-            </button>
           </div>
         ) : (
           <>
             {imageLoading && (
               <div className="wallpaper-image-placeholder">
                 <div className="spinner"></div>
-                <p style={{ marginTop: "12px", fontSize: "12px", color: "rgba(255,255,255,0.8)" }}>
-                  {retryCount > 0 ? `加载中 (${retryCount}/3)...` : "加载中..."}
+                <p
+                  style={{
+                    marginTop: "12px",
+                    fontSize: "12px",
+                    color: "rgba(255,255,255,0.8)",
+                  }}
+                >
+                  加载中...
                 </p>
               </div>
             )}
@@ -145,18 +162,18 @@ export const WallpaperCard = memo(function WallpaperCard({
       </div>
       <div className="wallpaper-actions">
         <button
-          onClick={handleSetWallpaper}
+          onClick={imageError ? handleManualRetry : handleSetWallpaper}
           className="btn btn-primary"
-          disabled={imageLoading || imageError}
+          disabled={imageLoading}
           title={
             imageLoading
               ? "图片加载中，请稍候..."
               : imageError
-                ? "图片加载失败"
+                ? "点击重新加载图片"
                 : "设置为桌面壁纸"
           }
         >
-          {imageLoading ? "加载中..." : imageError ? "加载失败" : "设置壁纸"}
+          {imageLoading ? "加载中..." : imageError ? "重新加载" : "设置壁纸"}
         </button>
       </div>
     </div>

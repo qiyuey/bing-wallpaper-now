@@ -355,40 +355,78 @@ async fn run_update_cycle(app: &AppHandle) {
         }
     }
 
-    // 顺序下载图片（保证顺序一致性，避免并发导致顺序混乱）
+    // 并发下载图片（元数据顺序已在首次启动时保证，下载顺序不影响显示顺序）
     let mut success_count = 0;
     let mut fail_count = 0;
 
-    for image in images.iter() {
-        let save_path = storage::get_wallpaper_path(&dir, &image.startdate);
+    // 准备下载任务列表（仅下载不存在的文件）
+    let download_tasks: Vec<_> = images
+        .iter()
+        .filter_map(|image| {
+            let save_path = storage::get_wallpaper_path(&dir, &image.startdate);
+            if save_path.exists() {
+                debug!(target: "auto_update", "跳过已存在的图片: {}", image.startdate);
+                None
+            } else {
+                let url = bing_api::get_wallpaper_url(&image.urlbase, "UHD");
+                Some((url, save_path, image.clone()))
+            }
+        })
+        .collect();
 
-        // 跳过已存在的文件
-        if save_path.exists() {
-            debug!(target: "auto_update", "跳过已存在的图片: {}", image.startdate);
-            continue;
-        }
+    if !download_tasks.is_empty() {
+        info!(target: "auto_update", "开始并发下载 {} 张图片", download_tasks.len());
 
-        let url = bing_api::get_wallpaper_url(&image.urlbase, "UHD");
-        debug!(target: "auto_update", "开始下载图片: {}", image.startdate);
+        // 使用 futures 并发下载（最大并发数 4）
+        use futures::stream::{self, StreamExt};
+        let app_for_tasks = app.clone();
+        let dir_for_tasks = dir.clone();
 
-        match download_manager::download_image(&url, &save_path).await {
-            Ok(_) => {
-                success_count += 1;
-                info!(target: "auto_update", "图片下载成功: {}", image.startdate);
+        let results: Vec<_> = stream::iter(download_tasks)
+            .map(|(url, save_path, image)| {
+                let app_clone = app_for_tasks.clone();
+                let dir_clone = dir_for_tasks.clone();
+                async move {
+                    let startdate = image.startdate.clone();
+                    match download_manager::download_image(&url, &save_path).await {
+                        Ok(_) => {
+                            info!(target: "auto_update", "图片下载成功: {}", startdate);
 
-                // 非首次启动时，每下载一张就保存元数据
-                if !is_first_launch {
-                    let mut w = LocalWallpaper::from(image.clone());
-                    w.file_path = save_path.to_string_lossy().to_string();
+                            // 非首次启动时，每下载一张就保存元数据
+                            if !is_first_launch {
+                                let mut w = LocalWallpaper::from(image.clone());
+                                w.file_path = save_path.to_string_lossy().to_string();
 
-                    if let Err(e) = storage::save_wallpapers_metadata(vec![w], &dir).await {
-                        warn!(target: "auto_update", "保存元数据失败: {e}");
+                                if let Err(e) =
+                                    storage::save_wallpapers_metadata(vec![w], &dir_clone).await
+                                {
+                                    warn!(target: "auto_update", "保存元数据失败: {e}");
+                                }
+                            }
+
+                            // 通知前端：单张图片下载完成
+                            if let Err(e) = app_clone.emit("image-downloaded", startdate.clone()) {
+                                warn!(target: "auto_update", "通知前端图片下载完成失败: {e}");
+                            }
+
+                            Ok(startdate)
+                        }
+                        Err(e) => {
+                            warn!(target: "auto_update", "图片下载失败 {}: {}", startdate, e);
+                            Err((startdate, e))
+                        }
                     }
                 }
-            }
-            Err(e) => {
-                fail_count += 1;
-                warn!(target: "auto_update", "图片下载失败 {}: {}", image.startdate, e);
+            })
+            .buffer_unordered(4) // 最大并发数 4
+            .collect()
+            .await;
+
+        // 统计结果
+        for result in results {
+            match result {
+                Ok(_) => success_count += 1,
+                Err(_) => fail_count += 1,
             }
         }
     }

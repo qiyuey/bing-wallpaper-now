@@ -7,6 +7,9 @@ vi.mock("@tauri-apps/plugin-opener");
 vi.mock("@tauri-apps/api/core", () => ({
   convertFileSrc: vi.fn((path: string) => `asset://localhost/${path}`),
 }));
+vi.mock("@tauri-apps/api/event", () => ({
+  listen: vi.fn(() => Promise.resolve(() => {})),
+}));
 
 describe("WallpaperCard", () => {
   const mockWallpaper: LocalWallpaper = {
@@ -58,6 +61,10 @@ describe("WallpaperCard", () => {
         onSetWallpaper={mockOnSetWallpaper}
       />,
     );
+
+    // 模拟图片加载完成
+    const image = screen.getByAltText("测试壁纸") as HTMLImageElement;
+    fireEvent.load(image);
 
     const button = screen.getByRole("button", { name: /设置壁纸/i });
     fireEvent.click(button);

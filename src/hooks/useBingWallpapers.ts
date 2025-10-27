@@ -21,32 +21,37 @@ export function useBingWallpapers() {
    * 获取本地壁纸列表
    * @param showLoading 是否显示加载状态，默认 false 避免不必要的闪烁
    */
-  const fetchLocalWallpapers = useCallback(async (showLoading = false) => {
-    if (showLoading) {
-      setLoading(true);
-    }
-    setError(null);
-    try {
-      const wallpapers = await invoke<LocalWallpaper[]>("get_local_wallpapers");
-      // 只有数据真正变化时才更新状态，避免不必要的重渲染
-      setLocalWallpapers((prev) => {
-        if (JSON.stringify(prev) === JSON.stringify(wallpapers)) {
-          return prev;
-        }
-        // 首次加载完成后，标记不再是首次加载
-        if (isFirstLoad && wallpapers.length > 0) {
-          setIsFirstLoad(false);
-        }
-        return wallpapers;
-      });
-    } catch (err) {
-      setError(String(err));
-    } finally {
+  const fetchLocalWallpapers = useCallback(
+    async (showLoading = false) => {
       if (showLoading) {
-        setLoading(false);
+        setLoading(true);
       }
-    }
-  }, [isFirstLoad]);
+      setError(null);
+      try {
+        const wallpapers = await invoke<LocalWallpaper[]>(
+          "get_local_wallpapers",
+        );
+        // 只有数据真正变化时才更新状态，避免不必要的重渲染
+        setLocalWallpapers((prev) => {
+          if (JSON.stringify(prev) === JSON.stringify(wallpapers)) {
+            return prev;
+          }
+          // 首次加载完成后，标记不再是首次加载
+          if (isFirstLoad && wallpapers.length > 0) {
+            setIsFirstLoad(false);
+          }
+          return wallpapers;
+        });
+      } catch (err) {
+        setError(String(err));
+      } finally {
+        if (showLoading) {
+          setLoading(false);
+        }
+      }
+    },
+    [isFirstLoad],
+  );
 
   /**
    * 后端状态轮询：最后更新时间
