@@ -179,22 +179,30 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Rust Cache
-        id: rust-cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri
-          shared-key: stable-cache
-
       - name: Setup sccache
         if: matrix.os != 'windows-11-arm'
         uses: mozilla-actions/sccache-action@v0.0.6
 
-      - name: Configure sccache
+      - name: Configure sccache and Rust compilation
         if: matrix.os != 'windows-11-arm'
+        shell: bash
         run: |
           echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
           echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
+          # Enable sccache for all Rust compilation types
+          echo "SCCACHE_CACHE_SIZE=2G" >> $GITHUB_ENV
+          echo "SCCACHE_LOG=info" >> $GITHUB_ENV
+
+      - name: Rust Cache (with sccache integration)
+        id: rust-cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          # Use matrix-specific cache key to avoid conflicts
+          shared-key: ${{ runner.os }}-${{ runner.arch }}-stable
+          # Only cache cargo registry/git/index, not compiled artifacts (sccache handles that)
+          cache-targets: false
+          cache-on-failure: true
 
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
@@ -258,17 +266,42 @@ jobs:
         shell: bash
         run: |
           echo "## 🗂️ Build Cache Summary - ${{ matrix.platform }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Rust Cache status
           if [ "${{ steps.rust-cache.outputs.cache-hit }}" = "true" ]; then
-            echo "✅ Rust Cache: Hit" >> $GITHUB_STEP_SUMMARY
+            echo "✅ **Rust Cache (cargo registry/index)**: Hit" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ Rust Cache: Miss" >> $GITHUB_STEP_SUMMARY
+            echo "ℹ️ **Rust Cache (cargo registry/index)**: Miss (expected on first run)" >> $GITHUB_STEP_SUMMARY
           fi
+
+          # sccache statistics
           if command -v sccache >/dev/null 2>&1; then
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**sccache Statistics:**" >> $GITHUB_STEP_SUMMARY
+            echo "### sccache Statistics" >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
             sccache --show-stats >> $GITHUB_STEP_SUMMARY || echo "Unable to retrieve sccache stats" >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
+
+            # Extract and highlight cache hit rate
+            STATS=$(sccache --show-stats 2>/dev/null || echo "")
+            if [ -n "$STATS" ]; then
+              HIT_RATE=$(echo "$STATS" | grep "Cache hits rate" | head -1 | awk '{print $4}')
+              if [ -n "$HIT_RATE" ]; then
+                echo "" >> $GITHUB_STEP_SUMMARY
+                RATE_NUM=$(echo "$HIT_RATE" | sed 's/%//')
+                if (( $(echo "$RATE_NUM > 50" | bc -l 2>/dev/null || echo 0) )); then
+                  echo "✅ **sccache Cache Hit Rate**: $HIT_RATE (Good)" >> $GITHUB_STEP_SUMMARY
+                elif (( $(echo "$RATE_NUM > 0" | bc -l 2>/dev/null || echo 0) )); then
+                  echo "⚠️ **sccache Cache Hit Rate**: $HIT_RATE (Partial)" >> $GITHUB_STEP_SUMMARY
+                else
+                  echo "ℹ️ **sccache Cache Hit Rate**: $HIT_RATE (Building initial cache)" >> $GITHUB_STEP_SUMMARY
+                fi
+              fi
+            fi
+          else
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "ℹ️ **sccache**: Not available on this platform" >> $GITHUB_STEP_SUMMARY
           fi
 
   release:
