@@ -187,7 +187,7 @@ mod tests {
         let img_path = get_wallpaper_path(dir, start_date);
         fs::write(&img_path, b"").await.unwrap();
 
-        let meta = LocalWallpaper {
+        LocalWallpaper {
             id: format!("id{}", start_date),
             title: format!("Title {}", start_date),
             copyright: "Copyright".into(),
@@ -196,9 +196,7 @@ mod tests {
             end_date: start_date.into(),
             file_path: img_path.to_string_lossy().to_string(),
             download_time: Utc::now(),
-        };
-
-        meta
+        }
     }
 
     #[tokio::test]

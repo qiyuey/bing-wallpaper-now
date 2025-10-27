@@ -248,7 +248,7 @@ mod tests {
     #[tokio::test]
     async fn test_concurrent_download() {
         // 测试并发下载逻辑（不实际下载）
-        let tasks = vec![
+        let tasks = [
             (
                 "https://example.com/1.jpg".to_string(),
                 PathBuf::from("/tmp/1.jpg"),
@@ -305,7 +305,7 @@ mod tests {
     #[tokio::test]
     async fn test_concurrent_download_single_task() {
         // 测试单个任务的并发逻辑（不实际下载）
-        let tasks = vec![(
+        let tasks = [(
             "https://example.com/test.jpg".to_string(),
             PathBuf::from("/tmp/single_test.jpg"),
         )];
@@ -321,7 +321,7 @@ mod tests {
     #[tokio::test]
     async fn test_concurrent_download_mixed_results() {
         // 测试多任务的并发逻辑（不实际下载）
-        let tasks = vec![
+        let tasks = [
             (
                 "https://example.com/1.jpg".to_string(),
                 PathBuf::from("/tmp/1.jpg"),
