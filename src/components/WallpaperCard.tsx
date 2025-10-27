@@ -1,18 +1,20 @@
+import { memo, useCallback, useMemo } from "react";
 import { LocalWallpaper } from "../types";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { convertFileSrc } from "@tauri-apps/api/core";
 
 interface WallpaperCardProps {
   wallpaper: LocalWallpaper;
-  onSetWallpaper: () => void;
+  onSetWallpaper: (wallpaper: LocalWallpaper) => void;
 }
 
-export function WallpaperCard({
+// 使用 memo 优化，只在 props 变化时重新渲染
+export const WallpaperCard = memo(function WallpaperCard({
   wallpaper,
   onSetWallpaper,
 }: WallpaperCardProps) {
-  // 处理图片点击，打开版权链接
-  const handleImageClick = async () => {
+  // 使用 useCallback 避免函数重新创建
+  const handleImageClick = useCallback(async () => {
     if (wallpaper.copyright_link) {
       try {
         await openUrl(wallpaper.copyright_link);
@@ -20,12 +22,14 @@ export function WallpaperCard({
         console.error("Failed to open link:", err);
       }
     }
-  };
+  }, [wallpaper.copyright_link]);
 
-  // 解析标题和副标题
-  // 主标题：wallpaper.title（如"蓝与白的梦境"）
-  // 副标题：copyright 中不包含括号的部分（如"伊亚镇，圣托里尼岛，希腊"）
-  const parseTitleAndSubtitle = () => {
+  const handleSetWallpaper = useCallback(() => {
+    onSetWallpaper(wallpaper);
+  }, [wallpaper, onSetWallpaper]);
+
+  // 解析标题和副标题（使用 useMemo 缓存结果）
+  const { title, subtitle } = useMemo(() => {
     const title = wallpaper.title;
     const copyright = wallpaper.copyright;
 
@@ -33,16 +37,14 @@ export function WallpaperCard({
     const match = copyright.match(/^([^(]+?)(?:\s*\(([^)]+)\))?$/);
     const subtitle = match ? match[1].trim() : copyright;
 
-    return {
-      title,
-      subtitle,
-    };
-  };
+    return { title, subtitle };
+  }, [wallpaper.title, wallpaper.copyright]);
 
-  const { title, subtitle } = parseTitleAndSubtitle();
-
-  // 将本地文件路径转换为前端可访问的 URL
-  const imageUrl = convertFileSrc(wallpaper.file_path);
+  // 将本地文件路径转换为前端可访问的 URL（使用 useMemo 缓存）
+  const imageUrl = useMemo(
+    () => convertFileSrc(wallpaper.file_path),
+    [wallpaper.file_path],
+  );
 
   return (
     <div className="wallpaper-card">
@@ -57,6 +59,7 @@ export function WallpaperCard({
           alt={title}
           className="wallpaper-image"
           loading="lazy"
+          decoding="async"
         />
       </div>
       <div className="wallpaper-info">
@@ -64,10 +67,10 @@ export function WallpaperCard({
         {subtitle && <p className="wallpaper-subtitle">{subtitle}</p>}
       </div>
       <div className="wallpaper-actions">
-        <button onClick={onSetWallpaper} className="btn btn-primary">
+        <button onClick={handleSetWallpaper} className="btn btn-primary">
           设置壁纸
         </button>
       </div>
     </div>
   );
-}
+});

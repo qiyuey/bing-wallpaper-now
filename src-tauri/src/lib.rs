@@ -8,7 +8,6 @@ mod wallpaper_manager;
 use chrono::{DateTime, Local, TimeZone, Timelike};
 use log::{debug, error, info, trace, warn};
 
-use futures::stream::{FuturesUnordered, StreamExt};
 use models::{AppSettings, LocalWallpaper};
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -323,40 +322,38 @@ async fn run_update_cycle(app: &AppHandle) {
     };
     debug!(target: "auto_update", "获取到 {} 张图片用于本次处理", images.len());
 
-    let mut tasks = FuturesUnordered::new();
-    for image in images {
-        let dir_clone = dir.clone();
-        tasks.push(async move {
-            let save_path = storage::get_wallpaper_path(&dir_clone, &image.startdate);
+    // 准备并发下载任务
+    let download_tasks: Vec<(String, std::path::PathBuf)> = images
+        .iter()
+        .filter_map(|image| {
+            let save_path = storage::get_wallpaper_path(&dir, &image.startdate);
             if save_path.exists() {
-                return Ok::<(), anyhow::Error>(());
+                None // 跳过已存在的文件
+            } else {
+                let url = bing_api::get_wallpaper_url(&image.urlbase, "UHD");
+                Some((url, save_path))
             }
-            let url = bing_api::get_wallpaper_url(&image.urlbase, "UHD");
-            // 使用 download_manager 并加入简单重试 + 退避
-            let mut attempt = 0;
-            loop {
-                match download_manager::download_image(&url, &save_path).await {
-                    Ok(_) => break,
-                    Err(e) => {
-                        attempt += 1;
-                        if attempt >= 3 {
-                            anyhow::bail!("下载失败: {}", e);
-                        }
-                        let backoff = 1 << (attempt - 1);
-                        tokio::time::sleep(Duration::from_secs(backoff)).await;
+        })
+        .collect();
+
+    // 使用并发下载（最多 4 个并发，已内置重试机制）
+    if !download_tasks.is_empty() {
+        let results = download_manager::download_images_concurrent(download_tasks, 4).await;
+
+        // 保存元数据
+        for (result, image) in results.into_iter().zip(images.iter()) {
+            match result {
+                Ok(save_path) => {
+                    let mut w = LocalWallpaper::from(image.clone());
+                    w.file_path = save_path.to_string_lossy().to_string();
+                    if let Err(e) = storage::save_wallpaper_metadata(&w, &dir).await {
+                        warn!(target: "auto_update", "保存元数据失败: {e}");
                     }
                 }
+                Err(e) => {
+                    warn!(target: "auto_update", "下载失败: {e}");
+                }
             }
-            let mut w = LocalWallpaper::from(image);
-            w.file_path = save_path.to_string_lossy().to_string();
-            storage::save_wallpaper_metadata(&w, &dir_clone).await?;
-            Ok(())
-        });
-    }
-
-    while let Some(result) = tasks.next().await {
-        if let Err(e) = result {
-            warn!(target: "auto_update", "下载错误: {e}");
         }
     }
 
