@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 /// Bing API 返回的图片条目
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -45,6 +46,51 @@ impl From<BingImageEntry> for LocalWallpaper {
             file_path: String::new(), // 将在下载后设置
             download_time: Utc::now(),
         }
+    }
+}
+
+/// 壁纸元数据索引（单一文件存储）
+///
+/// 索引版本号说明：
+/// - v1: 初始版本，使用 MessagePack 格式
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WallpaperIndex {
+    /// 版本号（用于兼容性检查）
+    pub version: u32,
+    /// 最后更新时间
+    pub last_updated: DateTime<Utc>,
+    /// 壁纸列表（key = start_date）
+    pub wallpapers: HashMap<String, LocalWallpaper>,
+}
+
+impl Default for WallpaperIndex {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl WallpaperIndex {
+    /// 索引版本常量
+    pub const VERSION: u32 = 1;
+
+    /// 创建新索引
+    pub fn new() -> Self {
+        Self {
+            version: Self::VERSION,
+            last_updated: Utc::now(),
+            wallpapers: HashMap::new(),
+        }
+    }
+
+    /// 获取壁纸数量
+    pub fn len(&self) -> usize {
+        self.wallpapers.len()
+    }
+
+    /// 判断是否为空
+    #[allow(dead_code)]
+    pub fn is_empty(&self) -> bool {
+        self.wallpapers.is_empty()
     }
 }
 

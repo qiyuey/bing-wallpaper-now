@@ -1,7 +1,37 @@
+use crate::index_manager::IndexManager;
 use crate::models::LocalWallpaper;
 use anyhow::{Context, Result};
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use tokio::fs;
+
+#[cfg(not(test))]
+use std::sync::OnceLock;
+
+/// 全局索引管理器（使用 OnceLock 确保线程安全）
+/// 注意：在生产环境中，每个应用实例只使用一个目录
+/// 在测试环境中，每个测试使用不同的临时目录，因此直接创建新实例
+#[cfg(not(test))]
+static INDEX_MANAGER: OnceLock<Arc<IndexManager>> = OnceLock::new();
+
+/// 获取索引管理器
+///
+/// 在生产环境中使用全局单例；在测试环境中为每个目录创建新实例
+fn get_index_manager(directory: &Path) -> Arc<IndexManager> {
+    #[cfg(test)]
+    {
+        // 测试环境：为每个目录创建独立的 IndexManager 实例
+        Arc::new(IndexManager::new(directory.to_path_buf()))
+    }
+
+    #[cfg(not(test))]
+    {
+        // 生产环境：使用全局单例
+        INDEX_MANAGER
+            .get_or_init(|| Arc::new(IndexManager::new(directory.to_path_buf())))
+            .clone()
+    }
+}
 
 /// 获取默认的壁纸存储目录
 pub fn get_default_wallpaper_directory() -> Result<PathBuf> {
@@ -37,55 +67,40 @@ pub fn get_wallpaper_path(directory: &Path, start_date: &str) -> PathBuf {
     directory.join(format!("{}.jpg", start_date))
 }
 
-/// 获取所有已下载的壁纸
+/// 获取所有已下载的壁纸（使用索引）
+///
+/// 优先从索引加载，大幅提升性能。
 pub async fn get_local_wallpapers(directory: &Path) -> Result<Vec<LocalWallpaper>> {
-    if !directory.exists() {
-        return Ok(Vec::new());
-    }
-
-    let mut entries = fs::read_dir(directory)
-        .await
-        .context("Failed to read wallpaper directory")?;
-
-    let mut wallpapers = Vec::new();
-
-    while let Some(entry) = entries.next_entry().await? {
-        let path = entry.path();
-
-        if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("jpg") {
-            // 尝试读取元数据文件
-            let metadata_path = path.with_extension("json");
-            if let Ok(metadata_content) = fs::read_to_string(&metadata_path).await
-                && let Ok(wallpaper) = serde_json::from_str::<LocalWallpaper>(&metadata_content)
-            {
-                wallpapers.push(wallpaper);
-            }
-        }
-    }
-
-    // 按日期排序,最新的在前
-    wallpapers.sort_by(|a, b| b.start_date.cmp(&a.start_date));
-
-    Ok(wallpapers)
+    let manager = get_index_manager(directory);
+    manager.get_all_wallpapers().await
 }
 
-/// 保存壁纸元数据
+/// 保存壁纸元数据（使用索引）
+///
+/// 单个壁纸保存，性能较低。推荐使用 `save_wallpapers_metadata` 进行批量保存。
+#[allow(dead_code)]
 pub async fn save_wallpaper_metadata(wallpaper: &LocalWallpaper, directory: &Path) -> Result<()> {
-    let metadata_path = directory.join(format!("{}.json", wallpaper.start_date));
-
-    let json = serde_json::to_string_pretty(wallpaper)
-        .context("Failed to serialize wallpaper metadata")?;
-
-    fs::write(&metadata_path, json)
-        .await
-        .context("Failed to write wallpaper metadata")?;
-
-    Ok(())
+    let manager = get_index_manager(directory);
+    manager.upsert_wallpaper(wallpaper.clone()).await
 }
 
-/// 删除旧的壁纸,只保留指定数量
+/// 批量保存壁纸元数据（性能优化）
+///
+/// 一次性保存多个壁纸，比多次调用 `save_wallpaper_metadata` 效率高得多。
+pub async fn save_wallpapers_metadata(
+    wallpapers: Vec<LocalWallpaper>,
+    directory: &Path,
+) -> Result<()> {
+    let manager = get_index_manager(directory);
+    manager.upsert_wallpapers(wallpapers).await
+}
+
+/// 删除旧的壁纸，只保留指定数量（使用索引）
+///
+/// 自动删除图片文件、旧 JSON 元数据文件，并更新索引。
 pub async fn cleanup_old_wallpapers(directory: &Path, keep_count: usize) -> Result<usize> {
-    let mut wallpapers = get_local_wallpapers(directory).await?;
+    let manager = get_index_manager(directory);
+    let mut wallpapers = manager.get_all_wallpapers().await?;
 
     if wallpapers.len() <= keep_count {
         return Ok(0);
@@ -93,24 +108,30 @@ pub async fn cleanup_old_wallpapers(directory: &Path, keep_count: usize) -> Resu
 
     // 排序后删除旧的
     wallpapers.sort_by(|a, b| b.start_date.cmp(&a.start_date));
-
     let to_delete = wallpapers.split_off(keep_count);
     let deleted_count = to_delete.len();
 
-    for wallpaper in to_delete {
+    // 收集要删除的 start_date
+    let start_dates: Vec<String> = to_delete.iter().map(|w| w.start_date.clone()).collect();
+
+    // 删除文件
+    for wallpaper in &to_delete {
         let image_path = Path::new(&wallpaper.file_path);
-        let metadata_path = image_path.with_extension("json");
 
         // 删除图片文件
         if image_path.exists() {
             let _ = fs::remove_file(image_path).await;
         }
 
-        // 删除元数据文件
-        if metadata_path.exists() {
-            let _ = fs::remove_file(&metadata_path).await;
+        // 删除旧的 JSON 元数据文件（如果存在）
+        let json_path = image_path.with_extension("json");
+        if json_path.exists() {
+            let _ = fs::remove_file(&json_path).await;
         }
     }
+
+    // 批量更新索引
+    manager.remove_wallpapers(&start_dates).await?;
 
     Ok(deleted_count)
 }
@@ -149,7 +170,7 @@ mod tests {
     }
 
     // 创建若干假壁纸文件与元数据
-    async fn create_fake_wallpaper(dir: &Path, start_date: &str) {
+    async fn create_fake_wallpaper(dir: &Path, start_date: &str) -> LocalWallpaper {
         let img_path = get_wallpaper_path(dir, start_date);
         fs::write(&img_path, b"").await.unwrap();
 
@@ -163,10 +184,8 @@ mod tests {
             file_path: img_path.to_string_lossy().to_string(),
             download_time: Utc::now(),
         };
-        let meta_path = img_path.with_extension("json");
-        fs::write(&meta_path, serde_json::to_string(&meta).unwrap())
-            .await
-            .unwrap();
+
+        meta
     }
 
     #[tokio::test]
@@ -179,9 +198,15 @@ mod tests {
         fs::create_dir_all(&temp_dir).await.unwrap();
 
         // 创建 5 张壁纸
+        let mut wallpapers = Vec::new();
         for d in ["20240101", "20240102", "20240103", "20240104", "20240105"] {
-            create_fake_wallpaper(&temp_dir, d).await;
+            wallpapers.push(create_fake_wallpaper(&temp_dir, d).await);
         }
+
+        // 批量保存元数据到索引
+        save_wallpapers_metadata(wallpapers, &temp_dir)
+            .await
+            .unwrap();
 
         // 保留 3 张
         let deleted = cleanup_old_wallpapers(&temp_dir, 3).await.unwrap();
@@ -209,9 +234,15 @@ mod tests {
         fs::create_dir_all(&temp_dir).await.unwrap();
 
         // 创建 2 张壁纸
+        let mut wallpapers = Vec::new();
         for d in ["20240201", "20240202"] {
-            create_fake_wallpaper(&temp_dir, d).await;
+            wallpapers.push(create_fake_wallpaper(&temp_dir, d).await);
         }
+
+        // 批量保存元数据到索引
+        save_wallpapers_metadata(wallpapers, &temp_dir)
+            .await
+            .unwrap();
 
         // 保留数量设置为 5，不应删除
         let deleted = cleanup_old_wallpapers(&temp_dir, 5).await.unwrap();

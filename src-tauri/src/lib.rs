@@ -1,5 +1,6 @@
 mod bing_api;
 mod download_manager;
+mod index_manager;
 mod macos_app;
 mod models;
 mod storage;
@@ -340,20 +341,26 @@ async fn run_update_cycle(app: &AppHandle) {
     if !download_tasks.is_empty() {
         let results = download_manager::download_images_concurrent(download_tasks, 4).await;
 
-        // 保存元数据
+        // 收集成功下载的壁纸元数据
+        let mut successful_wallpapers = Vec::new();
         for (result, image) in results.into_iter().zip(images.iter()) {
             match result {
                 Ok(save_path) => {
                     let mut w = LocalWallpaper::from(image.clone());
                     w.file_path = save_path.to_string_lossy().to_string();
-                    if let Err(e) = storage::save_wallpaper_metadata(&w, &dir).await {
-                        warn!(target: "auto_update", "保存元数据失败: {e}");
-                    }
+                    successful_wallpapers.push(w);
                 }
                 Err(e) => {
                     warn!(target: "auto_update", "下载失败: {e}");
                 }
             }
+        }
+
+        // 批量保存元数据
+        if !successful_wallpapers.is_empty()
+            && let Err(e) = storage::save_wallpapers_metadata(successful_wallpapers, &dir).await
+        {
+            warn!(target: "auto_update", "批量保存元数据失败: {e}");
         }
     }
 
