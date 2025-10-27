@@ -6,17 +6,20 @@ use std::sync::Arc;
 use tokio::fs;
 
 #[cfg(not(test))]
-use std::sync::OnceLock;
-
-/// 全局索引管理器（使用 OnceLock 确保线程安全）
-/// 注意：在生产环境中，每个应用实例只使用一个目录
-/// 在测试环境中，每个测试使用不同的临时目录，因此直接创建新实例
+use std::collections::HashMap;
 #[cfg(not(test))]
-static INDEX_MANAGER: OnceLock<Arc<IndexManager>> = OnceLock::new();
+use std::sync::{Mutex, OnceLock};
+
+/// 全局索引管理器映射表（支持多目录）
+/// Key: 目录路径的规范化字符串
+/// Value: 对应目录的 IndexManager
+#[cfg(not(test))]
+static INDEX_MANAGERS: OnceLock<Mutex<HashMap<String, Arc<IndexManager>>>> = OnceLock::new();
 
 /// 获取索引管理器
 ///
-/// 在生产环境中使用全局单例；在测试环境中为每个目录创建新实例
+/// 在生产环境中使用全局映射表管理多个目录的 IndexManager；
+/// 在测试环境中为每个目录创建新实例
 fn get_index_manager(directory: &Path) -> Arc<IndexManager> {
     #[cfg(test)]
     {
@@ -26,9 +29,19 @@ fn get_index_manager(directory: &Path) -> Arc<IndexManager> {
 
     #[cfg(not(test))]
     {
-        // 生产环境：使用全局单例
-        INDEX_MANAGER
-            .get_or_init(|| Arc::new(IndexManager::new(directory.to_path_buf())))
+        // 生产环境：使用全局映射表，支持多目录
+        let managers = INDEX_MANAGERS.get_or_init(|| Mutex::new(HashMap::new()));
+        let mut map = managers.lock().unwrap();
+
+        // 使用规范化的路径作为 key
+        let key = directory
+            .canonicalize()
+            .unwrap_or_else(|_| directory.to_path_buf())
+            .to_string_lossy()
+            .to_string();
+
+        map.entry(key)
+            .or_insert_with(|| Arc::new(IndexManager::new(directory.to_path_buf())))
             .clone()
     }
 }

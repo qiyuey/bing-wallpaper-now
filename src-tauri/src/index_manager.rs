@@ -82,11 +82,11 @@ impl IndexManager {
         // 版本检查
         if index.version != WallpaperIndex::VERSION {
             log::warn!(
-                "Index version mismatch (expected {}, got {}), rebuilding...",
+                "Index version mismatch (expected {}, got {}), creating new index",
                 WallpaperIndex::VERSION,
                 index.version
             );
-            return self.rebuild_index().await;
+            return Ok(WallpaperIndex::default());
         }
 
         Ok(index)
@@ -211,61 +211,6 @@ impl IndexManager {
     pub async fn get_wallpaper(&self, start_date: &str) -> Result<Option<LocalWallpaper>> {
         let index = self.load_index().await?;
         Ok(index.wallpapers.get(start_date).cloned())
-    }
-
-    /// 重建索引（从现有 JSON 文件迁移）
-    ///
-    /// 扫描目录中的所有 JSON 元数据文件，并构建新的索引。
-    /// 这是一个一次性迁移过程，通常在首次使用新版本时自动触发。
-    async fn rebuild_index(&self) -> Result<WallpaperIndex> {
-        log::info!(
-            "Rebuilding index from JSON files in {:?}...",
-            self.directory
-        );
-
-        let mut index = WallpaperIndex::new();
-
-        // 扫描目录中的 JSON 文件
-        if !self.directory.exists() {
-            log::warn!("Directory does not exist, creating empty index");
-            return Ok(index);
-        }
-
-        let mut entries = fs::read_dir(&self.directory)
-            .await
-            .context("Failed to read directory")?;
-
-        let mut json_count = 0;
-        let mut success_count = 0;
-
-        while let Some(entry) = entries.next_entry().await? {
-            let path = entry.path();
-            if path.extension().and_then(|s| s.to_str()) == Some("json") {
-                json_count += 1;
-                if let Ok(content) = fs::read_to_string(&path).await {
-                    if let Ok(wallpaper) = serde_json::from_str::<LocalWallpaper>(&content) {
-                        index
-                            .wallpapers
-                            .insert(wallpaper.start_date.clone(), wallpaper);
-                        success_count += 1;
-                    } else {
-                        log::warn!("Failed to parse JSON file: {:?}", path);
-                    }
-                } else {
-                    log::warn!("Failed to read JSON file: {:?}", path);
-                }
-            }
-        }
-
-        log::info!(
-            "Index rebuilt: {} wallpapers from {} JSON files",
-            success_count,
-            json_count
-        );
-
-        // 保存新索引
-        self.save_index(&index).await?;
-        Ok(index)
     }
 
     /// 清理缓存
