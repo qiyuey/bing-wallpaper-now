@@ -135,6 +135,9 @@ async fn download_image_internal(url: &str, save_path: &Path) -> Result<()> {
 ///
 /// # Returns
 /// 返回所有下载结果，成功返回路径，失败返回错误
+///
+/// 注意：当前使用顺序下载以保证顺序一致性，此函数保留以备将来需要
+#[allow(dead_code)]
 pub async fn download_images_concurrent(
     download_tasks: Vec<(String, PathBuf)>,
     max_concurrent: usize,

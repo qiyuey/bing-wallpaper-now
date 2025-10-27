@@ -57,6 +57,13 @@ export const WallpaperCard = memo(function WallpaperCard({
     }
   }, [retryCount]);
 
+  // 手动重试加载
+  const handleManualRetry = useCallback(() => {
+    setImageLoading(true);
+    setImageError(false);
+    setRetryCount((prev) => prev + 1);
+  }, []);
+
   // 解析标题和副标题（使用 useMemo 缓存结果）
   const { title, subtitle } = useMemo(() => {
     const title = wallpaper.title;
@@ -84,12 +91,29 @@ export const WallpaperCard = memo(function WallpaperCard({
         title="点击查看详情"
       >
         {imageError ? (
-          // 图片加载失败 - 显示错误状态
+          // 图片加载失败 - 显示错误状态和重试按钮
           <div className="wallpaper-image-placeholder">
             <p style={{ fontSize: "14px", color: "#fff" }}>加载失败</p>
-            <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.7)", marginTop: "4px" }}>
+            <p
+              style={{
+                fontSize: "12px",
+                color: "rgba(255,255,255,0.7)",
+                marginTop: "4px",
+              }}
+            >
               图片可能还在下载中
             </p>
+            <button
+              onClick={handleManualRetry}
+              className="btn btn-secondary"
+              style={{
+                marginTop: "12px",
+                padding: "6px 16px",
+                fontSize: "13px",
+              }}
+            >
+              点击重试
+            </button>
           </div>
         ) : (
           <>
