@@ -26,6 +26,7 @@ dist-ssr
 # Tauri
 src-tauri/target
 src-tauri/gen
+target
 
 # Rust
 **/*.rs.bk
