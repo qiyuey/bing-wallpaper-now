@@ -6,6 +6,7 @@ interface WallpaperGridProps {
   wallpapers: LocalWallpaper[];
   onSetWallpaper: (wallpaper: LocalWallpaper) => void;
   loading?: boolean;
+  isFirstLoad?: boolean;
 }
 
 // 骨架屏组件
@@ -24,6 +25,7 @@ export const WallpaperGrid = memo(function WallpaperGrid({
   wallpapers,
   onSetWallpaper,
   loading = false,
+  isFirstLoad = false,
 }: WallpaperGridProps) {
   // 使用 useCallback 避免传递不稳定的 props
   const handleSetWallpaper = useCallback(
@@ -38,6 +40,22 @@ export const WallpaperGrid = memo(function WallpaperGrid({
       <>
         <div className="wallpaper-grid-loading">
           <p>加载中...</p>
+          {isFirstLoad && (
+            <p
+              style={{
+                fontSize: "14px",
+                color: "#666",
+                marginTop: "8px",
+                lineHeight: "1.5",
+              }}
+            >
+              首次加载需下载壁纸，请稍候...
+              <br />
+              <span style={{ fontSize: "12px", color: "#999" }}>
+                正在从 Bing 获取今日精美壁纸
+              </span>
+            </p>
+          )}
         </div>
         <div className="wallpaper-grid">
           {/* 显示 8 个骨架屏 */}
@@ -53,6 +71,25 @@ export const WallpaperGrid = memo(function WallpaperGrid({
     return (
       <div className="wallpaper-grid-empty">
         <p>暂无壁纸</p>
+        {isFirstLoad && (
+          <p
+            style={{
+              fontSize: "14px",
+              color: "#666",
+              marginTop: "12px",
+              padding: "16px",
+              background: "#f5f5f5",
+              borderRadius: "8px",
+              lineHeight: "1.6",
+            }}
+          >
+            🎨 首次启动需要下载壁纸，请耐心等待...
+            <br />
+            <span style={{ fontSize: "13px", color: "#999" }}>
+              正在从 Bing 下载最新的高清壁纸（约 2-3MB）
+            </span>
+          </p>
+        )}
       </div>
     );
   }

@@ -15,6 +15,7 @@ function App() {
     localWallpapers,
     loading,
     error,
+    isFirstLoad,
     fetchLocalWallpapers,
     setDesktopWallpaper,
     forceUpdate,
@@ -204,6 +205,7 @@ function App() {
           wallpapers={localWallpapers}
           onSetWallpaper={handleSetWallpaper}
           loading={loading}
+          isFirstLoad={isFirstLoad}
         />
       </main>
 

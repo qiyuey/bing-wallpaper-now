@@ -13,6 +13,7 @@ export function useBingWallpapers() {
   const [localWallpapers, setLocalWallpapers] = useState<LocalWallpaper[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isFirstLoad, setIsFirstLoad] = useState(true); // 标记是否首次加载
 
   const [lastUpdateTime, setLastUpdateTime] = useState<string | null>(null);
 
@@ -32,6 +33,10 @@ export function useBingWallpapers() {
         if (JSON.stringify(prev) === JSON.stringify(wallpapers)) {
           return prev;
         }
+        // 首次加载完成后，标记不再是首次加载
+        if (isFirstLoad && wallpapers.length > 0) {
+          setIsFirstLoad(false);
+        }
         return wallpapers;
       });
     } catch (err) {
@@ -41,7 +46,7 @@ export function useBingWallpapers() {
         setLoading(false);
       }
     }
-  }, []);
+  }, [isFirstLoad]);
 
   /**
    * 后端状态轮询：最后更新时间
@@ -171,6 +176,7 @@ export function useBingWallpapers() {
     localWallpapers,
     loading,
     error,
+    isFirstLoad,
     lastUpdateTime,
     isUpToDate,
     fetchLocalWallpapers,

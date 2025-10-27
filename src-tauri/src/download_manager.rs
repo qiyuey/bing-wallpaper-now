@@ -10,16 +10,20 @@ use tokio::io::AsyncWriteExt;
 /// 全局 HTTP 客户端，复用连接池
 ///
 /// 配置说明：
-/// - pool_max_idle_per_host: 每个主机最多保持 8 个空闲连接
+/// - pool_max_idle_per_host: 每个主机最多保持 10 个空闲连接（提升并发能力）
 /// - pool_idle_timeout: 连接空闲 90 秒后自动关闭
-/// - timeout: 请求总超时时间 60 秒
-/// - connect_timeout: 连接建立超时 10 秒
+/// - timeout: 请求总超时时间 90 秒（给大文件更多时间）
+/// - connect_timeout: 连接建立超时 8 秒（加快失败检测）
+/// - tcp_keepalive: 保持连接活跃，减少重连开销
+/// - http2_prior_knowledge: 启用 HTTP/2（Bing 支持）以提升性能
 static HTTP_CLIENT: LazyLock<Client> = LazyLock::new(|| {
     Client::builder()
-        .pool_max_idle_per_host(8)
+        .pool_max_idle_per_host(10)
         .pool_idle_timeout(Some(Duration::from_secs(90)))
-        .timeout(Duration::from_secs(60))
-        .connect_timeout(Duration::from_secs(10))
+        .timeout(Duration::from_secs(90))
+        .connect_timeout(Duration::from_secs(8))
+        .tcp_keepalive(Some(Duration::from_secs(60)))
+        .http2_prior_knowledge()
         .user_agent("BingWallpaperNow/0.2.0")
         .build()
         .expect("Failed to create HTTP client")
