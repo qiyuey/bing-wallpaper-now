@@ -2,6 +2,28 @@
 
 All notable changes to Bing Wallpaper Now will be documented in this file.
 
+## 0.3.2
+
+### Changed
+
+- 🔧 **简化 CI/CD 构建流程**
+  - 移除 GitHub Actions release workflow 中的 Rust cache 配置
+  - 移除 sccache 编译缓存设置，简化构建流程
+  - 移除构建缓存统计摘要部分
+  - 提升 CI 构建的稳定性和可靠性
+
+### Fixed
+
+- 🐛 **修复 Rust 编译警告**
+  - 修复 `wallpaper_manager.rs` 中未使用变量的编译警告
+  - 改进代码质量，消除潜在的警告信息
+
+### Technical
+
+- 优化 GitHub Actions 工作流配置
+- 减少 CI 构建的复杂度和依赖项
+- 提高跨平台构建的一致性
+
 ## 0.3.1
 
 ### Added
