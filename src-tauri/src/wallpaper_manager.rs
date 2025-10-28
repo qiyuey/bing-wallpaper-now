@@ -248,7 +248,7 @@ pub fn set_wallpaper(image_path: &Path) -> Result<()> {
     #[cfg(all(unix, not(target_os = "macos")))]
     {
         // 获取当前壁纸路径
-        let current_wallpaper = wallpaper::get().unwrap_or_else(|e| String::new());
+        let current_wallpaper = wallpaper::get().unwrap_or_else(|_| String::new());
 
         let target_path = image_path
             .to_str()
