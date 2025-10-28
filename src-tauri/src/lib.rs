@@ -1004,16 +1004,15 @@ pub fn run() {
 
             // 从持久化状态加载上次更新时间
             {
-                if let Ok(runtime_state) = runtime_state::load_runtime_state(app.handle()) {
-                    if let Some(ref last_update_str) = runtime_state.last_successful_update {
-                        if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(last_update_str) {
-                            tauri::async_runtime::block_on(async {
-                                let mut last_update = state.last_update_time.lock().await;
-                                *last_update = Some(dt.with_timezone(&Local));
-                            });
-                            info!(target: "startup", "从持久化状态恢复上次更新时间: {}", last_update_str);
-                        }
-                    }
+                if let Ok(runtime_state) = runtime_state::load_runtime_state(app.handle())
+                    && let Some(ref last_update_str) = runtime_state.last_successful_update
+                    && let Ok(dt) = chrono::DateTime::parse_from_rfc3339(last_update_str)
+                {
+                    tauri::async_runtime::block_on(async {
+                        let mut last_update = state.last_update_time.lock().await;
+                        *last_update = Some(dt.with_timezone(&Local));
+                    });
+                    info!(target: "startup", "从持久化状态恢复上次更新时间: {}", last_update_str);
                 }
             }
 

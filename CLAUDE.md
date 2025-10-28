@@ -9,6 +9,7 @@ Bing Wallpaper Now is a cross-platform desktop application that automatically fe
 ## Development Commands
 
 ### Quick Start
+
 ```bash
 # Install dependencies (uses pnpm by default, falls back to npm)
 make install
@@ -20,6 +21,7 @@ pnpm run tauri dev
 ```
 
 ### Code Quality
+
 ```bash
 # Run all checks before committing (format, lint, types, tests)
 make check
@@ -35,6 +37,7 @@ pnpm run test:frontend # Frontend tests only
 ```
 
 ### Build & Release
+
 ```bash
 # Build production app
 pnpm run tauri build
@@ -68,6 +71,7 @@ The Rust backend (`src-tauri/src/`) follows a modular architecture:
   - `bing_api.rs`: Bing wallpaper API client with retry mechanism
 
 **Key Patterns**:
+
 - All Tauri commands are async and return `Result<T, String>`
 - Shared state via `Arc<Mutex<T>>` in `AppState`
 - Event emission for frontend updates
@@ -102,15 +106,18 @@ The React frontend (`src/`) uses functional components and hooks:
 ## Platform-Specific Considerations
 
 ### macOS
+
 - Multi-monitor support implementation in `wallpaper_manager.rs`
 - Uses `objc2` bindings for native macOS APIs
 - Handles fullscreen apps and Spaces switching
 
 ### Windows
+
 - Direct Windows API integration for wallpaper setting
 - MSI installer configuration in `tauri.conf.json`
 
 ### Linux
+
 - Uses desktop environment detection for wallpaper setting
 - Supports GNOME, KDE, and other common DEs
 
@@ -137,6 +144,7 @@ The React frontend (`src/`) uses functional components and hooks:
 ### Adding a New Tauri Command
 
 1. Add the async function in `src-tauri/src/lib.rs`:
+
 ```rust
 #[tauri::command]
 async fn your_command(state: tauri::State<'_, AppState>) -> Result<ReturnType, String> {
@@ -144,9 +152,10 @@ async fn your_command(state: tauri::State<'_, AppState>) -> Result<ReturnType, S
 }
 ```
 
-2. Register in the command handler list in `lib.rs`
+1. Register in the command handler list in `lib.rs`
 
-3. Call from frontend:
+1. Call from frontend:
+
 ```typescript
 import { invoke } from '@tauri-apps/api/core';
 const result = await invoke('your_command', { args });
@@ -155,6 +164,7 @@ const result = await invoke('your_command', { args });
 ### Modifying Wallpaper Storage
 
 The storage system uses MessagePack for efficient binary serialization. Key files:
+
 - `storage.rs`: Core storage logic
 - `models.rs`: `Wallpaper` struct definition
 - Settings are stored separately via `tauri-plugin-store`
@@ -162,6 +172,7 @@ The storage system uses MessagePack for efficient binary serialization. Key file
 ### Working with Background Updates
 
 The app uses a smart update cycle:
+
 - Checks for updates based on last update time
 - Runs in background without blocking UI
 - Configurable auto-update interval

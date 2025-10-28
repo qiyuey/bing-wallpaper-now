@@ -26,9 +26,7 @@ pub fn load_runtime_state(app: &AppHandle) -> Result<AppRuntimeState> {
 
             Ok(state)
         }
-        None => {
-            Ok(AppRuntimeState::default())
-        }
+        None => Ok(AppRuntimeState::default()),
     }
 }
 
