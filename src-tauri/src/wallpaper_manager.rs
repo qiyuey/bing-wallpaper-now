@@ -6,7 +6,7 @@ use log::info;
 #[cfg(all(unix, not(target_os = "macos")))]
 use log::info;
 #[cfg(target_os = "macos")]
-use log::{info, trace, warn};
+use log::{info, warn};
 #[cfg(target_os = "macos")]
 use std::collections::HashMap;
 #[cfg(target_os = "macos")]
