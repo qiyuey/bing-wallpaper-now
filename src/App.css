@@ -5,18 +5,44 @@
 }
 
 html {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  background: var(--bg-gradient);
   min-height: 100vh;
 }
 
 :root {
   font-family:
-    -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto,
-    Oxygen, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+    "Smiley Sans",
+    "MiSans",
+    "Mi Sans",
+    "HarmonyOS Sans SC",
+    "PingFang SC",
+    "Hiragino Sans GB",
+    "Hiragino Maru Gothic ProN",
+    "Source Han Sans Rounded SC",
+    "Source Han Sans SC",
+    "Noto Sans CJK SC",
+    "Microsoft YaHei",
+    "Microsoft YaHei UI",
+    "Segoe UI",
+    -apple-system,
+    BlinkMacSystemFont,
+    "SF Pro Rounded",
+    "Helvetica Neue",
+    sans-serif,
+    "Apple Color Emoji",
+    "Segoe UI Emoji";
   font-size: 16px;
-  line-height: 1.5;
-  font-weight: 400;
+  line-height: 1.6;
+  font-weight: 350;
+  letter-spacing: 0.5px;
   color-scheme: light dark;
+  /* macOS 原生字体渲染优化 - 柔和渲染 */
+  -webkit-font-smoothing: subpixel-antialiased;
+  -moz-osx-font-smoothing: auto;
+  /* 更好的文本渲染 */
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "kern" 1;
+  font-kerning: normal;
 }
 
 body {
@@ -25,34 +51,130 @@ body {
 }
 
 .app {
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
   background: transparent;
+  overflow: hidden;
 }
 
 /* Header */
 .app-header {
-  background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(40px) saturate(180%);
-  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  background: transparent;
   padding: 1.25rem 2.5rem;
-  box-shadow:
-    0 1px 0 0 rgba(255, 255, 255, 0.15),
-    0 8px 32px rgba(0, 0, 0, 0.12),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
-  border-bottom: 0.5px solid rgba(255, 255, 255, 0.18);
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.app-header h1 {
-  font-size: 1.625rem;
-  font-weight: 600;
-  color: #ffffff;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
-  letter-spacing: -0.02em;
+/* App Title - Apple Design Award Style */
+.app-title {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  line-height: 1.3;
+  padding: 0.2rem 0;
+}
+
+.app-title-main {
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  opacity: 0.95;
+  background: linear-gradient(
+    135deg,
+    var(--text-primary) 0%,
+    var(--text-secondary) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-stroke: 0.35px rgba(15, 23, 42, 0.35);
+  -webkit-text-stroke: 0.35px rgba(15, 23, 42, 0.35);
+}
+
+/* 浅色模式 - 深色渐变 + 向下阴影 */
+:root[data-theme="light"] .app-title-main {
+  background: linear-gradient(135deg, #1f2633 0%, #1f2937 55%, #212c3d 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-stroke: 0.32px rgba(21, 30, 44, 0.38);
+  -webkit-text-stroke: 0.32px rgba(21, 30, 44, 0.38);
+  filter: drop-shadow(0 2px 3px rgba(15, 23, 42, 0.22))
+    drop-shadow(0 0 4px rgba(30, 41, 59, 0.18));
+}
+
+/* 深色模式 - 浅色渐变 + 微光晕 */
+:root[data-theme="dark"] .app-title-main {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(255, 255, 255, 0.75) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 1px 2px rgba(255, 255, 255, 0.1));
+  text-stroke: 0.35px rgba(15, 23, 42, 0.2);
+  -webkit-text-stroke: 0.35px rgba(15, 23, 42, 0.2);
+}
+
+.app-title-accent {
+  font-size: 2rem;
+  font-family:
+    "MiSans Heavy", "MiSans Bold", "MiSans", "HarmonyOS Sans SC", "PingFang SC",
+    "Source Han Sans SC Bold", "Source Han Sans SC", "Noto Sans CJK SC Bold",
+    "Noto Sans CJK SC", "Microsoft YaHei", "Microsoft YaHei UI", "Segoe UI",
+    sans-serif;
+  font-weight: 900;
+  font-variation-settings: "wght" 900;
+  background: linear-gradient(
+    135deg,
+    var(--accent-color) 0%,
+    var(--accent-active) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.3px;
+  text-stroke: 0.45px rgba(63, 63, 116, 0.4);
+  -webkit-text-stroke: 0.45px rgba(63, 63, 116, 0.4);
+  filter: drop-shadow(0 2px 8px rgba(99, 102, 241, 0.3))
+    drop-shadow(0 0 2px rgba(255, 255, 255, 0.8));
+}
+
+/* 浅色模式 - 更深的颜色 + 自然光照的向下阴影 */
+:root[data-theme="light"] .app-title-accent {
+  background: linear-gradient(135deg, #5a5df6 0%, #4f46e5 50%, #3f37c9 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-stroke: 0.4px rgba(74, 74, 138, 0.4);
+  -webkit-text-stroke: 0.4px rgba(74, 74, 138, 0.4);
+  filter: drop-shadow(0 2px 6px rgba(79, 70, 229, 0.22))
+    drop-shadow(0 0 10px rgba(129, 140, 248, 0.38));
+}
+
+/* 深色模式下的光晕效果 */
+:root[data-theme="dark"] .app-title-accent {
+  filter: drop-shadow(0 2px 12px rgba(129, 140, 248, 0.4));
+}
+
+/* App Tagline */
+.app-tagline {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--text-tertiary);
+  letter-spacing: 0.4px;
+  opacity: 0.7;
+}
+
+/* 浅色模式 - 提升可见性 */
+:root[data-theme="light"] .app-tagline {
+  opacity: 0.88;
+  font-weight: 500;
 }
 
 .header-actions {
@@ -61,12 +183,30 @@ body {
   align-items: center;
 }
 
+.last-update {
+  font-size: 0.75rem;
+  margin-right: 0.75rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  font-weight: 300;
+  letter-spacing: 0.3px;
+  opacity: 0.55;
+}
+
+/* 浅色模式 - 提升可见性 */
+:root[data-theme="light"] .last-update {
+  opacity: 0.85;
+  font-weight: 400;
+}
+
 /* Tabs */
 .app-tabs {
-  background: white;
+  background: var(--bg-glass);
   display: flex;
   padding: 0 2rem;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--border-primary);
+  backdrop-filter: var(--blur-light);
+  -webkit-backdrop-filter: var(--blur-light);
 }
 
 .tab {
@@ -75,40 +215,41 @@ body {
   background: transparent;
   cursor: pointer;
   font-size: 1rem;
-  color: #666;
+  color: var(--text-secondary);
   border-bottom: 2px solid transparent;
   transition: all 0.2s;
 }
 
 .tab:hover {
-  color: #0078d4;
+  color: var(--accent-hover);
 }
 
 .tab.active {
-  color: #0078d4;
-  border-bottom-color: #0078d4;
+  color: var(--accent-color);
+  border-bottom-color: var(--accent-color);
 }
 
 /* Main Content */
 .app-main {
   flex: 1;
-  padding: 2.5rem;
-  overflow-y: auto;
+  padding: 0;
+  overflow: hidden;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: transparent;
 }
 
 .error-message {
-  background: rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(30px) saturate(150%);
-  -webkit-backdrop-filter: blur(30px) saturate(150%);
-  color: #ffffff;
+  background: var(--bg-glass);
+  backdrop-filter: var(--blur-medium);
+  -webkit-backdrop-filter: var(--blur-medium);
+  color: var(--text-primary);
   padding: 1.25rem 1.5rem;
   margin: 0 2.5rem;
   border-radius: 16px;
-  border: 0.5px solid rgba(255, 100, 100, 0.35);
-  box-shadow:
-    0 1px 0 0 rgba(255, 255, 255, 0.1),
-    0 8px 24px rgba(0, 0, 0, 0.15),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+  border: 0.5px solid var(--error-border);
+  box-shadow: var(--shadow-md);
   font-weight: 500;
 }
 
@@ -120,74 +261,98 @@ body {
 }
 
 /* Wallpaper Grid */
-.wallpaper-grid {
+/* Wallpaper Container - 直接作为虚拟列表的容器 */
+.wallpaper-container {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Virtual List Row - react-window 的 List 组件会自己处理滚动 */
+.wallpaper-row {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-  gap: 2rem;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 1.5rem;
+  padding: 0 2rem;
+  align-items: start;
+}
+
+.wallpaper-row-item {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Static Grid for Loading/Empty States */
+.wallpaper-grid-static {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 1.5rem;
+  padding: 2rem 2.5rem;
 }
 
 .wallpaper-grid-loading,
 .wallpaper-grid-empty {
-  grid-column: 1 / -1;
-  text-align: center;
-  padding: 4rem;
-  color: rgba(255, 255, 255, 0.9);
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  color: var(--text-primary);
   font-size: 1.125rem;
   font-weight: 500;
 }
 
-/* Wallpaper Card */
-.wallpaper-card {
-  background: rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(40px) saturate(180%);
-  -webkit-backdrop-filter: blur(40px) saturate(180%);
-  border-radius: 20px;
-  overflow: hidden;
-  box-shadow:
-    0 1px 0 0 rgba(255, 255, 255, 0.2),
-    0 12px 40px rgba(0, 0, 0, 0.15),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
-  border: 0.5px solid rgba(255, 255, 255, 0.25);
-  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+/* Responsive */
+@media (max-width: 1200px) {
+  .wallpaper-virtual-list {
+    padding: 0 1.5rem;
+  }
+  .wallpaper-grid-static {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    padding: 1.5rem;
+  }
 }
 
-.wallpaper-card:hover {
-  transform: translateY(-8px) scale(1.02);
-  box-shadow:
-    0 1px 0 0 rgba(255, 255, 255, 0.3),
-    0 20px 60px rgba(0, 0, 0, 0.25),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.35);
+@media (max-width: 768px) {
+  .wallpaper-virtual-list {
+    padding: 0 1rem;
+  }
+  .wallpaper-row {
+    gap: 1rem;
+  }
+  .wallpaper-grid-static {
+    grid-template-columns: 1fr;
+    padding: 1rem;
+  }
+}
+
+/* Wallpaper Card */
+.wallpaper-card {
+  background: var(--bg-glass);
+  backdrop-filter: var(--blur-medium);
+  -webkit-backdrop-filter: var(--blur-medium);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  transition: var(--theme-transition);
 }
 
 .wallpaper-image-container {
   width: 100%;
   height: 280px;
   overflow: hidden;
-  background: rgba(0, 0, 0, 0.1);
+  background: var(--bg-glass);
   position: relative;
   cursor: pointer;
-  transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-}
-
-.wallpaper-image-container:hover {
-  transform: scale(1.05);
-}
-
-.wallpaper-image-container:active {
-  transform: scale(0.95);
 }
 
 .wallpaper-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: opacity 0.3s ease;
+  transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .wallpaper-image:hover {
-  opacity: 0.95;
+  transform: scale(1.05);
 }
 
 .wallpaper-info {
@@ -195,33 +360,42 @@ body {
 }
 
 .wallpaper-title {
-  font-size: 1.0625rem;
+  font-size: 1.125rem;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--text-primary);
   margin-bottom: 0.375rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
-  letter-spacing: -0.01em;
-  line-height: 1.4;
+  letter-spacing: 0.15px;
+  line-height: 1.3;
+}
+
+/* 深色模式 - 添加轻微阴影增强可读性 */
+:root[data-theme="dark"] .wallpaper-title {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* 浅色模式 - 极轻微阴影或无阴影 */
+:root[data-theme="light"] .wallpaper-title {
+  text-shadow: 0 0.5px 1px rgba(0, 0, 0, 0.06);
 }
 
 .wallpaper-subtitle {
-  font-size: 0.9375rem;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: var(--text-secondary);
   margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.2);
-  letter-spacing: -0.005em;
+  letter-spacing: 0.1px;
+  opacity: 0.75;
 }
 
 .wallpaper-copyright {
   font-size: 0.875rem;
-  color: #666;
+  color: var(--text-tertiary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -233,71 +407,70 @@ body {
   gap: 0.625rem;
 }
 
+/* 卡片内的按钮 - 较低透明度 */
+.wallpaper-actions .btn-primary {
+  background: var(--bg-button);
+}
+
+.wallpaper-actions .btn-primary:hover {
+  background: var(--bg-button-hover);
+}
+
 /* Buttons */
 .btn {
   padding: 0.625rem 1.25rem;
   border: none;
   border-radius: 12px;
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  letter-spacing: -0.005em;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
+  letter-spacing: 0.2px;
 }
 
 .btn-primary {
-  background: rgba(255, 255, 255, 0.22);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  color: white;
+  background: var(--bg-glass);
+  backdrop-filter: var(--blur-light);
+  -webkit-backdrop-filter: var(--blur-light);
+  color: var(--text-primary);
   flex: 1;
-  border: 0.5px solid rgba(255, 255, 255, 0.35);
-  box-shadow:
-    0 1px 0 0 rgba(255, 255, 255, 0.2),
-    0 4px 16px rgba(0, 0, 0, 0.12),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
+  box-shadow: var(--shadow-sm);
+  transition: background 0.2s ease;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* 浅色模式 - 更明显的阴影 */
+:root[data-theme="light"] .btn-primary {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
 }
 
 .btn-primary:hover {
-  background: rgba(255, 255, 255, 0.28);
-  border-color: rgba(255, 255, 255, 0.45);
-  transform: translateY(-2px) scale(1.02);
-  box-shadow:
-    0 1px 0 0 rgba(255, 255, 255, 0.25),
-    0 8px 24px rgba(0, 0, 0, 0.18),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.2);
+  background: var(--bg-glass-hover);
 }
 
 .btn-secondary {
-  background: rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  color: rgba(255, 255, 255, 0.95);
+  background: var(--bg-control);
+  backdrop-filter: var(--blur-light);
+  -webkit-backdrop-filter: var(--blur-light);
+  color: var(--text-secondary);
   flex: 1;
-  border: 0.5px solid rgba(255, 255, 255, 0.25);
-  box-shadow:
-    0 1px 0 0 rgba(255, 255, 255, 0.15),
-    0 4px 16px rgba(0, 0, 0, 0.12),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+  box-shadow: var(--shadow-sm);
+  transition: background 0.2s ease;
 }
 
 .btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.18);
-  border-color: rgba(255, 255, 255, 0.35);
-  transform: translateY(-2px) scale(1.02);
-  box-shadow:
-    0 1px 0 0 rgba(255, 255, 255, 0.2),
-    0 8px 24px rgba(0, 0, 0, 0.18),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
+  background: var(--bg-control-hover);
 }
 
 .btn-warning {
-  background: #ff6b6b;
+  background: var(--warning-color);
   color: white;
 }
 
 .btn-warning:hover {
-  background: #ee5a5a;
+  background: var(--warning-border);
 }
 
 .btn-warning:disabled {
@@ -314,7 +487,7 @@ body {
 
 .btn-link {
   background: transparent;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--text-secondary);
   border: none;
   padding: 0.375rem 0.5rem;
   font-size: 0.8125rem;
@@ -323,7 +496,7 @@ body {
 }
 
 .btn-link:hover {
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--text-primary);
   background: transparent;
   transform: none;
   box-shadow: none;
@@ -331,35 +504,21 @@ body {
 
 .btn-icon {
   padding: 0.625rem;
-  background: rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  background: var(--bg-button-header);
+  backdrop-filter: var(--blur-light);
+  -webkit-backdrop-filter: var(--blur-light);
   font-size: 1.25rem;
-  border: 0.5px solid rgba(255, 255, 255, 0.25);
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
-  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  box-shadow:
-    0 1px 0 0 rgba(255, 255, 255, 0.15),
-    0 4px 16px rgba(0, 0, 0, 0.12),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+  transition: background 0.2s ease;
+  box-shadow: var(--shadow-sm);
 }
 
 .btn-icon:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.35);
-  transform: translateY(-2px) scale(1.05);
-  box-shadow:
-    0 1px 0 0 rgba(255, 255, 255, 0.2),
-    0 8px 24px rgba(0, 0, 0, 0.18),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
-}
-
-.btn-icon:active {
-  transform: scale(0.95);
+  background: var(--bg-button-header-hover);
 }
 
 .btn-icon svg {
@@ -371,7 +530,7 @@ body {
   border: none;
   font-size: 2rem;
   cursor: pointer;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--text-secondary);
   line-height: 1;
   padding: 0;
   width: 2rem;
@@ -380,8 +539,18 @@ body {
 }
 
 .btn-close:hover {
-  color: #ffffff;
+  color: var(--text-primary);
   transform: scale(1.1);
+}
+
+/* 浅色模式 - 更深的颜色以增强对比度 */
+:root[data-theme="light"] .btn-close {
+  color: var(--text-primary);
+  opacity: 0.6;
+}
+
+:root[data-theme="light"] .btn-close:hover {
+  opacity: 1;
 }
 
 /* Settings Modal */
@@ -391,7 +560,7 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--overlay-bg);
   backdrop-filter: blur(20px) saturate(120%);
   -webkit-backdrop-filter: blur(20px) saturate(120%);
   display: flex;
@@ -411,10 +580,10 @@ body {
 }
 
 .settings-modal {
-  background: rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(60px) saturate(180%);
-  -webkit-backdrop-filter: blur(60px) saturate(180%);
-  border: 0.5px solid rgba(255, 255, 255, 0.3);
+  background: var(--bg-modal);
+  backdrop-filter: var(--blur-heavy);
+  -webkit-backdrop-filter: var(--blur-heavy);
+  border: 1px solid var(--border-primary);
   border-radius: 24px;
   width: 90%;
   max-width: 520px;
@@ -422,11 +591,9 @@ body {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  box-shadow:
-    0 1px 0 0 rgba(255, 255, 255, 0.2),
-    0 24px 80px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
+  box-shadow: var(--shadow-xl);
   animation: slideUp 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transition: var(--theme-transition);
 }
 
 @keyframes slideUp {
@@ -445,15 +612,15 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 1.75rem 2rem;
-  border-bottom: 0.5px solid rgba(255, 255, 255, 0.2);
+  border-bottom: 0.5px solid var(--border-primary);
 }
 
 .settings-header h2 {
   font-size: 1.375rem;
   font-weight: 600;
-  color: #ffffff;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
-  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  letter-spacing: -0.3px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
 .settings-body {
@@ -472,9 +639,8 @@ body {
   gap: 0.625rem;
   font-size: 0.9375rem;
   font-weight: 500;
-  color: #ffffff;
-  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.2);
-  letter-spacing: -0.005em;
+  color: var(--text-primary);
+  letter-spacing: 0.1px;
 }
 
 .settings-label.checkbox-label {
@@ -488,33 +654,184 @@ body {
   height: 20px;
   cursor: pointer;
   margin: 0;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  border: 2px solid var(--border-primary);
+  border-radius: 6px;
+  background: transparent;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.settings-label input[type="checkbox"]:checked {
+  background: var(--accent-color);
+  border-color: var(--accent-color);
+}
+
+.settings-label input[type="checkbox"]:checked::before {
+  content: "";
+  position: absolute;
+  top: 1px;
+  left: 4px;
+  width: 5px;
+  height: 9px;
+  border: solid white;
+  border-width: 0 2.5px 2.5px 0;
+  transform: rotate(45deg);
+}
+
+/* 浅色模式下增强复选框颜色 */
+:root[data-theme="light"] .settings-label input[type="checkbox"]:checked {
+  background: var(--accent-color);
+  border-color: var(--accent-color);
+}
+
+:root[data-theme="light"]
+  .settings-label
+  input[type="checkbox"]:checked::before {
+  border-color: white;
+}
+
+/* 深色模式下降低复选框亮度 */
+:root[data-theme="dark"] .settings-label input[type="checkbox"]:checked {
+  background: rgba(129, 140, 248, 0.5);
+  border-color: rgba(129, 140, 248, 0.5);
+}
+
+:root[data-theme="dark"]
+  .settings-label
+  input[type="checkbox"]:checked::before {
+  border-color: rgba(255, 255, 255, 0.65);
 }
 
 .settings-label > span {
   display: inline;
 }
 
-.settings-input {
+/* Radio button group */
+.radio-group {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.625rem;
+}
+
+.radio-option {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
   padding: 0.75rem 1rem;
-  background: rgba(255, 255, 255, 0.08);
-  border: 0.5px solid rgba(255, 255, 255, 0.2);
+  background: var(--bg-control);
+  border: 0.5px solid var(--border-secondary);
   border-radius: 12px;
   font-size: 0.9375rem;
   font-weight: 500;
-  color: #ffffff;
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  color: var(--text-secondary);
+  cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+  backdrop-filter: var(--blur-light);
+  -webkit-backdrop-filter: var(--blur-light);
+}
+
+.radio-option:hover {
+  background: var(--bg-control-hover);
+  border-color: var(--border-hover);
+}
+
+.radio-option input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: var(--accent-color);
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  border: 2px solid var(--border-primary);
+  border-radius: 50%;
+  background: transparent;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.radio-option input[type="radio"]:checked {
+  background: var(--accent-color);
+  border-color: var(--accent-color);
+}
+
+.radio-option input[type="radio"]:checked::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: white;
+}
+
+/* 浅色模式下增强单选按钮颜色 */
+:root[data-theme="light"] .radio-option input[type="radio"]:checked {
+  background: var(--accent-color);
+  border-color: var(--accent-color);
+}
+
+:root[data-theme="light"] .radio-option input[type="radio"]:checked::before {
+  background: white;
+}
+
+/* 深色模式下降低单选按钮亮度 */
+:root[data-theme="dark"] .radio-option input[type="radio"]:checked {
+  background: rgba(129, 140, 248, 0.6);
+  border-color: rgba(129, 140, 248, 0.6);
+}
+
+:root[data-theme="dark"] .radio-option input[type="radio"]:checked::before {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.radio-option input[type="radio"]:checked + span {
+  color: var(--text-primary);
+}
+
+.radio-option:has(input[type="radio"]:checked) {
+  background: var(--bg-control-hover);
+  border-color: var(--accent-color);
+  color: var(--text-primary);
+}
+
+.settings-input {
+  padding: 0.75rem 1rem;
+  background: var(--bg-control);
+  border: 0.5px solid var(--border-secondary);
+  border-radius: 12px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  backdrop-filter: var(--blur-light);
+  -webkit-backdrop-filter: var(--blur-light);
+  transition: var(--theme-transition);
+  font-family: inherit;
 }
 
 .settings-input:focus {
   outline: none;
-  border-color: rgba(255, 255, 255, 0.4);
-  background: rgba(255, 255, 255, 0.12);
-  box-shadow:
-    inset 0 1px 2px rgba(0, 0, 0, 0.1),
-    0 0 0 3px rgba(255, 255, 255, 0.1);
+  border-color: var(--border-hover);
+  background: var(--bg-control-hover);
+  box-shadow: 0 0 0 3px var(--border-secondary);
+}
+
+.settings-input[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.settings-input[type="number"]::-webkit-inner-spin-button,
+.settings-input[type="number"]::-webkit-outer-spin-button {
+  opacity: 1;
 }
 
 .settings-dir-row {
@@ -527,68 +844,63 @@ body {
 .settings-dir-info {
   flex: 1;
   padding: 0.875rem 1rem;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--bg-control);
   border-radius: 12px;
   font-size: 0.875rem;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--text-secondary);
   word-break: break-all;
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 0.5px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: var(--blur-light);
+  -webkit-backdrop-filter: var(--blur-light);
+  border: 0.5px solid var(--border-secondary);
   display: flex;
   align-items: center;
+  transition: var(--theme-transition);
 }
 
 .settings-hint {
   font-size: 0.8125rem;
   font-weight: 400;
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--text-tertiary);
   margin-top: 0.375rem;
   line-height: 1.5;
 }
 
 .settings-footer {
   padding: 1.75rem 2rem;
-  border-top: 0.5px solid rgba(255, 255, 255, 0.2);
+  border-top: 0.5px solid var(--border-primary);
   display: flex;
   gap: 0.75rem;
   justify-content: flex-end;
 }
 
+/* 设置页按钮统一样式 - 保存按钮和取消按钮保持一致 */
+.settings-footer .btn-primary,
+.settings-footer .btn-secondary {
+  background: var(--bg-control);
+}
+
+.settings-footer .btn-primary:hover,
+.settings-footer .btn-secondary:hover {
+  background: var(--bg-control-hover);
+}
+
 .settings-loading {
   text-align: center;
   padding: 3rem;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--text-primary);
   font-size: 1rem;
   font-weight: 500;
 }
 
-/* Footer */
-.app-footer {
-  padding: 0.75rem 2.5rem;
-  text-align: right;
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(30px) saturate(150%);
-  -webkit-backdrop-filter: blur(30px) saturate(150%);
-  border-top: 0.5px solid rgba(255, 255, 255, 0.1);
-}
-
-.version-info {
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.5);
-  font-weight: 400;
-  letter-spacing: 0.02em;
-}
-
 /* Skeleton Loading */
 .wallpaper-card-skeleton {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--skeleton-base);
   backdrop-filter: blur(40px) saturate(180%);
   -webkit-backdrop-filter: blur(40px) saturate(180%);
   border-radius: 20px;
   overflow: hidden;
-  border: 0.5px solid rgba(255, 255, 255, 0.15);
+  border: 0.5px solid var(--border-primary);
   animation: pulse 1.5s ease-in-out infinite;
 }
 
@@ -597,9 +909,9 @@ body {
   height: 280px;
   background: linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0.08) 25%,
-    rgba(255, 255, 255, 0.15) 50%,
-    rgba(255, 255, 255, 0.08) 75%
+    var(--skeleton-base) 25%,
+    var(--skeleton-shimmer) 50%,
+    var(--skeleton-base) 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
@@ -610,9 +922,9 @@ body {
   margin: 0 1.5rem;
   background: linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0.08) 25%,
-    rgba(255, 255, 255, 0.15) 50%,
-    rgba(255, 255, 255, 0.08) 75%
+    var(--skeleton-base) 25%,
+    var(--skeleton-shimmer) 50%,
+    var(--skeleton-base) 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
@@ -636,9 +948,9 @@ body {
   height: 38px;
   background: linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0.12) 25%,
-    rgba(255, 255, 255, 0.18) 50%,
-    rgba(255, 255, 255, 0.12) 75%
+    var(--skeleton-base) 25%,
+    var(--skeleton-shimmer) 50%,
+    var(--skeleton-base) 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
@@ -652,6 +964,82 @@ body {
   100% {
     background-position: 200% 0;
   }
+}
+
+/* About Modal Styles */
+.about-title {
+  color: var(--text-primary);
+}
+
+.about-version {
+  color: var(--text-secondary);
+}
+
+.about-info-box {
+  background: var(--bg-control);
+}
+
+.about-description {
+  color: var(--text-secondary);
+}
+
+.about-tech-stack {
+  color: var(--text-tertiary);
+}
+
+.about-github-link {
+  color: var(--text-primary);
+  background: var(--bg-control);
+  border: 0.5px solid var(--border-primary);
+}
+
+.about-github-link:hover {
+  background: var(--bg-control-hover);
+  border-color: var(--border-hover);
+}
+
+.about-copyright {
+  color: var(--text-disabled);
+}
+
+/* Status Badge Styles */
+.status-badge {
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-right: 8px;
+  font-weight: 500;
+}
+
+.status-success {
+  color: var(--success-color);
+  border: 1px solid var(--success-border);
+  background: var(--success-bg);
+}
+
+/* Settings Version Text */
+.settings-version {
+  font-size: 0.75rem;
+  color: var(--text-disabled);
+  font-weight: 400;
+}
+
+/* WallpaperCard Placeholder Text Styles */
+.placeholder-error-text {
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.placeholder-hint-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.placeholder-loading-text {
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
 }
 
 @keyframes pulse {
@@ -672,7 +1060,7 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.15);
+  background: var(--bg-control);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
@@ -681,8 +1069,8 @@ body {
 .spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid rgba(255, 255, 255, 0.2);
-  border-top-color: rgba(255, 255, 255, 0.8);
+  border: 3px solid var(--border-secondary);
+  border-top-color: var(--text-primary);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }

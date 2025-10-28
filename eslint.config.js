@@ -56,6 +56,8 @@ export default [
         clearInterval: "readonly",
         HTMLElement: "readonly",
         HTMLImageElement: "readonly",
+        HTMLDivElement: "readonly",
+        ResizeObserver: "readonly",
         global: "readonly",
       },
     },

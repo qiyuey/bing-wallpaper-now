@@ -1,4 +1,5 @@
-import { memo, useCallback } from "react";
+import { memo, useCallback, useState, useEffect, useRef } from "react";
+import { List, RowComponentProps } from "react-window";
 import { WallpaperCard } from "./WallpaperCard";
 import { LocalWallpaper } from "../types";
 
@@ -6,8 +7,13 @@ interface WallpaperGridProps {
   wallpapers: LocalWallpaper[];
   onSetWallpaper: (wallpaper: LocalWallpaper) => void;
   loading?: boolean;
-  isFirstLoad?: boolean;
 }
+
+// 行配置
+const ROW_HEIGHT = 455; // 每行高度（图片280px + 内容区域 + 间距）
+const CARDS_PER_ROW_DESKTOP = 3; // 桌面端每行3张
+const CARDS_PER_ROW_TABLET = 2; // 平板端每行2张
+const CARDS_PER_ROW_MOBILE = 1; // 移动端每行1张
 
 // 骨架屏组件
 const SkeletonCard = memo(() => (
@@ -21,13 +27,63 @@ const SkeletonCard = memo(() => (
 
 SkeletonCard.displayName = "SkeletonCard";
 
+// Row 渲染组件的额外数据类型
+interface RowData {
+  wallpapers: LocalWallpaper[];
+  cardsPerRow: number;
+  onSetWallpaper: (wallpaper: LocalWallpaper) => void;
+}
+
 export const WallpaperGrid = memo(function WallpaperGrid({
   wallpapers,
   onSetWallpaper,
   loading = false,
-  isFirstLoad = false,
 }: WallpaperGridProps) {
-  // 使用 useCallback 避免传递不稳定的 props
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+  const [containerHeight, setContainerHeight] = useState(600);
+  const [cardsPerRow, setCardsPerRow] = useState(CARDS_PER_ROW_DESKTOP);
+
+  // 监听容器尺寸变化（使用 ResizeObserver 自动获取可用高度）
+  useEffect(() => {
+    const updateSize = () => {
+      if (containerRef.current) {
+        const width = containerRef.current.offsetWidth;
+        const height = containerRef.current.offsetHeight;
+        setContainerWidth(width);
+        setContainerHeight(height);
+
+        // 根据宽度决定每行卡片数
+        if (width < 768) {
+          setCardsPerRow(CARDS_PER_ROW_MOBILE);
+        } else if (width < 1200) {
+          setCardsPerRow(CARDS_PER_ROW_TABLET);
+        } else {
+          setCardsPerRow(CARDS_PER_ROW_DESKTOP);
+        }
+      }
+    };
+
+    updateSize();
+
+    // 使用 ResizeObserver 监听容器尺寸变化
+    const resizeObserver = new ResizeObserver(() => {
+      updateSize();
+    });
+
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+
+    // 也监听窗口 resize 作为备份
+    window.addEventListener("resize", updateSize);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", updateSize);
+    };
+  }, []);
+
   const handleSetWallpaper = useCallback(
     (wallpaper: LocalWallpaper) => {
       onSetWallpaper(wallpaper);
@@ -35,74 +91,63 @@ export const WallpaperGrid = memo(function WallpaperGrid({
     [onSetWallpaper],
   );
 
-  if (loading) {
-    return (
-      <>
-        <div className="wallpaper-grid-loading">
-          <p>加载中...</p>
-          {isFirstLoad && (
-            <p
-              style={{
-                fontSize: "14px",
-                color: "#666",
-                marginTop: "8px",
-                lineHeight: "1.5",
-              }}
-            >
-              首次加载需下载壁纸，请稍候...
-              <br />
-              <span style={{ fontSize: "12px", color: "#999" }}>
-                正在从 Bing 获取今日精美壁纸
-              </span>
-            </p>
-          )}
-        </div>
-        <div className="wallpaper-grid">
-          {/* 显示 8 个骨架屏 */}
-          {Array.from({ length: 8 }, (_, i) => (
-            <SkeletonCard key={i} />
-          ))}
-        </div>
-      </>
+  // Row 组件
+  const Row = ({
+    index,
+    style,
+    wallpapers,
+    cardsPerRow,
+    onSetWallpaper,
+  }: RowComponentProps<RowData>) => {
+    const startIndex = index * cardsPerRow;
+    const rowWallpapers = wallpapers.slice(
+      startIndex,
+      startIndex + cardsPerRow,
     );
-  }
 
-  if (wallpapers.length === 0) {
     return (
-      <div className="wallpaper-grid-empty">
-        <p>暂无壁纸</p>
-        {isFirstLoad && (
-          <p
-            style={{
-              fontSize: "14px",
-              color: "#666",
-              marginTop: "12px",
-              padding: "16px",
-              background: "#f5f5f5",
-              borderRadius: "8px",
-              lineHeight: "1.6",
-            }}
-          >
-            🎨 首次启动需要下载壁纸，请耐心等待...
-            <br />
-            <span style={{ fontSize: "13px", color: "#999" }}>
-              正在从 Bing 下载最新的高清壁纸（约 2-3MB）
-            </span>
-          </p>
-        )}
+      <div style={style} className="wallpaper-row">
+        {rowWallpapers.map((wallpaper: LocalWallpaper) => (
+          <div key={wallpaper.id} className="wallpaper-row-item">
+            <WallpaperCard
+              wallpaper={wallpaper}
+              onSetWallpaper={onSetWallpaper}
+            />
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  if (loading || wallpapers.length === 0) {
+    return (
+      <div ref={containerRef} className="wallpaper-container">
+        <div className="wallpaper-grid-loading">
+          <div className="spinner"></div>
+        </div>
       </div>
     );
   }
 
+  // 计算总行数
+  const rowCount = Math.ceil(wallpapers.length / cardsPerRow);
+
   return (
-    <div className="wallpaper-grid">
-      {wallpapers.map((wallpaper) => (
-        <WallpaperCard
-          key={wallpaper.id}
-          wallpaper={wallpaper}
-          onSetWallpaper={handleSetWallpaper}
+    <div ref={containerRef} className="wallpaper-container">
+      {containerWidth > 0 && containerHeight > 0 && (
+        <List<RowData>
+          rowCount={rowCount}
+          rowHeight={ROW_HEIGHT}
+          className="wallpaper-virtual-list"
+          style={{ width: containerWidth, height: containerHeight }}
+          rowComponent={Row}
+          rowProps={{
+            wallpapers,
+            cardsPerRow,
+            onSetWallpaper: handleSetWallpaper,
+          }}
         />
-      ))}
+      )}
     </div>
   );
 });

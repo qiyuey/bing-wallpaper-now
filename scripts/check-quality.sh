@@ -33,6 +33,9 @@ init_counters
 # Detect package manager
 PKG_MANAGER=$(project_detect_package_manager)
 
+# Array to track failed checks
+FAILED_CHECKS=()
+
 # ============================================================================
 # Header
 # ============================================================================
@@ -52,6 +55,7 @@ if validate_rust_format; then
     increment_passed
 else
     increment_failed
+    FAILED_CHECKS+=("Rust Code Format (cargo fmt)")
 fi
 
 # Check 2: Rust Clippy
@@ -61,6 +65,7 @@ if validate_rust_clippy; then
     increment_passed
 else
     increment_failed
+    FAILED_CHECKS+=("Rust Clippy (cargo clippy)")
 fi
 
 # Check 3: Rust Tests
@@ -70,6 +75,7 @@ if validate_rust_tests; then
     increment_passed
 else
     increment_failed
+    FAILED_CHECKS+=("Rust Unit Tests (cargo test)")
 fi
 
 # Check 4: TypeScript Types
@@ -79,6 +85,7 @@ if validate_typescript_types "$PKG_MANAGER"; then
     increment_passed
 else
     increment_failed
+    FAILED_CHECKS+=("TypeScript Type Check (tsc)")
 fi
 
 # Check 5: ESLint
@@ -88,6 +95,7 @@ if validate_eslint "$PKG_MANAGER"; then
     increment_passed
 else
     increment_failed
+    FAILED_CHECKS+=("ESLint Check")
 fi
 
 # Check 6: Prettier
@@ -97,6 +105,7 @@ if validate_prettier "$PKG_MANAGER"; then
     increment_passed
 else
     increment_failed
+    FAILED_CHECKS+=("Prettier Format Check")
 fi
 
 # Check 7: Frontend Tests
@@ -106,6 +115,7 @@ if validate_frontend_tests "$PKG_MANAGER"; then
     increment_passed
 else
     increment_failed
+    FAILED_CHECKS+=("Frontend Unit Tests (vitest)")
 fi
 
 # Check 8: Markdown Lint
@@ -115,6 +125,7 @@ if validate_markdown_lint "$PKG_MANAGER"; then
     increment_passed
 else
     increment_failed
+    FAILED_CHECKS+=("Markdown Lint Check")
 fi
 
 # ============================================================================
@@ -132,6 +143,14 @@ if [[ $UI_COUNTER_FAILED -eq 0 ]]; then
     exit 0
 else
     printf "${COLOR_RED}${COLOR_BOLD}❌ %d check(s) failed${COLOR_RESET}\n\n" $UI_COUNTER_FAILED
+
+    # List all failed checks
+    printf "${COLOR_RED}${COLOR_BOLD}Failed checks:${COLOR_RESET}\n"
+    for check in "${FAILED_CHECKS[@]}"; do
+        printf "  ${COLOR_RED}✗ %s${COLOR_RESET}\n" "$check"
+    done
+    printf "\n"
+
     printf "${COLOR_YELLOW}Quick fixes:${COLOR_RESET}\n"
     printf "  - Format: ${COLOR_BLUE}cargo fmt && $PKG_MANAGER run format${COLOR_RESET}\n"
     printf "  - Lint: ${COLOR_BLUE}$PKG_MANAGER run lint:fix${COLOR_RESET}\n"

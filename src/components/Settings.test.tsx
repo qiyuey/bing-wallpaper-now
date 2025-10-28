@@ -1,11 +1,18 @@
 /* eslint-env browser */
+import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { Settings } from "./Settings";
+import { ThemeProvider } from "../contexts/ThemeContext";
 import * as dialog from "@tauri-apps/plugin-dialog";
 
 vi.mock("@tauri-apps/api/core");
 vi.mock("@tauri-apps/plugin-dialog");
+
+// Helper to render with ThemeProvider
+const renderWithTheme = (component: React.ReactElement) => {
+  return render(<ThemeProvider>{component}</ThemeProvider>);
+};
 
 describe("Settings", () => {
   const mockOnClose = vi.fn();
@@ -15,14 +22,14 @@ describe("Settings", () => {
   });
 
   it("should render settings modal", () => {
-    render(<Settings onClose={mockOnClose} />);
+    renderWithTheme(<Settings onClose={mockOnClose} />);
 
     // Should show either the settings content or loading state
     expect(screen.getByText(/设置|加载设置中.../i)).toBeInTheDocument();
   });
 
   it("should close when cancel button is clicked", async () => {
-    render(<Settings onClose={mockOnClose} />);
+    renderWithTheme(<Settings onClose={mockOnClose} />);
 
     // Wait for settings to load, then find cancel button
     const cancelButton = await screen.findByText("取消", {}, { timeout: 3000 });
@@ -32,7 +39,7 @@ describe("Settings", () => {
   });
 
   it("should close when X button is clicked", async () => {
-    render(<Settings onClose={mockOnClose} />);
+    renderWithTheme(<Settings onClose={mockOnClose} />);
 
     // Wait for settings to load, then find X button
     const closeButton = await screen.findByText("×", {}, { timeout: 3000 });
@@ -42,7 +49,7 @@ describe("Settings", () => {
   });
 
   it("should have form inputs when loaded", async () => {
-    render(<Settings onClose={mockOnClose} />);
+    renderWithTheme(<Settings onClose={mockOnClose} />);
 
     // Wait for the auto-update checkbox to appear
     const checkbox = await screen.findByLabelText(
@@ -55,7 +62,7 @@ describe("Settings", () => {
   });
 
   it("should toggle auto-update checkbox", async () => {
-    render(<Settings onClose={mockOnClose} />);
+    renderWithTheme(<Settings onClose={mockOnClose} />);
 
     const checkbox = (await screen.findByLabelText(
       /自动更新/i,
@@ -72,7 +79,7 @@ describe("Settings", () => {
   });
 
   it("should toggle launch at startup checkbox", async () => {
-    render(<Settings onClose={mockOnClose} />);
+    renderWithTheme(<Settings onClose={mockOnClose} />);
 
     const checkbox = (await screen.findByLabelText(
       /开机自启动/i,
@@ -89,7 +96,7 @@ describe("Settings", () => {
   });
 
   it("should update keep image count", async () => {
-    render(<Settings onClose={mockOnClose} />);
+    renderWithTheme(<Settings onClose={mockOnClose} />);
 
     const input = (await screen.findByLabelText(
       /保留壁纸数量/i,
@@ -105,7 +112,7 @@ describe("Settings", () => {
   });
 
   it("should not allow keep image count below 8", async () => {
-    render(<Settings onClose={mockOnClose} />);
+    renderWithTheme(<Settings onClose={mockOnClose} />);
 
     const input = (await screen.findByLabelText(
       /保留壁纸数量/i,
@@ -126,7 +133,7 @@ describe("Settings", () => {
     const mockOpen = vi.fn().mockResolvedValue("/test/path");
     vi.mocked(dialog.open).mockImplementation(mockOpen);
 
-    render(<Settings onClose={mockOnClose} />);
+    renderWithTheme(<Settings onClose={mockOnClose} />);
 
     const selectButton = await screen.findByText(
       /选择文件夹/i,
@@ -149,7 +156,7 @@ describe("Settings", () => {
     const mockOpen = vi.fn().mockResolvedValue("/new/folder");
     vi.mocked(dialog.open).mockImplementation(mockOpen);
 
-    render(<Settings onClose={mockOnClose} />);
+    renderWithTheme(<Settings onClose={mockOnClose} />);
 
     const selectButton = await screen.findByText(
       /选择文件夹/i,
@@ -167,7 +174,7 @@ describe("Settings", () => {
     const mockOpen = vi.fn().mockResolvedValue(null);
     vi.mocked(dialog.open).mockImplementation(mockOpen);
 
-    render(<Settings onClose={mockOnClose} />);
+    renderWithTheme(<Settings onClose={mockOnClose} />);
 
     const selectButton = await screen.findByText(
       /选择文件夹/i,
@@ -205,7 +212,7 @@ describe("Settings", () => {
       .spyOn(console, "error")
       .mockImplementation(() => {});
 
-    render(<Settings onClose={mockOnClose} />);
+    renderWithTheme(<Settings onClose={mockOnClose} />);
 
     const selectButton = await screen.findByText(
       /选择文件夹/i,
@@ -228,7 +235,7 @@ describe("Settings", () => {
     const mockOpen = vi.fn().mockResolvedValue("/custom/folder");
     vi.mocked(dialog.open).mockImplementation(mockOpen);
 
-    render(<Settings onClose={mockOnClose} />);
+    renderWithTheme(<Settings onClose={mockOnClose} />);
 
     const selectButton = await screen.findByText(
       /选择文件夹/i,
@@ -250,7 +257,7 @@ describe("Settings", () => {
     const mockOpen = vi.fn().mockResolvedValue("/custom/folder");
     vi.mocked(dialog.open).mockImplementation(mockOpen);
 
-    render(<Settings onClose={mockOnClose} />);
+    renderWithTheme(<Settings onClose={mockOnClose} />);
 
     // Select custom folder first
     const selectButton = await screen.findByText(
@@ -277,7 +284,7 @@ describe("Settings", () => {
   });
 
   it("should call updateSettings and close on save", async () => {
-    render(<Settings onClose={mockOnClose} />);
+    renderWithTheme(<Settings onClose={mockOnClose} />);
 
     const saveButton = await screen.findByText("保存", {}, { timeout: 3000 });
     fireEvent.click(saveButton);
@@ -290,7 +297,7 @@ describe("Settings", () => {
   it("should show alert when save fails", async () => {
     const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
 
-    render(<Settings onClose={mockOnClose} />);
+    renderWithTheme(<Settings onClose={mockOnClose} />);
 
     // Wait for settings to load
     const saveButton = await screen.findByText("保存", {}, { timeout: 3000 });
@@ -305,7 +312,7 @@ describe("Settings", () => {
   });
 
   it("should disable save button when loading", async () => {
-    render(<Settings onClose={mockOnClose} />);
+    renderWithTheme(<Settings onClose={mockOnClose} />);
 
     const saveButton = (await screen.findByText(
       "保存",

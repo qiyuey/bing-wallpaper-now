@@ -3,6 +3,7 @@ mod download_manager;
 mod index_manager;
 mod macos_app;
 mod models;
+mod settings_store;
 mod storage;
 mod wallpaper_manager;
 
@@ -99,7 +100,19 @@ async fn get_settings(
     state: tauri::State<'_, AppState>,
     app: tauri::AppHandle,
 ) -> Result<AppSettings, String> {
-    let mut settings = state.settings.lock().await;
+    // 从 store 加载设置
+    let stored_settings = settings_store::load_settings(&app).unwrap_or_else(|e| {
+        warn!(target: "settings", "从 store 加载设置失败: {}，使用内存中的设置", e);
+        tauri::async_runtime::block_on(async { state.settings.lock().await.clone() })
+    });
+
+    // 更新内存中的设置
+    {
+        let mut settings = state.settings.lock().await;
+        *settings = stored_settings.clone();
+    }
+
+    let mut settings = stored_settings;
 
     // 从系统读取真实的自启动状态
     let autostart_manager = app.autolaunch();
@@ -110,7 +123,18 @@ async fn get_settings(
     // 更新设置中的自启动状态为系统实际状态
     settings.launch_at_startup = is_enabled;
 
-    Ok(settings.clone())
+    // 将同步后的设置写回 AppState 和 settings_tx
+    {
+        let mut app_settings = state.settings.lock().await;
+        *app_settings = settings.clone();
+    }
+
+    // 通过 watch channel 通知所有监听者设置已更新
+    if let Err(e) = state.settings_tx.send(settings.clone()) {
+        warn!(target: "settings", "发送设置更新到 watch channel 失败: {}", e);
+    }
+
+    Ok(settings)
 }
 
 /// 设置归一化（内部函数）
@@ -132,15 +156,20 @@ async fn update_settings(
     // 统一归一化逻辑
     let normalized = normalize_settings(new_settings);
 
+    // 只在自启动状态改变时才调用系统 API，避免不必要的系统提示
     let autostart_manager = app.autolaunch();
-    if normalized.launch_at_startup {
-        autostart_manager
-            .enable()
-            .map_err(|e| format!("启用开机自启动失败: {}", e))?;
-    } else {
-        autostart_manager
-            .disable()
-            .map_err(|e| format!("禁用开机自启动失败: {}", e))?;
+    let current_autostart_enabled = autostart_manager.is_enabled().unwrap_or(false);
+
+    if normalized.launch_at_startup != current_autostart_enabled {
+        if normalized.launch_at_startup {
+            autostart_manager
+                .enable()
+                .map_err(|e| format!("启用开机自启动失败: {}", e))?;
+        } else {
+            autostart_manager
+                .disable()
+                .map_err(|e| format!("禁用开机自启动失败: {}", e))?;
+        }
     }
 
     *settings = normalized.clone();
@@ -156,6 +185,10 @@ async fn update_settings(
                 storage::get_default_wallpaper_directory().map_err(|e| e.to_string())?;
         }
     }
+
+    // 保存设置到 store
+    settings_store::save_settings(&app, &normalized)
+        .map_err(|e| format!("保存设置到 store 失败: {}", e))?;
 
     // 广播设置变化
     state
@@ -177,6 +210,7 @@ mod lib_tests {
             save_directory: None,
             keep_image_count: 3,
             launch_at_startup: false,
+            theme: "system".to_string(),
         };
         let n = normalize_settings(s);
         assert_eq!(n.keep_image_count, 8);
@@ -291,23 +325,32 @@ async fn run_update_cycle(app: &AppHandle) {
         return;
     }
 
-    // 重试获取 Bing 图片（指数退避）
+    // 重试获取 Bing 图片（指数退避：最多10次，总计约17分钟）
     let mut images_opt = None;
-    for attempt in 0..3 {
+    const MAX_RETRIES: u32 = 10;
+    for attempt in 0..MAX_RETRIES {
         match bing_api::fetch_bing_images(8, 0).await {
             Ok(v) => {
                 images_opt = Some(v);
                 break;
             }
             Err(e) => {
-                let backoff = 1 << attempt;
-                warn!(target: "auto_update",
-                    "获取 Bing 图片失败(第 {} 次): {}，{}s 后重试",
-                    attempt + 1,
-                    e,
-                    backoff
-                );
-                tokio::time::sleep(Duration::from_secs(backoff)).await;
+                if attempt < MAX_RETRIES - 1 {
+                    let backoff = 1 << attempt; // 指数退避：1, 2, 4, 8, 16, 32, 64, 128, 256, 512 秒
+                    warn!(target: "auto_update",
+                        "获取 Bing 图片失败(第 {} 次): {}，{}s 后重试",
+                        attempt + 1,
+                        e,
+                        backoff
+                    );
+                    tokio::time::sleep(Duration::from_secs(backoff)).await;
+                } else {
+                    error!(target: "auto_update",
+                        "获取 Bing 图片失败(第 {} 次): {}，已达最大重试次数（总计约17分钟）",
+                        attempt + 1,
+                        e
+                    );
+                }
             }
         }
     }
@@ -536,28 +579,31 @@ fn start_auto_update_task(app: AppHandle) {
                                 guard.map(|dt| dt.date_naive()) != Some(today)
                             };
                             if need_retry {
-                                warn!(target:"auto_update","零点窗口初次更新可能失败，开始快速重试");
-                                // 最多重试到 01:00 或成功为止；每 10 分钟一次
-                                for attempt in 1..=6 {
-                                    let now_retry = Local::now();
-                                    if now_retry.hour() >= 1 { break; }
-                                    tokio::time::sleep(Duration::from_secs(600)).await; // 10 分钟
+                                warn!(target:"auto_update","零点窗口初次更新可能失败，开始指数退避重试");
+                                // 指数退避重试：最多10次，总计约17分钟
+                                const MAX_MIDNIGHT_RETRIES: u32 = 10;
+                                for attempt in 0..MAX_MIDNIGHT_RETRIES {
+                                    let backoff = 1 << attempt; // 1, 2, 4, 8, 16, 32, 64, 128, 256, 512 秒
+                                    warn!(target:"auto_update","零点重试第 {} 次，{}s 后执行", attempt + 1, backoff);
+                                    tokio::time::sleep(Duration::from_secs(backoff)).await;
+
                                     run_update_cycle(&app_clone).await;
+                                    let now_retry = Local::now();
                                     let after_cycle_success = {
                                         let state_ref = app_clone.state::<AppState>();
                                         let guard = state_ref.last_update_time.lock().await;
                                         guard.map(|dt| dt.date_naive()) == Some(now_retry.date_naive())
                                     };
                                     if after_cycle_success {
-                                        info!(target:"auto_update","快速重试第 {} 次成功", attempt);
+                                        info!(target:"auto_update","零点重试第 {} 次成功", attempt + 1);
                                         need_retry = false;
                                         break;
                                     } else {
-                                        warn!(target:"auto_update","快速重试第 {} 次仍未获取到当日壁纸", attempt);
+                                        warn!(target:"auto_update","零点重试第 {} 次仍未获取到当日壁纸", attempt + 1);
                                     }
                                 }
                                 if need_retry {
-                                    warn!(target:"auto_update","快速重试结束，仍未成功获取当日壁纸，等待下一轮小时轮询");
+                                    warn!(target:"auto_update","零点重试结束（总计约17分钟），仍未成功获取当日壁纸，等待下一轮小时轮询");
                                 }
                             }
                         } else {
@@ -600,6 +646,7 @@ fn setup_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
     let refresh_item = MenuItemBuilder::with_id("refresh", "更新壁纸").build(app)?;
     let open_folder_item = MenuItemBuilder::with_id("open_folder", "打开保存目录").build(app)?;
     let settings_item = MenuItemBuilder::with_id("settings", "打开设置").build(app)?;
+    let about_item = MenuItemBuilder::with_id("about", "关于").build(app)?;
     let quit_item = MenuItemBuilder::with_id("quit", "退出").build(app)?;
 
     let menu = MenuBuilder::new(app)
@@ -608,6 +655,7 @@ fn setup_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
         .item(&refresh_item)
         .item(&open_folder_item)
         .item(&settings_item)
+        .item(&about_item)
         .separator()
         .item(&quit_item)
         .build()?;
@@ -708,6 +756,14 @@ fn setup_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
                 }
                 let _ = app.emit("open-settings", ());
             }
+            "about" => {
+                // 显示主窗口并向前端发送事件，前端可监听此事件弹出关于对话框
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.show();
+                    let _ = window.set_focus();
+                }
+                let _ = app.emit("open-about", ());
+            }
             "quit" => {
                 app.exit(0);
             }
@@ -778,6 +834,39 @@ pub fn run() {
         ])
         .setup(|app| {
             wallpaper_manager::initialize_observer();
+
+            // 从 store 加载持久化设置
+            let loaded_settings = settings_store::load_settings(app.handle()).unwrap_or_else(|e| {
+                warn!(target: "settings", "从 store 加载设置失败: {}，使用默认设置", e);
+                AppSettings::default()
+            });
+
+            // 更新 AppState 中的设置
+            let state = app.state::<AppState>();
+            tauri::async_runtime::block_on(async {
+                let mut settings = state.settings.lock().await;
+                *settings = loaded_settings.clone();
+            });
+
+            // 同步持久化设置到 settings_tx watch channel
+            // 这样 auto_update_task 等监听者能获取到正确的初始设置
+            if let Err(e) = state.settings_tx.send(loaded_settings.clone()) {
+                warn!(target: "settings", "发送持久化设置到 watch channel 失败: {}", e);
+            }
+
+            // 更新壁纸目录
+            let wallpaper_dir = if let Some(ref dir) = loaded_settings.save_directory {
+                PathBuf::from(dir)
+            } else {
+                storage::get_default_wallpaper_directory().unwrap_or_else(|_| PathBuf::from("."))
+            };
+            tauri::async_runtime::block_on(async {
+                let mut dir = state.wallpaper_directory.lock().await;
+                *dir = wallpaper_dir;
+            });
+
+            info!(target: "settings", "成功加载持久化设置");
+
             setup_tray(app.handle())?;
 
             // macOS: 始终设置为 Accessory 模式（只显示托盘图标，不显示 Dock 图标）

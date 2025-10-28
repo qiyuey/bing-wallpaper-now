@@ -33,7 +33,7 @@ static HTTP_CLIENT: LazyLock<Client> = LazyLock::new(|| {
 /// * `url` - 图片 URL
 /// * `save_path` - 保存路径
 pub async fn download_image(url: &str, save_path: &Path) -> Result<()> {
-    download_image_with_retry(url, save_path, 3).await
+    download_image_with_retry(url, save_path, 10).await
 }
 
 /// 带重试机制的图片下载
@@ -53,15 +53,21 @@ async fn download_image_with_retry(url: &str, save_path: &Path, max_retries: usi
                 attempts += 1;
                 last_error = Some(e);
                 if attempts < max_retries {
-                    // 指数退避: 1s, 2s, 4s
+                    // 指数退避: 1, 2, 4, 8, 16, 32, 64, 128, 256, 512 秒（最多10次，总计约17分钟）
                     let delay = Duration::from_secs(1 << (attempts - 1));
-                    log::debug!(
-                        "Download failed (attempt {}/{}), retrying after {:?}...",
+                    log::warn!(
+                        "图片下载失败(第 {} 次): {}，{}s 后重试",
                         attempts,
-                        max_retries,
-                        delay
+                        last_error.as_ref().unwrap(),
+                        delay.as_secs()
                     );
                     tokio::time::sleep(delay).await;
+                } else {
+                    log::error!(
+                        "图片下载失败(第 {} 次): {}，已达最大重试次数（总计约17分钟）",
+                        attempts,
+                        last_error.as_ref().unwrap()
+                    );
                 }
             }
         }

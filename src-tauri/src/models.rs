@@ -101,6 +101,13 @@ pub struct AppSettings {
     pub save_directory: Option<String>,
     pub keep_image_count: u32,
     pub launch_at_startup: bool,
+    #[serde(default = "default_theme")]
+    pub theme: String,
+}
+
+/// 默认主题设置
+fn default_theme() -> String {
+    "system".to_string()
 }
 
 /// Migration helper: in future if more legacy fields are removed or value normalization is needed,
@@ -113,6 +120,7 @@ impl Default for AppSettings {
             save_directory: None,
             keep_image_count: 999,
             launch_at_startup: false,
+            theme: default_theme(),
         }
     }
 }
@@ -137,6 +145,7 @@ mod tests {
             save_directory: Some("/custom/path".to_string()),
             keep_image_count: 20,
             launch_at_startup: true,
+            theme: "dark".to_string(),
         };
 
         let json = serde_json::to_string(&settings).unwrap();
@@ -146,6 +155,7 @@ mod tests {
         assert_eq!(deserialized.save_directory, settings.save_directory);
         assert_eq!(deserialized.keep_image_count, settings.keep_image_count);
         assert_eq!(deserialized.launch_at_startup, settings.launch_at_startup);
+        assert_eq!(deserialized.theme, settings.theme);
     }
 
     #[test]

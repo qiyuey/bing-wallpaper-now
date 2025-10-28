@@ -9,22 +9,29 @@ interface WallpaperCardProps {
   onSetWallpaper: (wallpaper: LocalWallpaper) => void;
 }
 
+// 图片加载成功缓存（组件外部，避免重复加载）
+const loadedImagesCache = new Set<string>();
+
 // 使用 memo 优化，只在 props 变化时重新渲染
 export const WallpaperCard = memo(function WallpaperCard({
   wallpaper,
   onSetWallpaper,
 }: WallpaperCardProps) {
-  const [imageLoading, setImageLoading] = useState(true);
+  // 检查图片是否已加载过
+  const isImageCached = loadedImagesCache.has(wallpaper.file_path);
+
+  const [imageLoading, setImageLoading] = useState(!isImageCached);
   const [imageError, setImageError] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
-  const [waitingForDownload, setWaitingForDownload] = useState(true); // 是否正在等待后端下载
+  const [waitingForDownload, setWaitingForDownload] = useState(!isImageCached); // 是否正在等待后端下载
 
-  // 当图片路径变化时重置状态
+  // 当图片路径变化时重置状态（但如果图片已缓存则不重置）
   useEffect(() => {
-    setImageLoading(true);
+    const isCached = loadedImagesCache.has(wallpaper.file_path);
+    setImageLoading(!isCached);
     setImageError(false);
     setRetryCount(0);
-    setWaitingForDownload(true);
+    setWaitingForDownload(!isCached);
   }, [wallpaper.file_path]);
 
   // 监听后端下载完成事件，自动重新加载对应的图片
@@ -66,7 +73,9 @@ export const WallpaperCard = memo(function WallpaperCard({
     setImageLoading(false);
     setImageError(false);
     setWaitingForDownload(false); // 图片加载成功，不再等待
-  }, []);
+    // 将成功加载的图片路径加入缓存
+    loadedImagesCache.add(wallpaper.file_path);
+  }, [wallpaper.file_path]);
 
   const handleImageError = useCallback(() => {
     // 图片加载失败，可能是文件还未下载完成（UHD图片较大，下载时间较长）
@@ -84,7 +93,9 @@ export const WallpaperCard = memo(function WallpaperCard({
     setImageLoading(true);
     setImageError(false);
     setRetryCount((prev) => prev + 1);
-  }, []);
+    // 从缓存中移除失败的图片，允许重新加载
+    loadedImagesCache.delete(wallpaper.file_path);
+  }, [wallpaper.file_path]);
 
   // 解析标题和副标题（使用 useMemo 缓存结果）
   const { title, subtitle } = useMemo(() => {
@@ -115,14 +126,8 @@ export const WallpaperCard = memo(function WallpaperCard({
         {imageError ? (
           // 图片加载失败 - 仅显示错误状态，重试按钮在底部
           <div className="wallpaper-image-placeholder">
-            <p style={{ fontSize: "14px", color: "#fff" }}>加载失败</p>
-            <p
-              style={{
-                fontSize: "12px",
-                color: "rgba(255,255,255,0.7)",
-                marginTop: "4px",
-              }}
-            >
+            <p className="placeholder-error-text">加载失败</p>
+            <p className="placeholder-hint-text">
               图片可能还在下载中，请使用下方按钮重试
             </p>
           </div>
@@ -131,15 +136,7 @@ export const WallpaperCard = memo(function WallpaperCard({
             {imageLoading && (
               <div className="wallpaper-image-placeholder">
                 <div className="spinner"></div>
-                <p
-                  style={{
-                    marginTop: "12px",
-                    fontSize: "12px",
-                    color: "rgba(255,255,255,0.8)",
-                  }}
-                >
-                  加载中...
-                </p>
+                <p className="placeholder-loading-text">加载中...</p>
               </div>
             )}
             <img

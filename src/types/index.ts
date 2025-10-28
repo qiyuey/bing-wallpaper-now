@@ -20,4 +20,5 @@ export interface AppSettings {
   save_directory: string | null;
   keep_image_count: number;
   launch_at_startup: boolean;
+  theme: string; // "light" | "dark" | "system" - 必需字段，与 Rust 端保持一致
 }

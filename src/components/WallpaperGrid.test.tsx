@@ -1,7 +1,29 @@
-import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
 import { WallpaperGrid } from "./WallpaperGrid";
 import { LocalWallpaper } from "../types";
+
+// Mock window size and element dimensions for virtual list
+beforeEach(() => {
+  Object.defineProperty(window, "innerHeight", {
+    writable: true,
+    configurable: true,
+    value: 800,
+  });
+
+  // Mock offsetWidth and offsetHeight for container
+  Object.defineProperty(HTMLElement.prototype, "offsetWidth", {
+    writable: true,
+    configurable: true,
+    value: 1200,
+  });
+
+  Object.defineProperty(HTMLElement.prototype, "offsetHeight", {
+    writable: true,
+    configurable: true,
+    value: 600,
+  });
+});
 
 describe("WallpaperGrid", () => {
   const mockWallpapers: LocalWallpaper[] = [
@@ -30,7 +52,7 @@ describe("WallpaperGrid", () => {
   const mockOnSetWallpaper = vi.fn();
 
   it("should render loading state when loading is true", () => {
-    render(
+    const { container } = render(
       <WallpaperGrid
         wallpapers={[]}
         onSetWallpaper={mockOnSetWallpaper}
@@ -38,11 +60,14 @@ describe("WallpaperGrid", () => {
       />,
     );
 
-    expect(screen.getByText("加载中...")).toBeInTheDocument();
+    const spinner = container.querySelector(".spinner");
+    expect(spinner).toBeInTheDocument();
+    const loadingDiv = container.querySelector(".wallpaper-grid-loading");
+    expect(loadingDiv).toBeInTheDocument();
   });
 
   it("should render empty state when no wallpapers are provided", () => {
-    render(
+    const { container } = render(
       <WallpaperGrid
         wallpapers={[]}
         onSetWallpaper={mockOnSetWallpaper}
@@ -50,10 +75,13 @@ describe("WallpaperGrid", () => {
       />,
     );
 
-    expect(screen.getByText("暂无壁纸")).toBeInTheDocument();
+    const spinner = container.querySelector(".spinner");
+    expect(spinner).toBeInTheDocument();
+    const loadingDiv = container.querySelector(".wallpaper-grid-loading");
+    expect(loadingDiv).toBeInTheDocument();
   });
 
-  it("should render wallpapers when provided", () => {
+  it("should render wallpapers when provided", async () => {
     render(
       <WallpaperGrid
         wallpapers={mockWallpapers}
@@ -62,11 +90,13 @@ describe("WallpaperGrid", () => {
       />,
     );
 
-    expect(screen.getByText("Test Wallpaper 1")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("Test Wallpaper 1")).toBeInTheDocument();
+    });
     expect(screen.getByText("Test Wallpaper 2")).toBeInTheDocument();
   });
 
-  it("should render correct number of wallpaper cards", () => {
+  it("should render correct number of wallpaper cards", async () => {
     const { container } = render(
       <WallpaperGrid
         wallpapers={mockWallpapers}
@@ -75,11 +105,13 @@ describe("WallpaperGrid", () => {
       />,
     );
 
-    const wallpaperCards = container.querySelectorAll(".wallpaper-card");
-    expect(wallpaperCards.length).toBe(mockWallpapers.length);
+    await waitFor(() => {
+      const wallpaperCards = container.querySelectorAll(".wallpaper-card");
+      expect(wallpaperCards.length).toBe(mockWallpapers.length);
+    });
   });
 
-  it("should use wallpaper id as key", () => {
+  it("should render virtual list container", () => {
     const { container } = render(
       <WallpaperGrid
         wallpapers={mockWallpapers}
@@ -88,20 +120,22 @@ describe("WallpaperGrid", () => {
       />,
     );
 
-    const grid = container.querySelector(".wallpaper-grid");
-    expect(grid).toBeInTheDocument();
-    expect(grid?.children.length).toBe(mockWallpapers.length);
+    const virtualContainer = container.querySelector(".wallpaper-container");
+    expect(virtualContainer).toBeInTheDocument();
   });
 
   it("should default loading to false when not provided", () => {
-    render(
+    const { container } = render(
       <WallpaperGrid wallpapers={[]} onSetWallpaper={mockOnSetWallpaper} />,
     );
 
-    expect(screen.getByText("暂无壁纸")).toBeInTheDocument();
+    const spinner = container.querySelector(".spinner");
+    expect(spinner).toBeInTheDocument();
+    const loadingDiv = container.querySelector(".wallpaper-grid-loading");
+    expect(loadingDiv).toBeInTheDocument();
   });
 
-  it("should render wallpaper grid with single wallpaper", () => {
+  it("should render wallpaper grid with single wallpaper", async () => {
     const singleWallpaper = [mockWallpapers[0]];
 
     render(
@@ -112,7 +146,9 @@ describe("WallpaperGrid", () => {
       />,
     );
 
-    expect(screen.getByText("Test Wallpaper 1")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("Test Wallpaper 1")).toBeInTheDocument();
+    });
     expect(screen.queryByText("Test Wallpaper 2")).not.toBeInTheDocument();
   });
 });

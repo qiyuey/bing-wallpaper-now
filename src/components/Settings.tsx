@@ -1,28 +1,37 @@
 import { useState, useEffect } from "react";
 import { AppSettings } from "../types";
 import { useSettings } from "../hooks/useSettings";
+import { useTheme, Theme } from "../contexts/ThemeContext";
 import { open } from "@tauri-apps/plugin-dialog";
 
 interface SettingsProps {
   onClose: () => void;
+  version?: string;
 }
 
-export function Settings({ onClose }: SettingsProps) {
+export function Settings({ onClose, version }: SettingsProps) {
   const { settings, loading, updateSettings, getDefaultDirectory } =
     useSettings();
+  const { theme, setTheme } = useTheme();
 
   const [formData, setFormData] = useState<AppSettings>({
     auto_update: true,
     save_directory: null,
     keep_image_count: 8,
     launch_at_startup: false,
+    theme: "system",
   });
 
   const [defaultDir, setDefaultDir] = useState<string>("");
+  const [localTheme, setLocalTheme] = useState<Theme>(theme);
 
   useEffect(() => {
     if (settings) {
       setFormData(settings);
+      // 同步主题到本地状态
+      if (settings.theme) {
+        setLocalTheme(settings.theme as Theme);
+      }
     }
   }, [settings]);
 
@@ -34,9 +43,24 @@ export function Settings({ onClose }: SettingsProps) {
 
   const handleSave = async () => {
     try {
-      await updateSettings(formData);
+      // 将主题包含在设置中一起保存
+      const settingsWithTheme: AppSettings = {
+        auto_update: formData.auto_update,
+        save_directory: formData.save_directory,
+        keep_image_count: formData.keep_image_count,
+        launch_at_startup: formData.launch_at_startup,
+        theme: localTheme,
+      };
+
+      await updateSettings(settingsWithTheme);
+
+      // 如果主题改变了，通知 ThemeContext 更新
+      if (localTheme !== theme) {
+        await setTheme(localTheme);
+      }
       onClose();
     } catch (err) {
+      console.error("Save error:", err);
       alert("保存失败: " + err);
     }
   };
@@ -106,12 +130,48 @@ export function Settings({ onClose }: SettingsProps) {
           </div>
 
           <div className="settings-section">
+            <label className="settings-label">主题:</label>
+            <div className="radio-group">
+              <label className="radio-option">
+                <input
+                  type="radio"
+                  name="theme"
+                  value="system"
+                  checked={localTheme === "system"}
+                  onChange={(e) => setLocalTheme(e.target.value as Theme)}
+                />
+                <span>跟随系统</span>
+              </label>
+              <label className="radio-option">
+                <input
+                  type="radio"
+                  name="theme"
+                  value="light"
+                  checked={localTheme === "light"}
+                  onChange={(e) => setLocalTheme(e.target.value as Theme)}
+                />
+                <span>浅色模式</span>
+              </label>
+              <label className="radio-option">
+                <input
+                  type="radio"
+                  name="theme"
+                  value="dark"
+                  checked={localTheme === "dark"}
+                  onChange={(e) => setLocalTheme(e.target.value as Theme)}
+                />
+                <span>深色模式</span>
+              </label>
+            </div>
+          </div>
+
+          <div className="settings-section">
             <label className="settings-label">
               保留壁纸数量:
               <input
                 type="number"
                 min="8"
-                max="999"
+                max="10000"
                 value={formData.keep_image_count}
                 onChange={(e) =>
                   handleChange(
@@ -155,6 +215,9 @@ export function Settings({ onClose }: SettingsProps) {
         </div>
 
         <div className="settings-footer">
+          <div style={{ flex: 1, display: "flex", alignItems: "center" }}>
+            {version && <span className="settings-version">v{version}</span>}
+          </div>
           <button onClick={onClose} className="btn btn-secondary">
             取消
           </button>

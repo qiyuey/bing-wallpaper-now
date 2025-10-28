@@ -33,9 +33,19 @@ export function useSettings() {
     setLoading(true);
     setError(null);
     try {
-      await invoke("update_settings", { newSettings });
+      // Tauri 2 的参数传递：使用驼峰命名，Tauri 会自动转换为 Rust 的蛇形命名
+      await invoke("update_settings", {
+        newSettings: {
+          auto_update: newSettings.auto_update,
+          save_directory: newSettings.save_directory,
+          keep_image_count: newSettings.keep_image_count,
+          launch_at_startup: newSettings.launch_at_startup,
+          theme: newSettings.theme,
+        },
+      });
       setSettings(newSettings);
     } catch (err) {
+      console.error("updateSettings error:", err);
       setError(err as string);
       throw err;
     } finally {

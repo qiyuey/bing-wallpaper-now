@@ -51,6 +51,7 @@ xattr -rd com.apple.quarantine "/Applications/Bing Wallpaper Now.app"
 - 🚀 **Fast Response** - Prioritize loading local cache, fetch remote data in background
 - 💾 **System Tray** - Minimize to tray without occupying taskbar space
 - ⚙️ **Flexible Configuration** - Customize save directory, retention count, startup options
+- 🎨 **Theme Support** - Light, dark, and system theme modes
 - 🌐 **Copyright Links** - Click images to visit detailed info pages
 - 📂 **Quick Access** - One-click to open wallpaper save folder
 
@@ -111,25 +112,12 @@ Click the "Settings" button (star icon) to customize:
 
 ## 🗺️ Roadmap
 
-### UI/UX Enhancements (Next Priority)
+### Planned Features
 
-We're planning to enhance the user interface and experience with the help of professional AI-powered design tools:
-
-- 🎨 **Modern UI Design** - Redesign the interface with contemporary design patterns
-- 🌈 **Visual Refinements** - Improved color schemes, typography, and spacing
-- ✨ **Smooth Animations** - Add subtle transitions and micro-interactions
-- 🎯 **Better UX Flow** - Optimize user workflows and interactions
-- 📱 **Responsive Layout** - Better adaptation to different window sizes
-- 🖼️ **Enhanced Image Display** - Improved wallpaper preview and grid layout
-
-### Feature Enhancements (v0.3.0)
-
-See detailed planning in [docs/v0.3.0-planning.md](docs/v0.3.0-planning.md)
-
-- Dark mode / Light mode toggle
-- System notifications for new wallpapers
-- Multi-language support
-- Wallpaper favorites
+- 🔔 **System Notifications** - Get notified when new wallpapers are available
+- 🌍 **Multi-language Support** - Internationalization (i18n)
+- ⭐ **Wallpaper Favorites** - Save and quickly access your favorite wallpapers
+- ✨ **UI/UX Enhancements** - Modern design with smooth animations and better layouts
 
 ## 📞 Support & Feedback
 

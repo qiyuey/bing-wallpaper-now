@@ -13,7 +13,6 @@ export function useBingWallpapers() {
   const [localWallpapers, setLocalWallpapers] = useState<LocalWallpaper[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isFirstLoad, setIsFirstLoad] = useState(true); // 标记是否首次加载
 
   const [lastUpdateTime, setLastUpdateTime] = useState<string | null>(null);
 
@@ -21,37 +20,28 @@ export function useBingWallpapers() {
    * 获取本地壁纸列表
    * @param showLoading 是否显示加载状态，默认 false 避免不必要的闪烁
    */
-  const fetchLocalWallpapers = useCallback(
-    async (showLoading = false) => {
-      if (showLoading) {
-        setLoading(true);
-      }
-      setError(null);
-      try {
-        const wallpapers = await invoke<LocalWallpaper[]>(
-          "get_local_wallpapers",
-        );
-        // 只有数据真正变化时才更新状态，避免不必要的重渲染
-        setLocalWallpapers((prev) => {
-          if (JSON.stringify(prev) === JSON.stringify(wallpapers)) {
-            return prev;
-          }
-          // 首次加载完成后，标记不再是首次加载
-          if (isFirstLoad && wallpapers.length > 0) {
-            setIsFirstLoad(false);
-          }
-          return wallpapers;
-        });
-      } catch (err) {
-        setError(String(err));
-      } finally {
-        if (showLoading) {
-          setLoading(false);
+  const fetchLocalWallpapers = useCallback(async (showLoading = false) => {
+    if (showLoading) {
+      setLoading(true);
+    }
+    setError(null);
+    try {
+      const wallpapers = await invoke<LocalWallpaper[]>("get_local_wallpapers");
+      // 只有数据真正变化时才更新状态，避免不必要的重渲染
+      setLocalWallpapers((prev) => {
+        if (JSON.stringify(prev) === JSON.stringify(wallpapers)) {
+          return prev;
         }
+        return wallpapers;
+      });
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      if (showLoading) {
+        setLoading(false);
       }
-    },
-    [isFirstLoad],
-  );
+    }
+  }, []);
 
   /**
    * 后端状态轮询：最后更新时间
@@ -134,10 +124,14 @@ export function useBingWallpapers() {
 
   // 监听后端壁纸更新事件，自动刷新列表（静默刷新，不显示 loading）
   useEffect(() => {
-    let unlisten: (() => void) | null = null;
+    let unlisten: (() => void) | undefined;
+    let mounted = true;
+
     (async () => {
       try {
         const { listen } = await import("@tauri-apps/api/event");
+        if (!mounted) return;
+
         unlisten = await listen("wallpaper-updated", () => {
           console.warn("收到壁纸更新事件，刷新列表...");
           // 静默刷新，不显示 loading
@@ -148,8 +142,12 @@ export function useBingWallpapers() {
         console.error("Failed to bind wallpaper-updated event:", e);
       }
     })();
+
     return () => {
-      if (unlisten) unlisten();
+      mounted = false;
+      if (unlisten) {
+        unlisten();
+      }
     };
   }, [fetchLocalWallpapers, pollStatus]);
 
@@ -181,7 +179,6 @@ export function useBingWallpapers() {
     localWallpapers,
     loading,
     error,
-    isFirstLoad,
     lastUpdateTime,
     isUpToDate,
     fetchLocalWallpapers,

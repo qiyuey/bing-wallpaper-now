@@ -6,14 +6,20 @@ import {
   waitFor,
   cleanup,
 } from "@testing-library/react";
+import React from "react";
 import App from "./App";
 import { invoke } from "@tauri-apps/api/core";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { listen, type Event } from "@tauri-apps/api/event";
+import { ThemeProvider } from "./contexts/ThemeContext";
 
 vi.mock("@tauri-apps/api/core");
 vi.mock("@tauri-apps/plugin-opener");
 vi.mock("@tauri-apps/api/event");
+
+const renderWithTheme = (component: React.ReactElement) => {
+  return render(<ThemeProvider>{component}</ThemeProvider>);
+};
 
 describe("App", () => {
   const mockWallpapers = [
@@ -31,6 +37,26 @@ describe("App", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+
+    // Mock window and element dimensions for virtual list
+    Object.defineProperty(window, "innerHeight", {
+      writable: true,
+      configurable: true,
+      value: 800,
+    });
+
+    Object.defineProperty(HTMLElement.prototype, "offsetWidth", {
+      writable: true,
+      configurable: true,
+      value: 1200,
+    });
+
+    Object.defineProperty(HTMLElement.prototype, "offsetHeight", {
+      writable: true,
+      configurable: true,
+      value: 600,
+    });
+
     // Mock different invoke calls
     vi.mocked(invoke).mockImplementation((cmd: string) => {
       if (cmd === "get_local_wallpapers") {
@@ -58,13 +84,14 @@ describe("App", () => {
   });
 
   it("should render app header with title", async () => {
-    render(<App />);
+    renderWithTheme(<App />);
 
-    expect(screen.getByText("Bing Wallpaper Now")).toBeInTheDocument();
+    expect(screen.getByText("Bing Wallpaper")).toBeInTheDocument();
+    expect(screen.getByText("Now")).toBeInTheDocument();
   });
 
   it("should render action buttons in header", async () => {
-    render(<App />);
+    renderWithTheme(<App />);
 
     // Check for buttons by their title attributes
     expect(screen.getByTitle("更新")).toBeInTheDocument();
@@ -73,7 +100,7 @@ describe("App", () => {
   });
 
   it("should open settings modal when settings button is clicked", async () => {
-    render(<App />);
+    renderWithTheme(<App />);
 
     const settingsButton = screen.getByTitle("设置");
     fireEvent.click(settingsButton);
@@ -85,7 +112,7 @@ describe("App", () => {
   });
 
   it("should call refresh handlers when refresh button is clicked", async () => {
-    render(<App />);
+    renderWithTheme(<App />);
 
     const refreshButton = screen.getByTitle("更新");
     fireEvent.click(refreshButton);
@@ -119,7 +146,7 @@ describe("App", () => {
       return Promise.resolve(null);
     });
 
-    render(<App />);
+    renderWithTheme(<App />);
 
     const folderButton = screen.getByTitle("打开下载目录");
     fireEvent.click(folderButton);
@@ -148,7 +175,7 @@ describe("App", () => {
       return Promise.resolve(null);
     });
 
-    render(<App />);
+    renderWithTheme(<App />);
 
     await waitFor(() => {
       expect(screen.getByText(/Error:/)).toBeInTheDocument();
@@ -187,7 +214,7 @@ describe("App", () => {
       return Promise.resolve(null);
     });
 
-    render(<App />);
+    renderWithTheme(<App />);
 
     await waitFor(() => {
       expect(screen.getByText("已是最新")).toBeInTheDocument();
@@ -214,7 +241,7 @@ describe("App", () => {
       return Promise.resolve(null);
     });
 
-    render(<App />);
+    renderWithTheme(<App />);
 
     await waitFor(() => {
       expect(screen.getByText(/上次更新:/)).toBeInTheDocument();
@@ -233,7 +260,7 @@ describe("App", () => {
       },
     );
 
-    render(<App />);
+    renderWithTheme(<App />);
 
     await waitFor(() => {
       expect(listen).toHaveBeenCalledWith(
@@ -293,7 +320,7 @@ describe("App", () => {
       return Promise.resolve();
     });
 
-    render(<App />);
+    renderWithTheme(<App />);
 
     await waitFor(() => {
       expect(listen).toHaveBeenCalledWith("open-folder", expect.any(Function));
@@ -328,7 +355,7 @@ describe("App", () => {
       return Promise.resolve(null);
     });
 
-    render(<App />);
+    renderWithTheme(<App />);
 
     await waitFor(() => {
       // The wallpaper title should be rendered in the grid
@@ -337,7 +364,7 @@ describe("App", () => {
   });
 
   it("should close settings modal when onClose is called", async () => {
-    render(<App />);
+    renderWithTheme(<App />);
 
     // Open settings
     const settingsButton = screen.getByTitle("设置");
@@ -390,7 +417,7 @@ describe("App", () => {
       return Promise.resolve(null);
     });
 
-    render(<App />);
+    renderWithTheme(<App />);
 
     // Wait for wallpapers to load
     await waitFor(() => {
@@ -425,7 +452,7 @@ describe("App", () => {
       return Promise.resolve(null);
     });
 
-    render(<App />);
+    renderWithTheme(<App />);
 
     const refreshButton = screen.getByTitle("更新");
     fireEvent.click(refreshButton);
@@ -466,7 +493,7 @@ describe("App", () => {
       return Promise.resolve(null);
     });
 
-    render(<App />);
+    renderWithTheme(<App />);
 
     // Wait for component to be ready
     await waitFor(() => {
@@ -501,7 +528,7 @@ describe("App", () => {
       return Promise.resolve(() => {});
     });
 
-    render(<App />);
+    renderWithTheme(<App />);
 
     await waitFor(() => {
       expect(consoleErrorSpy).toHaveBeenCalledWith(
@@ -542,7 +569,7 @@ describe("App", () => {
       return Promise.resolve(null);
     });
 
-    render(<App />);
+    renderWithTheme(<App />);
 
     // Wait for component to be ready
     await waitFor(() => {

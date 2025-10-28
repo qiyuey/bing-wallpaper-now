@@ -12,6 +12,7 @@ describe("useSettings", () => {
     save_directory: "C:\\Users\\Test\\Wallpapers",
     keep_image_count: 30,
     launch_at_startup: false,
+    theme: "system",
   };
 
   beforeEach(() => {
@@ -62,6 +63,7 @@ describe("useSettings", () => {
   });
 
   it("should update settings successfully", async () => {
+    // First call (mount) returns mockSettings
     vi.mocked(invoke).mockImplementation((cmd: string) => {
       if (cmd === "get_settings") {
         return Promise.resolve(mockSettings);
@@ -81,6 +83,7 @@ describe("useSettings", () => {
       keep_image_count: 50,
     };
 
+    // For update call, we only need it to resolve
     vi.mocked(invoke).mockImplementation((cmd: string) => {
       if (cmd === "update_settings") {
         return Promise.resolve(undefined);
@@ -93,8 +96,15 @@ describe("useSettings", () => {
 
     await result.current.updateSettings(updatedSettings);
 
+    // Tauri 会自动转换驼峰命名到蛇形命名，所以前端使用 newSettings
     expect(invoke).toHaveBeenCalledWith("update_settings", {
-      newSettings: updatedSettings,
+      newSettings: {
+        auto_update: updatedSettings.auto_update,
+        save_directory: updatedSettings.save_directory,
+        keep_image_count: updatedSettings.keep_image_count,
+        launch_at_startup: updatedSettings.launch_at_startup,
+        theme: updatedSettings.theme,
+      },
     });
 
     await waitFor(() => {

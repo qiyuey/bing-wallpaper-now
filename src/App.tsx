@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import "./App.css";
 import { useBingWallpapers } from "./hooks/useBingWallpapers";
 import { WallpaperGrid } from "./components/WallpaperGrid";
 import { Settings } from "./components/Settings";
+import { About } from "./components/About";
 
 import { LocalWallpaper } from "./types";
 import { invoke } from "@tauri-apps/api/core";
@@ -15,7 +16,6 @@ function App() {
     localWallpapers,
     loading,
     error,
-    isFirstLoad,
     fetchLocalWallpapers,
     setDesktopWallpaper,
     forceUpdate,
@@ -24,21 +24,51 @@ function App() {
   } = useBingWallpapers();
 
   const [showSettings, setShowSettings] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
 
   // 监听托盘发出的 open-settings 事件，触发前端设置面板显示
   useEffect(() => {
-    let unlisten: (() => void) | null = null;
-    (async () => {
+    const setupListener = async () => {
       try {
-        unlisten = await listen("open-settings", () => {
+        const unlisten = await listen("open-settings", () => {
           setShowSettings(true);
         });
+        return unlisten;
       } catch (e) {
         console.error("Failed to bind open-settings event:", e);
+        return null;
       }
-    })();
+    };
+
+    let unlistenPromise = setupListener();
+
     return () => {
-      if (unlisten) unlisten();
+      unlistenPromise.then((unlisten) => {
+        if (unlisten) unlisten();
+      });
+    };
+  }, []);
+
+  // 监听托盘发出的 open-about 事件，触发前端关于对话框显示
+  useEffect(() => {
+    const setupListener = async () => {
+      try {
+        const unlisten = await listen("open-about", () => {
+          setShowAbout(true);
+        });
+        return unlisten;
+      } catch (e) {
+        console.error("Failed to bind open-about event:", e);
+        return null;
+      }
+    };
+
+    let unlistenPromise = setupListener();
+
+    return () => {
+      unlistenPromise.then((unlisten) => {
+        if (unlisten) unlisten();
+      });
     };
   }, []);
 
@@ -64,7 +94,7 @@ function App() {
   };
 
   // 打开下载目录
-  const handleOpenFolder = async () => {
+  const handleOpenFolder = useCallback(async () => {
     try {
       const folderPath = await invoke<string>("get_wallpaper_directory");
       await invoke("ensure_wallpaper_directory_exists");
@@ -73,24 +103,30 @@ function App() {
       console.error("Failed to open folder:", err);
       alert("打开文件夹失败: " + String(err));
     }
-  };
+  }, []);
 
   // 监听托盘发出的 open-folder 事件（复用打开目录逻辑）
   useEffect(() => {
-    let unlisten: (() => void) | null = null;
-    (async () => {
+    const setupListener = async () => {
       try {
-        unlisten = await listen("open-folder", () => {
+        const unlisten = await listen("open-folder", () => {
           handleOpenFolder();
         });
+        return unlisten;
       } catch (e) {
         console.error("Failed to bind open-folder event:", e);
+        return null;
       }
-    })();
-    return () => {
-      if (unlisten) unlisten();
     };
-  }, []);
+
+    let unlistenPromise = setupListener();
+
+    return () => {
+      unlistenPromise.then((unlisten) => {
+        if (unlisten) unlisten();
+      });
+    };
+  }, [handleOpenFolder]);
 
   return (
     <div className="app">
@@ -102,7 +138,15 @@ function App() {
           justifyContent: "space-between",
         }}
       >
-        <h1 style={{ margin: 0 }}>Bing Wallpaper Now</h1>
+        <div
+          style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}
+        >
+          <h1 style={{ margin: 0 }} className="app-title">
+            <span className="app-title-main">Bing Wallpaper</span>
+            <span className="app-title-accent">Now</span>
+          </h1>
+          <p className="app-tagline">世界之美 · 每日相遇</p>
+        </div>
         <div
           className="header-actions"
           style={{
@@ -114,32 +158,10 @@ function App() {
           }}
         >
           {isUpToDate && (
-            <span
-              style={{
-                fontSize: "12px",
-                color: "#4caf50",
-                border: "1px solid #4caf50",
-                padding: "2px 6px",
-                borderRadius: "4px",
-                marginRight: "8px",
-                background: "#e8f5e9",
-              }}
-            >
-              已是最新
-            </span>
+            <span className="status-badge status-success">已是最新</span>
           )}
           {lastUpdateTime && (
-            <div
-              className="last-update"
-              style={{
-                fontSize: "12px",
-                marginRight: "12px",
-                color: "#555",
-                whiteSpace: "nowrap",
-              }}
-            >
-              上次更新: {lastUpdateTime}
-            </div>
+            <div className="last-update">上次更新: {lastUpdateTime}</div>
           )}
           <button onClick={handleRefresh} className="btn btn-icon" title="更新">
             <svg
@@ -205,15 +227,16 @@ function App() {
           wallpapers={localWallpapers}
           onSetWallpaper={handleSetWallpaper}
           loading={loading}
-          isFirstLoad={isFirstLoad}
         />
       </main>
 
-      {showSettings && <Settings onClose={() => setShowSettings(false)} />}
+      {showSettings && (
+        <Settings onClose={() => setShowSettings(false)} version={version} />
+      )}
 
-      <footer className="app-footer">
-        <span className="version-info">v{version}</span>
-      </footer>
+      {showAbout && (
+        <About onClose={() => setShowAbout(false)} version={version} />
+      )}
     </div>
   );
 }

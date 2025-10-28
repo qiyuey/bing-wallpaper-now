@@ -14,6 +14,28 @@ Object.defineProperty(window, "__TAURI_INTERNALS__", {
   writable: true,
 });
 
+// Mock window.matchMedia for theme detection
+Object.defineProperty(window, "matchMedia", {
+  writable: true,
+  value: vi.fn().mockImplementation((query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(), // Deprecated
+    removeListener: vi.fn(), // Deprecated
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })),
+});
+
+// Mock ResizeObserver for tests
+global.ResizeObserver = class ResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
+
 // Mock @tauri-apps/api/core
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn(),
