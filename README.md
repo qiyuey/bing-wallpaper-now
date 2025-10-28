@@ -122,7 +122,9 @@ We're planning to enhance the user interface and experience with the help of pro
 - 📱 **Responsive Layout** - Better adaptation to different window sizes
 - 🖼️ **Enhanced Image Display** - Improved wallpaper preview and grid layout
 
-### Feature Enhancements
+### Feature Enhancements (v0.3.0)
+
+See detailed planning in [docs/v0.3.0-planning.md](docs/v0.3.0-planning.md)
 
 - Dark mode / Light mode toggle
 - System notifications for new wallpapers

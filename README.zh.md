@@ -122,7 +122,9 @@ xattr -rd com.apple.quarantine "/Applications/Bing Wallpaper Now.app"
 - 📱 **响应式布局** - 更好地适配不同窗口尺寸
 - 🖼️ **增强图片展示** - 改进壁纸预览和网格布局
 
-### 功能优化
+### 功能优化 (v0.3.0)
+
+详细规划见 [docs/v0.3.0-planning.zh.md](docs/v0.3.0-planning.zh.md)
 
 - 深色模式 / 浅色模式切换
 - 新壁纸系统通知
