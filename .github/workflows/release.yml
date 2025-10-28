@@ -275,29 +275,37 @@ jobs:
             echo "ℹ️ **Rust Cache (cargo registry/index)**: Miss (expected on first run)" >> $GITHUB_STEP_SUMMARY
           fi
 
-          # sccache statistics
+          # sccache statistics (simplified)
           if command -v sccache >/dev/null 2>&1; then
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "### sccache Statistics" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            sccache --show-stats >> $GITHUB_STEP_SUMMARY || echo "Unable to retrieve sccache stats" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-
-            # Extract and highlight cache hit rate
             STATS=$(sccache --show-stats 2>/dev/null || echo "")
             if [ -n "$STATS" ]; then
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "### sccache Statistics" >> $GITHUB_STEP_SUMMARY
+
+              # Extract key metrics
+              REQUESTS=$(echo "$STATS" | grep "Compile requests executed" | awk '{print $4}')
+              HITS=$(echo "$STATS" | grep "^Cache hits" | head -1 | awk '{print $3}')
+              MISSES=$(echo "$STATS" | grep "^Cache misses" | head -1 | awk '{print $3}')
               HIT_RATE=$(echo "$STATS" | grep "Cache hits rate" | head -1 | awk '{print $4}')
+
+              echo "- **Compile Requests**: $REQUESTS" >> $GITHUB_STEP_SUMMARY
+              echo "- **Cache Hits**: $HITS" >> $GITHUB_STEP_SUMMARY
+              echo "- **Cache Misses**: $MISSES" >> $GITHUB_STEP_SUMMARY
+
+              # Status with emoji
               if [ -n "$HIT_RATE" ]; then
-                echo "" >> $GITHUB_STEP_SUMMARY
                 RATE_NUM=$(echo "$HIT_RATE" | sed 's/%//')
                 if (( $(echo "$RATE_NUM > 50" | bc -l 2>/dev/null || echo 0) )); then
-                  echo "✅ **sccache Cache Hit Rate**: $HIT_RATE (Good)" >> $GITHUB_STEP_SUMMARY
+                  echo "- **Hit Rate**: ✅ $HIT_RATE (Good)" >> $GITHUB_STEP_SUMMARY
                 elif (( $(echo "$RATE_NUM > 0" | bc -l 2>/dev/null || echo 0) )); then
-                  echo "⚠️ **sccache Cache Hit Rate**: $HIT_RATE (Partial)" >> $GITHUB_STEP_SUMMARY
+                  echo "- **Hit Rate**: ⚠️ $HIT_RATE (Partial)" >> $GITHUB_STEP_SUMMARY
                 else
-                  echo "ℹ️ **sccache Cache Hit Rate**: $HIT_RATE (Building initial cache)" >> $GITHUB_STEP_SUMMARY
+                  echo "- **Hit Rate**: ℹ️ $HIT_RATE (Building initial cache)" >> $GITHUB_STEP_SUMMARY
                 fi
               fi
+            else
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "ℹ️ **sccache**: Unable to retrieve statistics" >> $GITHUB_STEP_SUMMARY
             fi
           else
             echo "" >> $GITHUB_STEP_SUMMARY
