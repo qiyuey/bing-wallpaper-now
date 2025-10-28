@@ -10,7 +10,8 @@ interface WallpaperGridProps {
 }
 
 // 行配置
-const ROW_HEIGHT = 455; // 每行高度（图片280px + 内容区域 + 间距）
+const ROW_HEIGHT = 420; // 每行高度（图片240px + 内容区域 + 间距）
+const CARDS_PER_ROW_4K = 4; // 4K屏幕每行4张
 const CARDS_PER_ROW_DESKTOP = 3; // 桌面端每行3张
 const CARDS_PER_ROW_TABLET = 2; // 平板端每行2张
 const CARDS_PER_ROW_MOBILE = 1; // 移动端每行1张
@@ -58,6 +59,9 @@ export const WallpaperGrid = memo(function WallpaperGrid({
           setCardsPerRow(CARDS_PER_ROW_MOBILE);
         } else if (width < 1200) {
           setCardsPerRow(CARDS_PER_ROW_TABLET);
+        } else if (width >= 1920) {
+          // 4K及以上分辨率（宽度>=1920）显示4张
+          setCardsPerRow(CARDS_PER_ROW_4K);
         } else {
           setCardsPerRow(CARDS_PER_ROW_DESKTOP);
         }
@@ -119,11 +123,24 @@ export const WallpaperGrid = memo(function WallpaperGrid({
     );
   };
 
-  if (loading || wallpapers.length === 0) {
+  if (loading) {
     return (
       <div ref={containerRef} className="wallpaper-container">
         <div className="wallpaper-grid-loading">
           <div className="spinner"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (wallpapers.length === 0) {
+    return (
+      <div ref={containerRef} className="wallpaper-container">
+        <div className="wallpaper-grid-empty">
+          <p>暂无壁纸</p>
+          <p className="wallpaper-grid-empty-hint">
+            点击上方刷新按钮获取最新壁纸
+          </p>
         </div>
       </div>
     );

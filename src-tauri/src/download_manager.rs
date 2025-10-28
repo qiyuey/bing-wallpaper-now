@@ -8,21 +8,11 @@ use tokio::fs;
 use tokio::io::AsyncWriteExt;
 
 /// 全局 HTTP 客户端，复用连接池
-///
-/// 配置说明：
-/// - pool_max_idle_per_host: 每个主机最多保持 10 个空闲连接（提升并发能力）
-/// - pool_idle_timeout: 连接空闲 90 秒后自动关闭
-/// - timeout: 请求总超时时间 90 秒（给大文件更多时间）
-/// - connect_timeout: 连接建立超时 10 秒
-/// - tcp_keepalive: 保持连接活跃，减少重连开销
 static HTTP_CLIENT: LazyLock<Client> = LazyLock::new(|| {
     Client::builder()
-        .pool_max_idle_per_host(10)
-        .pool_idle_timeout(Some(Duration::from_secs(90)))
-        .timeout(Duration::from_secs(90))
-        .connect_timeout(Duration::from_secs(10))
-        .tcp_keepalive(Some(Duration::from_secs(60)))
-        .user_agent("BingWallpaperNow/0.2.0")
+        .pool_max_idle_per_host(4)
+        .tcp_nodelay(true)
+        .user_agent("BingWallpaperNow/0.3.1")
         .build()
         .expect("Failed to create HTTP client")
 });
@@ -53,19 +43,30 @@ async fn download_image_with_retry(url: &str, save_path: &Path, max_retries: usi
                 attempts += 1;
                 last_error = Some(e);
                 if attempts < max_retries {
-                    // 指数退避: 1, 2, 4, 8, 16, 32, 64, 128, 256, 512 秒（最多10次，总计约17分钟）
-                    let delay = Duration::from_secs(1 << (attempts - 1));
+                    // 改进的重试延迟策略：
+                    // 前3次使用较短的固定间隔（5秒），适合处理临时网络波动
+                    // 后续使用指数退避，最大延迟60秒，避免等待时间过长
+                    let delay = if attempts <= 3 {
+                        Duration::from_secs(5) // 前3次：5秒固定间隔
+                    } else {
+                        // 第4次开始：10, 20, 40, 60, 60, 60... 秒
+                        let exponential = 10 * (1 << (attempts - 4));
+                        Duration::from_secs(exponential.min(60)) // 最大60秒
+                    };
+
                     log::warn!(
-                        "图片下载失败(第 {} 次): {}，{}s 后重试",
+                        "图片下载失败(第 {}/{} 次): {}，{}秒后重试",
                         attempts,
+                        max_retries,
                         last_error.as_ref().unwrap(),
                         delay.as_secs()
                     );
                     tokio::time::sleep(delay).await;
                 } else {
                     log::error!(
-                        "图片下载失败(第 {} 次): {}，已达最大重试次数（总计约17分钟）",
+                        "图片下载失败(第 {}/{} 次): {}，已达最大重试次数",
                         attempts,
+                        max_retries,
                         last_error.as_ref().unwrap()
                     );
                 }
@@ -82,7 +83,6 @@ async fn download_image_with_retry(url: &str, save_path: &Path, max_retries: usi
 async fn download_image_internal(url: &str, save_path: &Path) -> Result<()> {
     // 检查文件是否已存在
     if save_path.exists() {
-        log::debug!("File already exists, skipping download: {:?}", save_path);
         return Ok(());
     }
 
@@ -93,12 +93,22 @@ async fn download_image_internal(url: &str, save_path: &Path) -> Result<()> {
             .context("Failed to create parent directory")?;
     }
 
-    // 使用全局客户端发起请求
-    let response = HTTP_CLIENT
-        .get(url)
-        .send()
-        .await
-        .context("Failed to send request")?;
+    // 使用全局客户端发起请求，提供更详细的错误信息
+    let response = HTTP_CLIENT.get(url).send().await.map_err(|e| {
+        // 提供更详细的错误信息，帮助诊断问题
+        let error_msg = if e.is_connect() {
+            format!("Connection failed: {}", e)
+        } else if e.is_timeout() {
+            format!("Request timeout: {}", e)
+        } else if e.is_builder() {
+            format!("Request build error: {}", e)
+        } else if let Some(url_err) = e.url() {
+            format!("URL error for {}: {}", url_err, e)
+        } else {
+            format!("Network error: {}", e)
+        };
+        anyhow::anyhow!(error_msg)
+    })?;
 
     if !response.status().is_success() {
         anyhow::bail!("Failed to download image: HTTP {}", response.status());
@@ -111,16 +121,12 @@ async fn download_image_internal(url: &str, save_path: &Path) -> Result<()> {
         .await
         .context("Failed to create temporary file")?;
 
-    let mut downloaded = 0u64;
     while let Some(chunk) = stream.next().await {
         let chunk = chunk.context("Failed to read chunk")?;
         file.write_all(&chunk)
             .await
             .context("Failed to write chunk")?;
-        downloaded += chunk.len() as u64;
     }
-
-    log::debug!("Downloaded {} bytes to {:?}", downloaded, temp_path);
 
     // 确保数据写入磁盘
     file.sync_all().await.context("Failed to sync file")?;

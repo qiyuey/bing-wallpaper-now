@@ -3,7 +3,7 @@
 //! 使用 tauri-plugin-store 管理应用设置的持久化存储
 
 use crate::models::AppSettings;
-use log::{debug, info};
+use log::info;
 use tauri::AppHandle;
 use tauri_plugin_store::StoreExt;
 
@@ -21,8 +21,6 @@ pub fn load_settings(app: &AppHandle) -> anyhow::Result<AppSettings> {
             let settings: AppSettings = serde_json::from_value(value.clone())
                 .map_err(|e| anyhow::anyhow!("Failed to deserialize settings: {}", e))?;
 
-            info!(target: "settings_store", "成功从 store 加载设置");
-            debug!(target: "settings_store", "加载的设置: {:?}", settings);
             Ok(settings)
         }
         None => {
@@ -48,7 +46,6 @@ pub fn save_settings(app: &AppHandle, settings: &AppSettings) -> anyhow::Result<
         .map_err(|e| anyhow::anyhow!("Failed to save store to disk: {}", e))?;
 
     info!(target: "settings_store", "成功保存设置到 store");
-    debug!(target: "settings_store", "保存的设置: {:?}", settings);
     Ok(())
 }
 

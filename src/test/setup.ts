@@ -10,8 +10,62 @@ afterEach(() => {
 // Mock Tauri APIs
 global.window = Object.create(window);
 Object.defineProperty(window, "__TAURI_INTERNALS__", {
-  value: {},
+  value: {
+    transformCallback: vi.fn(<T>(callback: T) => callback),
+    invoke: vi.fn((cmd: string, _args?: unknown) => {
+      // Provide safe defaults for tests
+      if (cmd === "get_settings") {
+        return Promise.resolve({
+          theme: "system",
+          auto_update: true,
+          save_directory: null,
+          keep_image_count: 30,
+          launch_at_startup: false,
+        });
+      }
+      if (cmd === "update_settings") {
+        return Promise.resolve(null);
+      }
+      return Promise.resolve(undefined);
+    }),
+    event: {
+      // ensure event module finds expected internals
+      registerListener: vi.fn(() => 1),
+      unregisterListener: vi.fn((_id: number) => {}),
+    },
+    // Some versions access these at the root level, not under .event
+    registerListener: vi.fn(() => 1),
+    unregisterListener: vi.fn((_id: number) => {}),
+  },
   writable: true,
+});
+
+// Mock @tauri-apps/api modules directly to avoid internal errors
+vi.mock("@tauri-apps/api/core", () => {
+  return {
+    invoke: (cmd: string, args?: unknown) => {
+      // Access __TAURI_INTERNALS__ from global context
+      const globalWindow = global.window as {
+        __TAURI_INTERNALS__?: {
+          invoke: (cmd: string, args?: unknown) => Promise<unknown>;
+        };
+      };
+      if (globalWindow && globalWindow.__TAURI_INTERNALS__) {
+        return globalWindow.__TAURI_INTERNALS__.invoke(cmd, args);
+      }
+      return Promise.resolve(undefined);
+    },
+  };
+});
+
+vi.mock("@tauri-apps/api/event", () => {
+  return {
+    listen: vi.fn(async (_event: string, _cb: (..._a: unknown[]) => void) => {
+      // Return a stable unlisten function
+      return () => {};
+    }),
+    emit: vi.fn(async () => {}),
+  };
 });
 
 // Mock window.matchMedia for theme detection

@@ -1,8 +1,12 @@
 use anyhow::Result;
 use std::path::Path;
 
+#[cfg(target_os = "windows")]
+use log::info;
+#[cfg(all(unix, not(target_os = "macos")))]
+use log::info;
 #[cfg(target_os = "macos")]
-use log::{debug, info, trace, warn};
+use log::{info, trace, warn};
 #[cfg(target_os = "macos")]
 use std::collections::HashMap;
 #[cfg(target_os = "macos")]
@@ -62,7 +66,12 @@ fn get_desktop_image_url_for_screen(screen_index: usize) -> Option<PathBuf> {
 
         url.and_then(|nsurl| {
             let path_str = nsurl.path()?.to_string();
-            Some(PathBuf::from(path_str))
+            // 规范化路径：使用 canonicalize 或至少展开符号链接
+            let path = PathBuf::from(path_str);
+            match path.canonicalize() {
+                Ok(canonical) => Some(canonical),
+                Err(_) => Some(path), // 如果规范化失败，返回原始路径
+            }
         })
     }
 }
@@ -98,7 +107,6 @@ define_class!(
     impl WallpaperObserver {
         #[unsafe(method(onSpaceChanged:))]
         fn on_space_changed(&self, _notification: &AnyObject) {
-            trace!(target: "wallpaper", "Space 切换事件触发");
 
             // 智能对比：只有不一致时才重新设置
             if let Ok(state) = WALLPAPER_STATE.lock()
@@ -111,7 +119,6 @@ define_class!(
 
                 if all_match {
                     // 壁纸一致，跳过设置
-                    trace!(target: "wallpaper", "所有显示器壁纸已一致，跳过设置");
                     drop(state);
                     if let Ok(mut state) = WALLPAPER_STATE.lock() {
                         state.skipped_count += 1;
@@ -123,8 +130,6 @@ define_class!(
                 }
 
                 // 壁纸不一致，需要重新设置
-                debug!(target: "wallpaper", "检测到壁纸不一致，重新设置: 期望={:?}, 实际={:?}",
-                       expected, actual);
                 let path = expected.clone();
                 drop(state);
                 let _ = set_wallpaper_for_all_screens(&path);
@@ -197,10 +202,82 @@ pub fn set_wallpaper(image_path: &Path) -> Result<()> {
         set_wallpaper_macos(image_path)
     }
 
-    // 其他平台使用 wallpaper crate
-    #[cfg(not(target_os = "macos"))]
+    // Windows 平台实现
+    #[cfg(windows)]
     {
-        wallpaper::set_from_path(image_path.to_str().unwrap())
+        // 获取当前壁纸路径
+        let current_wallpaper = wallpaper::get().unwrap_or_else(|_e| String::new());
+
+        // Windows: 使用规范化路径进行比较
+        let target_path = image_path
+            .to_str()
+            .ok_or_else(|| anyhow::anyhow!("Invalid path encoding"))?;
+
+        // Windows 文件系统不区分大小写，需要规范化路径
+        // 1. 统一使用反斜杠
+        // 2. 转换为小写
+        // 3. 尝试规范化为绝对路径
+        let normalize_windows_path = |path: &str| -> String {
+            let normalized = path.replace('/', "\\").to_lowercase();
+            // 尝试获取绝对路径
+            if let Ok(abs_path) = std::path::Path::new(path).canonicalize() {
+                abs_path.to_string_lossy().to_lowercase()
+            } else {
+                normalized
+            }
+        };
+
+        let current_normalized = normalize_windows_path(&current_wallpaper);
+        let target_normalized = normalize_windows_path(target_path);
+
+        if !current_wallpaper.is_empty() && current_normalized == target_normalized {
+            info!(target: "wallpaper", "壁纸已设置为 {:?}，跳过设置", target_path);
+            return Ok(());
+        }
+
+        // 设置新壁纸
+        info!(target: "wallpaper", "设置壁纸为 {:?} (current: {:?})",
+            target_path, current_wallpaper
+        );
+        wallpaper::set_from_path(target_path)
+            .map_err(|e| anyhow::anyhow!("设置壁纸失败: {}", e))?;
+        Ok(())
+    }
+
+    // Linux 和其他 Unix 平台实现
+    #[cfg(all(unix, not(target_os = "macos")))]
+    {
+        // 获取当前壁纸路径
+        let current_wallpaper = wallpaper::get().unwrap_or_else(|e| String::new());
+
+        let target_path = image_path
+            .to_str()
+            .ok_or_else(|| anyhow::anyhow!("Invalid path encoding"))?;
+
+        // Linux: 文件系统区分大小写，使用规范化的绝对路径比较
+        let normalize_unix_path = |path: &str| -> String {
+            // 尝试获取规范化的绝对路径
+            if let Ok(canonical) = std::path::Path::new(path).canonicalize() {
+                canonical.to_string_lossy().to_string()
+            } else {
+                // 如果无法规范化，至少确保路径格式一致
+                path.to_string()
+            }
+        };
+
+        let current_normalized = normalize_unix_path(&current_wallpaper);
+        let target_normalized = normalize_unix_path(target_path);
+
+        if !current_wallpaper.is_empty() && current_normalized == target_normalized {
+            info!(target: "wallpaper", "壁纸已设置为 {:?}，跳过设置", target_path);
+            return Ok(());
+        }
+
+        // 设置新壁纸
+        info!(target: "wallpaper", "设置壁纸为 {:?} (current: {:?})",
+            target_path, current_wallpaper
+        );
+        wallpaper::set_from_path(target_path)
             .map_err(|e| anyhow::anyhow!("Failed to set wallpaper: {}", e))?;
         Ok(())
     }
@@ -212,7 +289,31 @@ pub fn set_wallpaper(image_path: &Path) -> Result<()> {
 /// 遍历所有屏幕并为每个屏幕设置壁纸，并验证设置结果
 #[cfg(target_os = "macos")]
 fn set_wallpaper_macos(image_path: &Path) -> Result<()> {
-    let target_path = image_path.to_path_buf();
+    // 规范化目标路径以进行准确比较
+    let target_path = match image_path.canonicalize() {
+        Ok(canonical) => canonical,
+        Err(_) => image_path.to_path_buf(),
+    };
+
+    // 先检查当前所有显示器的壁纸是否已经是目标壁纸
+    let current_wallpapers = get_all_desktop_images();
+    let all_match = !current_wallpapers.is_empty()
+        && current_wallpapers.values().all(|path| path == &target_path);
+
+    if all_match {
+        info!(target: "wallpaper", "所有显示器壁纸已是目标壁纸 {:?}，跳过设置", target_path);
+
+        // 更新状态但不重新设置
+        if let Ok(mut state) = WALLPAPER_STATE.lock() {
+            state.expected = Some(target_path.clone());
+            state.actual_per_screen = current_wallpapers;
+            state.skipped_count += 1;
+            if state.skipped_count % 10 == 0 {
+                info!(target: "wallpaper", "已跳过 {} 次不必要的壁纸设置", state.skipped_count);
+            }
+        }
+        return Ok(());
+    }
 
     // 保存期望壁纸路径到全局变量
     if let Ok(mut state) = WALLPAPER_STATE.lock() {

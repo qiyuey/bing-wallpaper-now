@@ -119,8 +119,8 @@ pub async fn cleanup_old_wallpapers(directory: &Path, keep_count: usize) -> Resu
         return Ok(0);
     }
 
-    // 排序后删除旧的
-    wallpapers.sort_by(|a, b| b.start_date.cmp(&a.start_date));
+    // 排序后删除旧的（按 end_date 降序，最新的在前）
+    wallpapers.sort_by(|a, b| b.end_date.cmp(&a.end_date));
     let to_delete = wallpapers.split_off(keep_count);
     let deleted_count = to_delete.len();
 
@@ -196,6 +196,7 @@ mod tests {
             end_date: start_date.into(),
             file_path: img_path.to_string_lossy().to_string(),
             download_time: Utc::now(),
+            urlbase: format!("/th?id=OHR.Wallpaper{}", start_date),
         }
     }
 

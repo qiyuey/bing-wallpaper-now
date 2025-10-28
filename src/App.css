@@ -337,7 +337,7 @@ body {
 
 .wallpaper-image-container {
   width: 100%;
-  height: 280px;
+  height: 240px;
   overflow: hidden;
   background: var(--bg-glass);
   position: relative;
@@ -906,7 +906,7 @@ body {
 
 .skeleton-image {
   width: 100%;
-  height: 280px;
+  height: 240px;
   background: linear-gradient(
     90deg,
     var(--skeleton-base) 25%,

@@ -1,0 +1,133 @@
+//! 运行时状态持久化模块
+//!
+//! 使用 tauri-plugin-store 管理应用运行时状态的持久化存储
+//! 与用户设置 (settings.json) 分离，存储在隐藏文件 .runtime.json 中
+
+use crate::models::AppRuntimeState;
+use anyhow::Result;
+use chrono::Local;
+use std::path::Path;
+use tauri::AppHandle;
+use tauri_plugin_store::StoreExt;
+
+const RUNTIME_STATE_KEY: &str = "runtime_state";
+const RUNTIME_STORE_FILE: &str = ".runtime.json";
+
+/// 从 store 加载运行时状态
+pub fn load_runtime_state(app: &AppHandle) -> Result<AppRuntimeState> {
+    let store = app
+        .store(RUNTIME_STORE_FILE)
+        .map_err(|e| anyhow::anyhow!("Failed to access runtime store: {}", e))?;
+
+    match store.get(RUNTIME_STATE_KEY) {
+        Some(value) => {
+            let state: AppRuntimeState = serde_json::from_value(value.clone())
+                .map_err(|e| anyhow::anyhow!("Failed to deserialize runtime state: {}", e))?;
+
+            Ok(state)
+        }
+        None => {
+            Ok(AppRuntimeState::default())
+        }
+    }
+}
+
+/// 保存运行时状态
+pub fn save_runtime_state(app: &AppHandle, state: &AppRuntimeState) -> Result<()> {
+    let store = app
+        .store(RUNTIME_STORE_FILE)
+        .map_err(|e| anyhow::anyhow!("Failed to access runtime store: {}", e))?;
+
+    let value = serde_json::to_value(state)
+        .map_err(|e| anyhow::anyhow!("Failed to serialize runtime state: {}", e))?;
+
+    store.set(RUNTIME_STATE_KEY, value);
+
+    store
+        .save()
+        .map_err(|e| anyhow::anyhow!("Failed to save runtime store to disk: {}", e))?;
+
+    Ok(())
+}
+
+/// 检查今天是否需要更新
+/// 返回 true 表示需要更新，false 表示可以跳过
+pub fn should_update_today(state: &AppRuntimeState) -> bool {
+    // 如果从未更新过，需要更新
+    let Some(ref last_update) = state.last_successful_update else {
+        log::info!(target: "runtime", "从未更新过，需要执行更新");
+        return true;
+    };
+
+    // 解析最后更新时间
+    let last_update_date = match chrono::DateTime::parse_from_rfc3339(last_update) {
+        Ok(dt) => dt.with_timezone(&Local).date_naive(),
+        Err(e) => {
+            log::warn!(target: "runtime", "解析最后更新时间失败：{}，需要更新", e);
+            return true;
+        }
+    };
+
+    let today = Local::now().date_naive();
+
+    // 如果最后更新不是今天，需要更新
+    if last_update_date < today {
+        log::info!(target: "runtime",
+            "最后更新时间：{}，今天：{}，需要更新",
+            last_update_date,
+            today
+        );
+        true
+    } else {
+        false
+    }
+}
+
+/// 检查本地是否已有今日壁纸
+/// 通过检查本地壁纸列表的第一项的 end_date 是否匹配今天
+pub async fn has_today_wallpaper(wallpaper_dir: &Path) -> bool {
+    // 获取今天的日期字符串 (YYYYMMDD 格式)
+    use chrono::Datelike;
+    let today = Local::now().date_naive();
+    let today_str = format!("{}{:02}{:02}", today.year(), today.month(), today.day());
+
+    // 读取本地壁纸列表
+    match crate::storage::get_local_wallpapers(wallpaper_dir).await {
+        Ok(wallpapers) => {
+            if let Some(first) = wallpapers.first() {
+                // 使用 end_date 来判断这是否是今天的壁纸
+                // 因为 Bing 的壁纸 startdate 是昨天，enddate 才是今天
+                let has_today = first.end_date == today_str;
+                if !has_today {
+                    log::info!(target: "runtime",
+                        "本地最新壁纸：{}，需要获取今日壁纸：{}",
+                        first.end_date,
+                        today_str
+                    );
+                }
+                has_today
+            } else {
+                log::info!(target: "runtime", "本地没有任何壁纸，需要更新");
+                false
+            }
+        }
+        Err(e) => {
+            log::warn!(target: "runtime", "读取本地壁纸失败：{}，假设需要更新", e);
+            false
+        }
+    }
+}
+
+/// 更新最后成功更新时间
+pub fn update_last_successful_time(app: &AppHandle, state: &mut AppRuntimeState) -> Result<()> {
+    state.last_successful_update = Some(Local::now().to_rfc3339());
+    save_runtime_state(app, state)?;
+    Ok(())
+}
+
+/// 更新最后检查时间
+pub fn update_last_check_time(app: &AppHandle, state: &mut AppRuntimeState) -> Result<()> {
+    state.last_check_time = Some(Local::now().to_rfc3339());
+    save_runtime_state(app, state)?;
+    Ok(())
+}

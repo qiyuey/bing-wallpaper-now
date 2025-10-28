@@ -19,15 +19,11 @@ Download the latest version from [GitHub Releases](https://github.com/qiyuey/bin
 
 The app is code-signed, but uses free signing (not from an Apple Developer account). On first launch:
 
-**Method 1 (Recommended)**: Right-click the app -> Select "Open" -> Click "Open" button
-
-**Method 2**: Run this command in Terminal:
+Run this command in Terminal:
 
 ```bash
 xattr -rd com.apple.quarantine "/Applications/Bing Wallpaper Now.app"
 ```
-
-**Method 3**: Go to "System Settings" -> "Privacy & Security" -> Find the app -> Click "Open Anyway"
 
 ## ✨ Features
 

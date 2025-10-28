@@ -44,6 +44,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
           launch_at_startup: boolean;
         }>("get_settings");
 
+        if (!settings || typeof settings !== "object") {
+          throw new Error("settings unavailable");
+        }
+
         const savedTheme = (settings.theme || "system") as Theme;
         setThemeState(savedTheme);
 

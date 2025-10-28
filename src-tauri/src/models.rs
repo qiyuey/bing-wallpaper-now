@@ -32,6 +32,8 @@ pub struct LocalWallpaper {
     pub end_date: String,
     pub file_path: String,
     pub download_time: DateTime<Utc>,
+    #[serde(default)] // 为了兼容旧数据
+    pub urlbase: String,
 }
 
 impl From<BingImageEntry> for LocalWallpaper {
@@ -45,6 +47,7 @@ impl From<BingImageEntry> for LocalWallpaper {
             end_date: entry.enddate.clone(),
             file_path: String::new(), // 将在下载后设置
             download_time: Utc::now(),
+            urlbase: entry.urlbase.clone(),
         }
     }
 }
@@ -80,11 +83,6 @@ impl WallpaperIndex {
             last_updated: Utc::now(),
             wallpapers: HashMap::new(),
         }
-    }
-
-    /// 获取壁纸数量
-    pub fn len(&self) -> usize {
-        self.wallpapers.len()
     }
 
     /// 判断是否为空
@@ -123,6 +121,15 @@ impl Default for AppSettings {
             theme: default_theme(),
         }
     }
+}
+
+/// 应用内部运行时状态（不展示给用户）
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct AppRuntimeState {
+    /// 最后成功更新时间（ISO 8601 格式）
+    pub last_successful_update: Option<String>,
+    /// 最后检查更新时间（ISO 8601 格式）
+    pub last_check_time: Option<String>,
 }
 
 #[cfg(test)]
@@ -194,6 +201,7 @@ mod tests {
             end_date: "20240102".to_string(),
             file_path: "/path/to/wallpaper.jpg".to_string(),
             download_time: now,
+            urlbase: "/th?id=OHR.Test_EN-US1234567890".to_string(),
         };
 
         let json = serde_json::to_string(&wallpaper).unwrap();

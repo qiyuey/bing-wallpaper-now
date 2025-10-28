@@ -2,6 +2,64 @@
 
 All notable changes to Bing Wallpaper Now will be documented in this file.
 
+## 0.3.1
+
+### Added
+
+- 📝 **新增 CLAUDE.md 开发指南文档**
+  - 为 Claude Code (claude.ai/code) 提供项目结构和开发指引
+  - 包含架构说明、开发命令、测试策略等详细信息
+  - 优化 AI 辅助开发体验
+
+- 🏃 **运行时状态持久化模块** (`runtime_state.rs`)
+  - 新增独立的运行时状态管理，与用户设置分离
+  - 存储在隐藏文件 `.runtime.json` 中
+  - 支持最后更新时间和检查时间的持久化
+
+- 📋 **Release Body 模板**
+  - 新增 `.github/release_body_template.md`
+  - 标准化 Release 说明格式
+
+### Changed
+
+- 🚀 **下载管理器优化** (`download_manager.rs`)
+  - 改进并发下载控制逻辑
+  - 优化错误处理和重试机制
+  - 提升下载稳定性
+
+- 📦 **索引管理器增强** (`index_manager.rs`)
+  - 优化壁纸索引的读写性能
+  - 改进缓存机制
+  - 增强错误处理
+
+- 🎨 **前端组件优化**
+  - `WallpaperCard.tsx`: 改进图片加载状态管理
+  - `WallpaperGrid.tsx`: 优化虚拟列表渲染性能
+  - `ThemeContext.tsx`: 增强主题切换逻辑
+
+- 🔧 **构建配置更新**
+  - 更新 `tauri.conf.json` 窗口配置
+  - 优化 GitHub Actions 工作流 (`release.yml`)
+  - 更新依赖版本（Cargo.toml, package.json）
+
+### Fixed
+
+- 🐛 **修复壁纸管理器问题** (`wallpaper_manager.rs`)
+  - 解决多显示器设置壁纸的兼容性问题
+  - 修复 macOS 下的壁纸设置逻辑
+
+- 🧪 **测试环境修复**
+  - 修复 `WallpaperGrid.test.tsx` 测试用例
+  - 更新 `setup.ts` 测试配置
+  - 确保所有测试通过
+
+### Technical
+
+- 更新 `models.rs` 数据模型定义
+- 优化 `settings_store.rs` 设置存储逻辑
+- 改进 `storage.rs` 文件存储管理
+- 主程序 (`lib.rs`) 架构调整和优化
+
 ## 0.3.0
 
 ### Added

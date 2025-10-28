@@ -3,12 +3,13 @@ mod download_manager;
 mod index_manager;
 mod macos_app;
 mod models;
+mod runtime_state;
 mod settings_store;
 mod storage;
 mod wallpaper_manager;
 
 use chrono::{DateTime, Local, TimeZone, Timelike};
-use log::{debug, error, info, trace, warn};
+use log::{error, info, warn};
 
 use models::{AppSettings, LocalWallpaper};
 use std::path::PathBuf;
@@ -83,15 +84,74 @@ async fn set_desktop_wallpaper(
     Ok(())
 }
 
+/// 重新下载缺失的壁纸文件
+async fn redownload_missing_wallpapers(
+    missing_wallpapers: Vec<LocalWallpaper>,
+    wallpaper_dir: PathBuf,
+    app: tauri::AppHandle,
+) {
+    info!(target: "commands", "开始重新下载 {} 张缺失的壁纸", missing_wallpapers.len());
+
+    for wallpaper in missing_wallpapers {
+        // 如果 urlbase 为空（旧数据），无法重新下载
+        if wallpaper.urlbase.is_empty() {
+            warn!(target: "commands", "壁纸缺少 urlbase 信息，无法重新下载: {}", wallpaper.start_date);
+            continue;
+        }
+
+        // 构建完整的图片 URL
+        let image_url = bing_api::get_wallpaper_url(&wallpaper.urlbase, "UHD");
+
+        // 构建保存路径
+        let save_path = wallpaper_dir.join(format!("{}.jpg", wallpaper.start_date));
+
+        // 下载图片
+        match download_manager::download_image(&image_url, &save_path).await {
+            Ok(()) => {
+                info!(target: "commands", "成功重新下载壁纸: {}", save_path.display());
+                // 发送事件通知前端
+                let _ = app.emit("image-downloaded", &wallpaper.start_date);
+            }
+            Err(e) => {
+                error!(target: "commands", "重新下载壁纸失败 {}: {}", wallpaper.start_date, e);
+            }
+        }
+    }
+}
+
 /// 获取已下载的壁纸列表
 #[tauri::command]
 async fn get_local_wallpapers(
     state: tauri::State<'_, AppState>,
+    app: tauri::AppHandle,
 ) -> Result<Vec<LocalWallpaper>, String> {
     let wallpaper_dir = state.wallpaper_directory.lock().await;
-    storage::get_local_wallpapers(&wallpaper_dir)
+
+    let wallpapers = storage::get_local_wallpapers(&wallpaper_dir)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| e.to_string())?;
+
+    // 检查文件是否存在，收集需要重新下载的壁纸
+    let mut missing_wallpapers = Vec::new();
+    for wallpaper in &wallpapers {
+        let path = std::path::Path::new(&wallpaper.file_path);
+        if !path.exists() {
+            warn!(target: "commands", "壁纸文件不存在，将触发重新下载: {}", wallpaper.file_path);
+            missing_wallpapers.push(wallpaper.clone());
+        }
+    }
+
+    // 如果有缺失的文件，异步触发重新下载
+    if !missing_wallpapers.is_empty() {
+        let wallpaper_dir_clone = wallpaper_dir.clone();
+        let app_clone = app.clone();
+        tauri::async_runtime::spawn(async move {
+            redownload_missing_wallpapers(missing_wallpapers, wallpaper_dir_clone, app_clone).await;
+        });
+    }
+
+    info!(target: "commands", "成功获取 {} 张本地壁纸", wallpapers.len());
+    Ok(wallpapers)
 }
 
 /// 获取应用设置
@@ -123,16 +183,14 @@ async fn get_settings(
     // 更新设置中的自启动状态为系统实际状态
     settings.launch_at_startup = is_enabled;
 
-    // 将同步后的设置写回 AppState 和 settings_tx
+    // 将同步后的设置写回 AppState
     {
         let mut app_settings = state.settings.lock().await;
         *app_settings = settings.clone();
     }
 
-    // 通过 watch channel 通知所有监听者设置已更新
-    if let Err(e) = state.settings_tx.send(settings.clone()) {
-        warn!(target: "settings", "发送设置更新到 watch channel 失败: {}", e);
-    }
+    // 注意：这里不应该发送设置更新通知，因为 get_settings 只是读取操作
+    // 只有 update_settings 才应该触发更新通知
 
     Ok(settings)
 }
@@ -285,13 +343,18 @@ async fn show_main_window(app: tauri::AppHandle) -> Result<(), String> {
 
 /// 单次更新循环：下载、保存、清理、可选应用最新壁纸（含重试与共享客户端）
 async fn run_update_cycle(app: &AppHandle) {
+    run_update_cycle_internal(app, false).await;
+}
+
+/// 内部更新循环实现
+/// @param force_update: 是否强制更新（忽略智能检查）
+async fn run_update_cycle_internal(app: &AppHandle, force_update: bool) {
     let state = app.state::<AppState>();
 
     // 并发保护：若已有更新在进行，直接跳过
     {
         let mut flag = state.update_in_progress.lock().await;
         if *flag {
-            trace!(target: "auto_update", "已有更新在进行中，跳过本次触发");
             return;
         }
         *flag = true;
@@ -303,7 +366,6 @@ async fn run_update_cycle(app: &AppHandle) {
         let s = state.settings.lock().await;
         s.clone()
     };
-    trace!(target: "auto_update", "开始一次更新循环");
 
     if !settings_snapshot.auto_update {
         // 未开启自动更新，重置标志后返回
@@ -317,8 +379,48 @@ async fn run_update_cycle(app: &AppHandle) {
         d.clone()
     };
 
+    // 智能更新检查（非强制更新时）
+    if !force_update {
+        // 加载运行时状态
+        let runtime_state = runtime_state::load_runtime_state(app).unwrap_or_default();
+
+        // 检查是否需要更新
+        if !runtime_state::should_update_today(&runtime_state) {
+            // 今天已经更新过，再检查本地是否真的有今日壁纸
+            if runtime_state::has_today_wallpaper(&dir).await {
+                info!(target: "update", "跳过更新：今天已更新且本地有今日壁纸");
+
+                // 自动应用最新壁纸（用户可能更换过）
+                if let Ok(list) = storage::get_local_wallpapers(&dir).await
+                    && let Some(first) = list.first()
+                {
+                    let path = PathBuf::from(&first.file_path);
+                    if let Err(e) = wallpaper_manager::set_wallpaper(&path) {
+                        error!(target: "update", "设置壁纸失败：{}", e);
+                    } else {
+                        let mut current_path = state.current_wallpaper_path.lock().await;
+                        *current_path = Some(path);
+                    }
+                }
+
+                // 启动时跳过更新，不需要通知前端（前端会自己初始化加载）
+                // 重置标志并返回
+                let mut flag = state.update_in_progress.lock().await;
+                *flag = false;
+                return;
+            }
+            info!(target: "update", "今天已更新但本地没有今日壁纸，继续更新");
+        }
+
+        // 更新检查时间
+        let mut runtime_state = runtime_state::load_runtime_state(app).unwrap_or_default();
+        let _ = runtime_state::update_last_check_time(app, &mut runtime_state);
+    } else {
+        info!(target: "update", "强制更新模式，跳过智能检查");
+    }
+
     if let Err(e) = storage::ensure_wallpaper_directory(&dir).await {
-        error!(target: "auto_update", "创建目录失败: {e}");
+        error!(target: "update", "创建目录失败: {e}");
         // 失败时重置标志
         let mut flag = state.update_in_progress.lock().await;
         *flag = false;
@@ -337,7 +439,7 @@ async fn run_update_cycle(app: &AppHandle) {
             Err(e) => {
                 if attempt < MAX_RETRIES - 1 {
                     let backoff = 1 << attempt; // 指数退避：1, 2, 4, 8, 16, 32, 64, 128, 256, 512 秒
-                    warn!(target: "auto_update",
+                    warn!(target: "update",
                         "获取 Bing 图片失败(第 {} 次): {}，{}s 后重试",
                         attempt + 1,
                         e,
@@ -345,7 +447,7 @@ async fn run_update_cycle(app: &AppHandle) {
                     );
                     tokio::time::sleep(Duration::from_secs(backoff)).await;
                 } else {
-                    error!(target: "auto_update",
+                    error!(target: "update",
                         "获取 Bing 图片失败(第 {} 次): {}，已达最大重试次数（总计约17分钟）",
                         attempt + 1,
                         e
@@ -358,13 +460,12 @@ async fn run_update_cycle(app: &AppHandle) {
     let images = match images_opt {
         Some(v) => v,
         None => {
-            error!(target: "auto_update", "多次重试仍失败，跳过本次循环");
+            error!(target: "update", "多次重试仍失败，跳过本次循环");
             let mut flag = state.update_in_progress.lock().await;
             *flag = false;
             return;
         }
     };
-    debug!(target: "auto_update", "获取到 {} 张图片用于本次处理", images.len());
 
     // 首次启动优化：立即保存所有元信息，让前端可以马上展示列表
     let is_first_launch = storage::get_local_wallpapers(&dir)
@@ -373,7 +474,7 @@ async fn run_update_cycle(app: &AppHandle) {
         .unwrap_or(false);
 
     if is_first_launch {
-        info!(target: "auto_update", "首次启动检测到，立即保存所有元信息供前端展示");
+        info!(target: "update", "首次启动检测到，立即保存所有元信息供前端展示");
 
         // 立即为所有图片创建元信息（不下载图片）
         let metadata_list: Vec<LocalWallpaper> = images
@@ -388,13 +489,13 @@ async fn run_update_cycle(app: &AppHandle) {
 
         // 批量保存元数据
         if let Err(e) = storage::save_wallpapers_metadata(metadata_list, &dir).await {
-            error!(target: "auto_update", "保存元数据失败: {e}");
+            error!(target: "update", "保存元数据失败: {e}");
         } else {
             // 立即通知前端刷新列表
             if let Err(e) = app.emit("wallpaper-updated", ()) {
-                warn!(target: "auto_update", "通知前端失败: {e}");
+                warn!(target: "update", "通知前端失败: {e}");
             }
-            info!(target: "auto_update", "元信息已保存并通知前端，开始后台下载图片");
+            info!(target: "update", "元信息已保存并通知前端，开始后台下载图片");
         }
     }
 
@@ -408,7 +509,6 @@ async fn run_update_cycle(app: &AppHandle) {
         .filter_map(|image| {
             let save_path = storage::get_wallpaper_path(&dir, &image.startdate);
             if save_path.exists() {
-                debug!(target: "auto_update", "跳过已存在的图片: {}", image.startdate);
                 None
             } else {
                 let url = bing_api::get_wallpaper_url(&image.urlbase, "UHD");
@@ -418,7 +518,7 @@ async fn run_update_cycle(app: &AppHandle) {
         .collect();
 
     if !download_tasks.is_empty() {
-        info!(target: "auto_update", "开始并发下载 {} 张图片", download_tasks.len());
+        info!(target: "update", "开始并发下载 {} 张图片", download_tasks.len());
 
         // 使用 futures 并发下载（最大并发数 4）
         use futures::stream::{self, StreamExt};
@@ -433,7 +533,7 @@ async fn run_update_cycle(app: &AppHandle) {
                     let startdate = image.startdate.clone();
                     match download_manager::download_image(&url, &save_path).await {
                         Ok(_) => {
-                            info!(target: "auto_update", "图片下载成功: {}", startdate);
+                            info!(target: "update", "图片下载成功: {}", startdate);
 
                             // 非首次启动时，每下载一张就保存元数据
                             if !is_first_launch {
@@ -443,19 +543,19 @@ async fn run_update_cycle(app: &AppHandle) {
                                 if let Err(e) =
                                     storage::save_wallpapers_metadata(vec![w], &dir_clone).await
                                 {
-                                    warn!(target: "auto_update", "保存元数据失败: {e}");
+                                    warn!(target: "update", "保存元数据失败: {e}");
                                 }
                             }
 
                             // 通知前端：单张图片下载完成
                             if let Err(e) = app_clone.emit("image-downloaded", startdate.clone()) {
-                                warn!(target: "auto_update", "通知前端图片下载完成失败: {e}");
+                                warn!(target: "update", "通知前端图片下载完成失败: {e}");
                             }
 
                             Ok(startdate)
                         }
                         Err(e) => {
-                            warn!(target: "auto_update", "图片下载失败 {}: {}", startdate, e);
+                            warn!(target: "update", "图片下载失败 {}: {}", startdate, e);
                             Err((startdate, e))
                         }
                     }
@@ -476,9 +576,9 @@ async fn run_update_cycle(app: &AppHandle) {
 
     if success_count > 0 || fail_count > 0 {
         if fail_count > 0 {
-            warn!(target: "auto_update", "下载完成: 成功 {}, 失败 {}", success_count, fail_count);
+            warn!(target: "update", "下载完成: 成功 {}, 失败 {}", success_count, fail_count);
         } else {
-            info!(target: "auto_update", "全部 {} 张图片下载成功", success_count);
+            info!(target: "update", "全部 {} 张图片下载成功", success_count);
         }
     }
 
@@ -486,7 +586,7 @@ async fn run_update_cycle(app: &AppHandle) {
     if let Err(e) =
         storage::cleanup_old_wallpapers(&dir, settings_snapshot.keep_image_count as usize).await
     {
-        warn!(target: "auto_update", "清理旧壁纸失败: {e}");
+        warn!(target: "update", "清理旧壁纸失败: {e}");
     }
 
     // 自动应用最新壁纸：现在无条件执行
@@ -495,23 +595,29 @@ async fn run_update_cycle(app: &AppHandle) {
     {
         let path = PathBuf::from(&first.file_path);
         if let Err(e) = wallpaper_manager::set_wallpaper(&path) {
-            error!(target: "auto_update", "设置壁纸失败: {e}");
+            error!(target: "update", "设置壁纸失败: {e}");
         } else {
             let mut current_path = state.current_wallpaper_path.lock().await;
             *current_path = Some(path);
         }
     }
 
-    info!(target: "auto_update", "完成一次更新循环");
+    info!(target: "update", "完成一次更新循环");
     // 记录最后更新时间
     {
         let mut last = state.last_update_time.lock().await;
         *last = Some(Local::now());
     }
 
+    // 保存运行时状态（更新成功）
+    {
+        let mut runtime_state = runtime_state::load_runtime_state(app).unwrap_or_default();
+        let _ = runtime_state::update_last_successful_time(app, &mut runtime_state);
+    }
+
     // 通知前端刷新壁纸列表
     if let Err(e) = app.emit("wallpaper-updated", ()) {
-        warn!(target: "auto_update", "通知前端失败: {e}");
+        warn!(target: "update", "通知前端失败: {e}");
     }
 
     // 末尾重置 update_in_progress
@@ -524,9 +630,8 @@ async fn run_update_cycle(app: &AppHandle) {
 /// 手动强制执行一次更新
 #[tauri::command]
 async fn force_update(app: tauri::AppHandle) -> Result<(), String> {
-    trace!(target: "auto_update", "收到手动强制更新指令");
-    // 直接调用 run_update_cycle，内部已做并发保护
-    run_update_cycle(&app).await;
+    // 调用强制更新版本，跳过智能检查
+    run_update_cycle_internal(&app, true).await;
     Ok(())
 }
 
@@ -543,6 +648,10 @@ fn start_auto_update_task(app: AppHandle) {
         let new_handle = tauri::async_runtime::spawn(async move {
             // 初始立即执行一次
             run_update_cycle(&app_clone).await;
+
+            // 标记是否是第一次收到设置变更（启动时的初始化不算）
+            let mut is_first_change = true;
+
             // 小时循环 + 零点对齐
             loop {
                 // 计算距下一次本地零点（含 5 分钟缓冲）剩余时间
@@ -568,7 +677,6 @@ fn start_auto_update_task(app: AppHandle) {
                         let after_sleep_now = Local::now();
                         // 零点窗口（00:00~00:05）内执行每日对齐更新，并在失败时快速重试
                         if after_sleep_now.hour() == 0 && after_sleep_now.minute() <= 5 {
-                            trace!(target:"auto_update","零点窗口内执行每日对齐更新");
                             // 记录更新前的日期
                             run_update_cycle(&app_clone).await;
                             let today = after_sleep_now.date_naive();
@@ -613,23 +721,30 @@ fn start_auto_update_task(app: AppHandle) {
                     }
                     changed = rx.changed() => {
                         if changed.is_err() {
-                            error!(target: "auto_update", "settings watch channel closed");
+                            error!(target: "update", "settings watch channel closed");
                             break;
                         }
+
+                        // 跳过第一次设置变更（启动时的初始化）
+                        if is_first_change {
+                            is_first_change = false;
+                            continue;
+                        }
+
                         let latest = rx.borrow().clone();
                         if !latest.auto_update {
-                            info!(target: "auto_update", "自动更新已关闭，等待重新开启...");
+                            info!(target: "update", "自动更新已关闭，等待重新开启...");
                             loop {
                                 if rx.changed().await.is_err() { break; }
                                 let s = rx.borrow().clone();
                                 if s.auto_update {
-                                    info!(target: "auto_update", "自动更新重新开启，立即执行一次");
+                                    info!(target: "update", "自动更新重新开启，立即执行一次");
                                     run_update_cycle(&app_clone).await;
                                     break;
                                 }
                             }
                         } else {
-                            info!(target: "auto_update", "设置改变，立即执行更新");
+                            info!(target: "update", "设置改变，立即执行更新");
                             run_update_cycle(&app_clone).await;
                         }
                     }
@@ -736,7 +851,7 @@ fn setup_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
                 let app_handle = app.clone();
                 tauri::async_runtime::spawn(async move {
                     if let Err(e) = force_update(app_handle).await {
-                        warn!(target: "auto_update", "托盘更新失败: {}", e);
+                        warn!(target: "update", "托盘更新失败: {}", e);
                     }
                 });
             }
@@ -765,7 +880,26 @@ fn setup_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
                 let _ = app.emit("open-about", ());
             }
             "quit" => {
-                app.exit(0);
+                // Properly cleanup before exit to avoid Windows class registration errors
+                // First, abort any running background tasks
+                if let Some(state) = app.try_state::<AppState>() {
+                    tauri::async_runtime::block_on(async {
+                        let handle = state.auto_update_handle.lock().await;
+                        handle.abort();
+                    });
+                }
+
+                // Destroy all windows to ensure WebView2 cleanup
+                if let Some(window) = app.get_webview_window("main") {
+                    // Use destroy() instead of close() for complete cleanup
+                    let _ = window.destroy();
+                }
+
+                // Small delay to ensure WebView2 cleanup completes
+                std::thread::sleep(std::time::Duration::from_millis(150));
+
+                // Use process::exit for immediate termination
+                std::process::exit(0);
             }
             _ => {}
         })
@@ -815,6 +949,7 @@ pub fn run() {
         .plugin(
             tauri_plugin_log::Builder::default()
                 .level(log::LevelFilter::Info)
+                .timezone_strategy(tauri_plugin_log::TimezoneStrategy::UseLocal)
                 .build(),
         )
         .manage(app_state)
@@ -867,6 +1002,21 @@ pub fn run() {
 
             info!(target: "settings", "成功加载持久化设置");
 
+            // 从持久化状态加载上次更新时间
+            {
+                if let Ok(runtime_state) = runtime_state::load_runtime_state(app.handle()) {
+                    if let Some(ref last_update_str) = runtime_state.last_successful_update {
+                        if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(last_update_str) {
+                            tauri::async_runtime::block_on(async {
+                                let mut last_update = state.last_update_time.lock().await;
+                                *last_update = Some(dt.with_timezone(&Local));
+                            });
+                            info!(target: "startup", "从持久化状态恢复上次更新时间: {}", last_update_str);
+                        }
+                    }
+                }
+            }
+
             setup_tray(app.handle())?;
 
             // macOS: 始终设置为 Accessory 模式（只显示托盘图标，不显示 Dock 图标）
@@ -888,6 +1038,8 @@ pub fn run() {
         })
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                // Check if this is a real quit request (from tray menu)
+                // If not, just hide the window
                 window.hide().unwrap();
                 api.prevent_close();
             }

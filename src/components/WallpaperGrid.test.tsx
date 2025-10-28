@@ -67,7 +67,7 @@ describe("WallpaperGrid", () => {
   });
 
   it("should render empty state when no wallpapers are provided", () => {
-    const { container } = render(
+    render(
       <WallpaperGrid
         wallpapers={[]}
         onSetWallpaper={mockOnSetWallpaper}
@@ -75,10 +75,10 @@ describe("WallpaperGrid", () => {
       />,
     );
 
-    const spinner = container.querySelector(".spinner");
-    expect(spinner).toBeInTheDocument();
-    const loadingDiv = container.querySelector(".wallpaper-grid-loading");
-    expect(loadingDiv).toBeInTheDocument();
+    expect(screen.getByText("暂无壁纸")).toBeInTheDocument();
+    expect(
+      screen.getByText("点击上方刷新按钮获取最新壁纸"),
+    ).toBeInTheDocument();
   });
 
   it("should render wallpapers when provided", async () => {
@@ -125,14 +125,15 @@ describe("WallpaperGrid", () => {
   });
 
   it("should default loading to false when not provided", () => {
-    const { container } = render(
+    render(
       <WallpaperGrid wallpapers={[]} onSetWallpaper={mockOnSetWallpaper} />,
     );
 
-    const spinner = container.querySelector(".spinner");
-    expect(spinner).toBeInTheDocument();
-    const loadingDiv = container.querySelector(".wallpaper-grid-loading");
-    expect(loadingDiv).toBeInTheDocument();
+    // 当 loading 默认为 false 且没有壁纸时，应该显示空状态
+    expect(screen.getByText("暂无壁纸")).toBeInTheDocument();
+    expect(
+      screen.getByText("点击上方刷新按钮获取最新壁纸"),
+    ).toBeInTheDocument();
   });
 
   it("should render wallpaper grid with single wallpaper", async () => {

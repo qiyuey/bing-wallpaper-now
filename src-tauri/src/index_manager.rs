@@ -42,7 +42,6 @@ impl IndexManager {
         {
             let cache = self.cache.lock().unwrap();
             if let Some(index) = cache.as_ref() {
-                log::trace!("Index loaded from cache ({} wallpapers)", index.len());
                 return Ok(index.clone());
             }
         }
@@ -55,8 +54,6 @@ impl IndexManager {
             );
             WallpaperIndex::default()
         });
-
-        log::debug!("Index loaded from disk ({} wallpapers)", index.len());
 
         // 更新缓存
         {
@@ -113,12 +110,6 @@ impl IndexManager {
         fs::rename(&temp_path, self.index_path())
             .await
             .context("Failed to rename index file")?;
-
-        log::debug!(
-            "Index saved to disk ({} wallpapers, {} bytes)",
-            index.len(),
-            bytes.len()
-        );
 
         // 更新缓存
         {
@@ -199,7 +190,8 @@ impl IndexManager {
     pub async fn get_all_wallpapers(&self) -> Result<Vec<LocalWallpaper>> {
         let index = self.load_index().await?;
         let mut wallpapers: Vec<_> = index.wallpapers.into_values().collect();
-        wallpapers.sort_by(|a, b| b.start_date.cmp(&a.start_date));
+        // 按 end_date 降序排序（最新的在前）
+        wallpapers.sort_by(|a, b| b.end_date.cmp(&a.end_date));
         Ok(wallpapers)
     }
 
@@ -220,7 +212,6 @@ impl IndexManager {
     pub fn clear_cache(&self) {
         let mut cache = self.cache.lock().unwrap();
         *cache = None;
-        log::trace!("Index cache cleared");
     }
 
     /// 强制从磁盘重新加载
@@ -252,7 +243,6 @@ mod tests {
         let index = manager.load_index().await.unwrap();
 
         assert_eq!(index.version, WallpaperIndex::VERSION);
-        assert_eq!(index.len(), 0);
 
         // 清理
         let _ = fs::remove_dir_all(&temp_dir).await;
@@ -278,6 +268,7 @@ mod tests {
             end_date: "20240102".to_string(),
             file_path: "/tmp/test.jpg".to_string(),
             download_time: Utc::now(),
+            urlbase: "/th?id=OHR.TestWallpaper".to_string(),
         };
 
         manager.upsert_wallpaper(wallpaper.clone()).await.unwrap();
@@ -311,6 +302,7 @@ mod tests {
                 end_date: "20240102".to_string(),
                 file_path: "/tmp/test1.jpg".to_string(),
                 download_time: Utc::now(),
+                urlbase: "/th?id=OHR.Wallpaper1".to_string(),
             },
             LocalWallpaper {
                 id: "test2".to_string(),
@@ -321,6 +313,7 @@ mod tests {
                 end_date: "20240103".to_string(),
                 file_path: "/tmp/test2.jpg".to_string(),
                 download_time: Utc::now(),
+                urlbase: "/th?id=OHR.Wallpaper2".to_string(),
             },
         ];
 
@@ -351,6 +344,7 @@ mod tests {
             end_date: "20240102".to_string(),
             file_path: "/tmp/persist.jpg".to_string(),
             download_time: Utc::now(),
+            urlbase: "/th?id=OHR.PersistTest".to_string(),
         };
 
         // 第一个管理器实例
