@@ -124,7 +124,7 @@ Click the "Settings" button (star icon) to customize:
 
 Want to help improve Bing Wallpaper Now? Contributions are welcome!
 
-Check out our development documentation below if you're interested in contributing code.
+Review the [Repository Guidelines](AGENTS.md) for coding standards, workflow, and tooling expectations, then check out the development documentation below if you're contributing code.
 
 <details>
 <summary><b>Development Guide (for Contributors)</b></summary>

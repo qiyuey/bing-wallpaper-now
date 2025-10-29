@@ -4,275 +4,230 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Bing Wallpaper Now is a cross-platform desktop application that automatically fetches and sets Bing daily wallpapers. It's built with Tauri 2.0 (Rust backend) and React 18 (TypeScript frontend).
+Bing Wallpaper Now is a cross-platform desktop application built with Tauri 2 that automatically fetches and sets Bing's daily wallpapers. The architecture follows a client-server pattern with a React frontend communicating with a Rust backend via Tauri's IPC system.
 
 ## Development Commands
 
-### Quick Start
-
+### Setup
 ```bash
-# Install dependencies (uses pnpm by default, falls back to npm)
-make install
-
-# Start development mode with hot reload
-make dev
-# or directly:
-pnpm run tauri dev
+pnpm install                    # Install dependencies
 ```
 
-### Code Quality
-
+### Development Workflow
 ```bash
-# Run all checks before committing (format, lint, types, tests, markdown)
-make check
-
-# Individual checks:
-pnpm run lint          # ESLint for TypeScript/React
-pnpm run lint:fix      # Auto-fix linting issues
-pnpm run lint:md       # Markdown linting
-pnpm run lint:md:fix   # Auto-fix markdown issues
-pnpm run format        # Format with Prettier
-pnpm run format:check  # Check Prettier formatting
-pnpm run typecheck     # TypeScript type checking
-pnpm run test          # Run all tests (Rust + Frontend)
-pnpm run test:rust     # Rust tests only
-pnpm run test:frontend # Frontend tests only
-
-# Rust-specific:
-cargo fmt              # Format Rust code
-cargo clippy           # Rust linting
-cargo test             # Run Rust tests
-cargo test <test_name> # Run specific Rust test
+pnpm tauri dev                  # Full app with hot reload (recommended)
+make dev                        # Alternative command
+pnpm dev                        # Frontend only (web UI, no backend)
 ```
 
-### Build & Release
-
+### Code Quality (Run Before Commits)
 ```bash
-# Build production app
-pnpm run tauri build
+make check                      # Run ALL quality checks (mandatory)
+pnpm run typecheck              # TypeScript type checking
+pnpm run lint                   # ESLint check
+pnpm run lint:fix               # Auto-fix ESLint issues
+pnpm run format                 # Format code with Prettier
+pnpm run format:check           # Check formatting
+pnpm run lint:md                # Check markdown files
+pnpm run lint:md:fix            # Auto-fix markdown issues
+cargo fmt --manifest-path src-tauri/Cargo.toml  # Format Rust code
+cargo clippy --manifest-path src-tauri/Cargo.toml  # Lint Rust code
+```
 
-# Version management workflow:
-make patch    # Create patch dev version (0.1.0 -> 0.1.1-0)
-make minor    # Create minor dev version (0.1.0 -> 0.2.0-0)
-make major    # Create major dev version (0.1.0 -> 1.0.0-0)
-make release  # Release version, create tag, and push
-make retag    # Re-push current tag (re-trigger CI/CD)
+### Testing
+```bash
+pnpm test                       # Run both Rust and frontend tests
+pnpm test:rust                  # Rust unit tests only
+pnpm test:frontend              # Frontend tests only (Vitest + Testing Library)
+pnpm test:frontend -- --coverage  # With coverage report
+```
+
+### Building
+```bash
+pnpm build                      # Build frontend (TypeScript + Vite)
+pnpm tauri build                # Build complete app for distribution
+```
+
+### Version Management
+```bash
+make patch                      # Create patch dev version (0.1.0 -> 0.1.1-0)
+make minor                      # Create minor dev version (0.1.0 -> 0.2.0-0)
+make major                      # Create major dev version (0.1.0 -> 1.0.0-0)
+make release                    # Release current version (removes -0 suffix), tag, and push
 ```
 
 ## Architecture
 
-### Backend (Rust/Tauri)
+### Frontend (src/)
 
-The Rust backend (`src-tauri/src/`) follows a modular architecture:
+**React 19 + TypeScript + Vite** - The UI is a single-page application that displays wallpaper cards in a virtualized grid.
+
+- **Components** (`src/components/`): Presentational React components
+  - `WallpaperCard`: Individual wallpaper card with image preview
+  - `WallpaperGrid`: Virtualized grid using react-window for performance
+  - `Settings`: Settings panel with form inputs
+  - `About`: About dialog
+
+- **Hooks** (`src/hooks/`): Custom React hooks for state management
+  - `useBingWallpapers`: Primary hook managing wallpaper state, fetch/refresh logic, and backend communication
+  - `useSettings`: Settings persistence and synchronization
+
+- **Contexts** (`src/contexts/`): React context providers
+  - `ThemeContext`: Theme management (light/dark/system)
+
+- **Types** (`src/types/`): Shared TypeScript interfaces
+  - `LocalWallpaper`: Wallpaper metadata structure
+  - `AppSettings`: Application settings structure
+
+- **Event Communication**: Frontend listens to backend events via Tauri's event system:
+  - `wallpaper-updated`: Refresh wallpaper list
+  - `image-downloaded`: Single image download complete
+  - `open-settings`: Tray menu triggered settings panel
+  - `open-about`: Tray menu triggered about dialog
+  - `open-folder`: Tray menu triggered folder open
+
+### Backend (src-tauri/src/)
+
+**Rust + Tauri 2** - The backend handles all system interactions, file management, and wallpaper operations.
+
+- **Main Entry** (`lib.rs`): Application lifecycle, state management, and command registration
+  - `AppState`: Global state with settings, wallpaper directory, update status
+  - `run_update_cycle()`: Core update logic with retry mechanism and smart update checking
+  - `start_auto_update_task()`: Background task with hourly polling and midnight alignment
+  - System tray setup and event handling
 
 - **Core Modules**:
-  - `lib.rs`: Central hub defining all Tauri commands, `AppState` structure, and application lifecycle
-  - `main.rs`: Application entry point and window setup
-  - `models.rs`: Data structures (Wallpaper, Settings, LocalWallpaper, etc.)
-  - `runtime_state.rs`: Application runtime state management with watch channels for reactive updates
+  - `bing_api.rs`: Bing API integration (fetch image metadata)
+  - `download_manager.rs`: Concurrent image downloader with retry logic
+  - `wallpaper_manager.rs`: Cross-platform wallpaper setting
+    - macOS: Multi-monitor support with Space recovery observer
+    - Windows: Standard wallpaper API
+    - Linux: Platform-specific wallpaper setting
+  - `storage.rs`: File system operations (save/load wallpapers, cleanup)
+  - `index_manager.rs`: Wallpaper metadata persistence (MessagePack format)
+  - `settings_store.rs`: Settings persistence (Tauri plugin-store)
+  - `runtime_state.rs`: Runtime state tracking (last update time, update checks)
+  - `macos_app.rs`: macOS-specific app activation policy (Accessory mode for tray-only)
 
-- **Manager Modules**:
-  - `wallpaper_manager.rs`: Desktop wallpaper setting logic, platform-specific implementations
-  - `download_manager.rs`: Concurrent image downloads with controlled parallelism (max 3 parallel)
-  - `storage.rs`: File storage and wallpaper metadata persistence using MessagePack serialization
-  - `settings_store.rs`: User settings persistence and validation using tauri-plugin-store
-  - `index_manager.rs`: Wallpaper indexing and retrieval with smart caching
+- **Tauri Commands** (IPC interface):
+  - `get_local_wallpapers`: Fetch local wallpaper list (with redownload for missing files)
+  - `set_desktop_wallpaper`: Set wallpaper (async, non-blocking)
+  - `get_settings` / `update_settings`: Settings CRUD
+  - `force_update`: Manual trigger for update cycle
+  - `cleanup_wallpapers`: Remove old wallpapers based on retention count
+  - `get_wallpaper_directory`: Get current save directory
+  - `ensure_wallpaper_directory_exists`: Create directory if missing
 
-- **API Integration**:
-  - `bing_api.rs`: Bing wallpaper API client with retry mechanism and exponential backoff
+### Update Strategy
 
-- **Platform-Specific**:
-  - `macos_app.rs`: macOS-specific functionality using objc2 bindings for multi-monitor support
+The app uses a smart update system:
 
-**Key Patterns**:
+1. **Startup**: Loads persisted runtime state and checks if update needed
+2. **Smart Check**: Skips update if already updated today AND local wallpapers exist
+3. **Hourly Polling**: Checks for new wallpapers every hour
+4. **Midnight Alignment**: Triggers at 00:00-00:05 local time with exponential backoff retry (up to 17 minutes)
+5. **First Launch Optimization**: Immediately saves metadata so UI can show wallpapers while images download in background
+6. **Concurrent Downloads**: Up to 4 parallel downloads using futures stream
+7. **Auto-apply**: Automatically sets the latest wallpaper after successful update
 
-- All Tauri commands are async and return `Result<T, String>` for error handling
-- Shared state via `Arc<Mutex<T>>` in `AppState` structure
-- Event emission for frontend updates (e.g., `wallpaper-updated`, `settings-changed`)
-- Watch channels (`tokio::sync::watch`) for reactive settings propagation
-- Background tasks spawn with `tauri::async_runtime::spawn`
-- Path validation to prevent setting arbitrary system files as wallpapers
+### State Management Flow
 
-### Frontend (React/TypeScript)
+```
+User Action (Frontend)
+  → Tauri Command (IPC)
+  → Rust Backend Handler
+  → Update AppState
+  → Emit Event (if needed)
+  → Frontend Hook Listener
+  → React State Update
+  → UI Re-render
+```
 
-The React frontend (`src/`) uses functional components and hooks:
+### Data Persistence
 
-- **Core Components**:
-  - `App.tsx`: Main application container
-  - `components/WallpaperGrid.tsx`: Wallpaper gallery display
-  - `components/WallpaperCard.tsx`: Individual wallpaper cards
+- **Settings**: Stored via tauri-plugin-store (JSON)
+- **Wallpaper Metadata**: MessagePack format (`wallpaper-index.msgpack`)
+- **Runtime State**: Persisted for smart update checks (`runtime-state.json`)
+- **Images**: Saved as `YYYYMMDD.jpg` in configured directory
 
-- **State Management**:
-  - `hooks/useBingWallpapers.ts`: Wallpaper fetching and state
-  - `hooks/useSettings.ts`: Settings management
-  - `contexts/ThemeContext.tsx`: Global theme state
+## Important Patterns
 
-- **Backend Communication**:
-  - Uses Tauri's `invoke` API for command execution
-  - Event listeners for real-time updates
+### Async/Non-blocking Operations
 
-### Data Flow
+All wallpaper operations are async to avoid blocking the UI thread:
+```rust
+// Backend spawns async tasks
+tauri::async_runtime::spawn(async move {
+    wallpaper_manager::set_wallpaper(&path)
+});
+```
 
-1. **Frontend → Backend**: Via Tauri commands using `invoke()` API
-2. **Backend → Frontend**: Via events (`emit()`) and command return values
-3. **State Updates**: Backend emits events (e.g., `wallpaper-updated`), frontend listens and updates UI reactively
-4. **Settings Propagation**: Settings changes broadcast via `watch` channels to all background tasks
-5. **Concurrent Operations**: Download manager handles parallel downloads (max 3 concurrent)
-6. **Persistence**:
-   - Settings: JSON via `tauri-plugin-store`
-   - Wallpaper metadata: MessagePack binary format for efficiency
-   - Images: Downloaded to configured directory (default: `$HOME/Pictures/Bing Wallpaper Now`)
+### Concurrent Safety
 
-### Background Update System
+- `Arc<Mutex<T>>` for shared state across async tasks
+- `watch` channel for broadcasting settings changes
+- `update_in_progress` flag prevents concurrent update cycles
 
-The app implements a smart background update cycle:
+### macOS-specific Features
 
-- Auto-update task spawns on app start if enabled in settings
-- Checks Bing API based on last update time (stored in `AppState`)
-- Downloads new wallpapers automatically without blocking UI
-- Applies latest wallpaper if auto-update is enabled
-- Respects retention count setting for automatic cleanup
-- All update operations are cancellable via `AbortHandle`
+- **Multi-monitor**: Sets wallpaper for all connected displays
+- **Space Recovery**: Observer detects Space switches and reapplies wallpaper
+- **Accessory Mode**: App lives in tray only (no Dock icon)
 
-## Platform-Specific Considerations
+### Windows-specific Optimizations
 
-### macOS
-
-- **Multi-monitor support**: Sets wallpaper across all connected displays simultaneously via `NSWorkspace`
-- **Native APIs**: Uses `objc2`, `objc2-foundation`, and `objc2-app-kit` crates for Objective-C bindings
-- **Fullscreen handling**: Detects and handles fullscreen apps to ensure wallpaper applies correctly
-- **Spaces support**: Automatically restores wallpaper when switching Spaces or exiting fullscreen
-- **Implementation**: See `macos_app.rs` for platform-specific code
-
-### Windows
-
-- Direct Windows API integration for wallpaper setting via `wallpaper` crate
-- MSI installer configuration in `tauri.conf.json`
-- Portable `.exe` also available
-
-### Linux
-
-- Desktop environment detection for wallpaper setting
-- Supports GNOME, KDE, XFCE, and other common DEs
-- Multiple package formats: `.deb` (Debian/Ubuntu), `.rpm` (Fedora/RedHat), `.AppImage` (Universal)
+- High DPI tray icon: Uses 128x128 PNG for crisp display at 200% scaling
+- Proper WebView2 cleanup on exit to prevent class registration errors
 
 ## Testing Strategy
 
-- **Frontend Tests**: Located alongside components (`.test.tsx` files)
-  - Uses Vitest and React Testing Library
-  - Focus on component behavior and user interactions
+- **Frontend**: Vitest + Testing Library (component and hook tests)
+  - Tests colocated with components (`*.test.tsx`)
+  - Setup file: `src/test/setup.ts`
+  - Coverage thresholds: 70% lines, 40% functions, 60% branches
 
-- **Rust Tests**: In-module tests in Rust files
-  - Run with `cargo test`
-  - Cover core logic and error handling
+- **Rust**: Standard `cargo test` with unit tests
+  - Tests in `#[cfg(test)]` modules
+  - Focus on pure functions (validation, parsing)
 
 ## Key Configuration Files
 
-- `src-tauri/tauri.conf.json`: Tauri app configuration, build settings
-- `package.json`: Frontend dependencies and scripts
-- `src-tauri/Cargo.toml`: Rust dependencies
+- `package.json`: Frontend dependencies, scripts, version (must match Cargo.toml)
+- `src-tauri/Cargo.toml`: Rust dependencies, version (must match package.json)
+- `src-tauri/tauri.conf.json`: Tauri configuration, permissions, build settings
+- `vitest.config.ts`: Test configuration and coverage thresholds
 - `Makefile`: Development workflow automation
-- `.github/workflows/`: CI/CD pipelines for building and releasing
 
-## Common Development Tasks
+## Commit Workflow
 
-### Adding a New Tauri Command
-
-1. Define the async function in `src-tauri/src/lib.rs` with the `#[tauri::command]` macro:
-
-```rust
-#[tauri::command]
-async fn your_command(
-    arg: String,
-    state: tauri::State<'_, AppState>,
-    app: tauri::AppHandle,
-) -> Result<ReturnType, String> {
-    // Implementation
-    // Access shared state: state.settings.lock().await
-    // Emit events: app.emit("event-name", payload)?;
-    Ok(result)
-}
-```
-
-1. Register the command in the `.invoke_handler()` call in `lib.rs`
-
-1. Call from frontend:
-
-```typescript
-import { invoke } from '@tauri-apps/api/core';
-const result = await invoke<ReturnType>('your_command', { arg: 'value' });
-```
-
-### Modifying Storage System
-
-The storage system uses MessagePack for efficient binary serialization:
-
-- **Wallpaper metadata**: `storage.rs` handles read/write operations
-- **Data structures**: Modify `LocalWallpaper` in `models.rs` (must be Serde-compatible)
-- **Settings**: Stored separately via `tauri-plugin-store` in JSON format
-- **File operations**: All file paths are validated to prevent security issues
-
-### Working with Background Tasks
-
-Background tasks use Tokio's async runtime:
-
-- **Spawn tasks**: Use `tauri::async_runtime::spawn()` for background work
-- **Settings reactivity**: Listen to `settings_rx` watch channel for settings changes
-- **Cancellation**: Store `JoinHandle` in `AppState` to abort tasks when needed
-- **Update cycle**: See `run_update_cycle()` and `force_update()` in `lib.rs`
-
-### Debugging
-
-```bash
-# Run with Rust logging enabled
-RUST_LOG=debug pnpm run tauri dev
-
-# Check specific modules
-RUST_LOG=bing_wallpaper_now_lib::wallpaper_manager=debug pnpm run tauri dev
-
-# Run tests with output
-cargo test -- --nocapture
-```
-
-## Performance Considerations
-
-- **Frontend**: Uses `react-window` for virtualized lists to handle large wallpaper collections
-- **Downloads**: Max 3 concurrent downloads to balance speed and resource usage
-- **Caching**: Local cache prioritized over remote API calls
-- **Lazy loading**: Wallpaper metadata loaded on-demand
-- **MessagePack**: Binary serialization faster than JSON for metadata storage
-- **Event-driven**: Reactive updates avoid polling and unnecessary re-renders
+1. Run `make check` - fixes all linting and verifies tests pass
+2. Commit using Conventional Commits format: `type: description`
+   - Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
+3. Push to trigger CI/CD
 
 ## Release Workflow
 
-The project uses automated version management and CI/CD:
+1. Run `make check` to ensure quality
+2. Review `git diff $(git describe --tags --abbrev=0)` for changes since last tag
+3. Update `CHANGELOG.md` with `## x.y.z` section
+4. Commit changes (do NOT push yet)
+5. Run `make release` - removes `-0` suffix, creates git tag, pushes
+6. GitHub Actions automatically builds and publishes release artifacts
 
-1. **Development cycle**: After releasing a version (e.g., `0.1.0`), create a development version:
+## Plugin Permissions
 
-   ```bash
-   make patch    # Creates 0.1.1-0 for patch development
-   make minor    # Creates 0.2.0-0 for minor features
-   make major    # Creates 1.0.0-0 for breaking changes
-   ```
+The app requires these Tauri plugin permissions (configured in `tauri.conf.json`):
+- `opener:allow-open-path` - Open wallpaper folder in file manager
+- `dialog:allow-message`, `dialog:allow-open`, `dialog:allow-save` - Folder picker
+- `store:allow-get`, `store:allow-set` - Settings persistence
+- `autostart:allow-enable`, `autostart:allow-disable`, `autostart:allow-is-enabled` - Launch at startup
+- `notification:default` - System notifications (planned feature)
 
-1. **Release process**: When ready to release:
+## Anti-patterns to Avoid
 
-   ```bash
-   make release  # Runs checks, updates version, creates tag, pushes
-   ```
-
-   This triggers GitHub Actions to build and publish installers for all platforms.
-
-1. **Re-trigger CI**: If a build fails or you need to rebuild:
-
-   ```bash
-   make retag    # Re-pushes the current version tag
-   ```
-
-**Important**: The release script automatically:
-
-- Validates working directory is clean
-- Runs all quality checks (`make check`)
-- Updates version in `package.json`, `Cargo.toml`, and `tauri.conf.json`
-- Creates a git commit and tag
-- Pushes to remote repository
+- Don't use `git commit --amend` unless explicitly requested or fixing pre-commit hook issues
+- Never skip hooks (`--no-verify`) unless user explicitly requests it
+- Don't commit without running `make check` first
+- Don't modify generated files in `src-tauri/gen/` or `target/`
+- Avoid blocking operations in Tauri commands (always spawn async tasks)
+- Don't create new files when editing existing ones would suffice

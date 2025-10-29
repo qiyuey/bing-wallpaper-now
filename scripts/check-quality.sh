@@ -136,10 +136,6 @@ print_counter_summary
 
 if [[ $UI_COUNTER_FAILED -eq 0 ]]; then
     printf "${COLOR_GREEN}${COLOR_BOLD}✅ All code quality checks passed! 🎉${COLOR_RESET}\n\n"
-    printf "${COLOR_GREEN}Safe to commit. Next steps:${COLOR_RESET}\n"
-    printf "  ${COLOR_BLUE}git add .${COLOR_RESET}\n"
-    printf "  ${COLOR_BLUE}git commit -m \"your message\"${COLOR_RESET}\n"
-    printf "  ${COLOR_BLUE}git push${COLOR_RESET}\n\n"
     exit 0
 else
     printf "${COLOR_RED}${COLOR_BOLD}❌ %d check(s) failed${COLOR_RESET}\n\n" $UI_COUNTER_FAILED
@@ -149,13 +145,5 @@ else
     for check in "${FAILED_CHECKS[@]}"; do
         printf "  ${COLOR_RED}✗ %s${COLOR_RESET}\n" "$check"
     done
-    printf "\n"
-
-    printf "${COLOR_YELLOW}Quick fixes:${COLOR_RESET}\n"
-    printf "  - Format: ${COLOR_BLUE}cargo fmt && $PKG_MANAGER run format${COLOR_RESET}\n"
-    printf "  - Lint: ${COLOR_BLUE}$PKG_MANAGER run lint:fix${COLOR_RESET}\n"
-    printf "  - Markdown: ${COLOR_BLUE}$PKG_MANAGER run lint:md:fix${COLOR_RESET}\n"
-    printf "  - Types: Fix according to tsc error messages\n"
-    printf "  - Tests: Fix according to test output\n\n"
     exit 1
 fi

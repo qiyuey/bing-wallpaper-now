@@ -1,42 +1,25 @@
 # Repository Guidelines
 
-## Project Structure & Modules
+## Project Structure & Module Organization
 
-- Frontend (React + Vite + TS): `src/` (components, hooks, contexts, utils, types). Tests colocated as `*.{test,spec}.{ts,tsx}`. Setup: `src/test/setup.ts`.
-- Desktop app (Tauri + Rust): `src-tauri/` (`src/` for Rust crates, `tauri.conf.json`, `icons/`).
-- Static assets: `public/`, `src/assets/`.
-- Tooling/automation: `Makefile`, `scripts/`, configs (`*.config.*`, `vitest.config.ts`, `eslint.config.js`).
+Primary UI code lives under `src/`, with React components in `src/components`, cross-cutting state in `src/contexts`, hooks in `src/hooks`, and shared types/utilities in `src/types` and `src/utils`. Frontend tests sit alongside components (e.g., `src/App.test.tsx`) and helpers under `src/test`. The Tauri backend and wallpaper automation are in `src-tauri/src`, backed by `tauri.conf.json` for distribution settings. Static assets reside in `public/`, while reusable automation scripts live in `scripts/`, including versioning and quality gates.
 
-## Build, Test, and Development
+## Build, Test, and Development Commands
 
-- Install deps: `pnpm install` (or `npm install`).
-- Web dev server: `pnpm dev`.
-- Tauri app (hot reload): `pnpm tauri dev` or `make dev`.
-- Build web: `pnpm build` (runs `tsc` then `vite build`).
-- Tests: `pnpm test` (Rust + frontend), `pnpm test:frontend`, `pnpm test:rust`.
-- Lint/format: `pnpm lint`, `pnpm lint:fix`, `pnpm format`, `pnpm format:check`, `pnpm lint:md`.
-- Quality sweep: `make check` (format, lint, types, tests).
+Run `pnpm install` (or `npm install`) once to sync dependencies. Use `pnpm tauri dev` or `make dev` for the full desktop experience with hot reload; `pnpm dev` spins up the web UI only. Build production artifacts with `pnpm build`, and verify locally with `pnpm preview`. Quality checks are aggregated in `make check`, which wraps formatting, linting, type-checking, and both test suites.
 
-## Coding Style & Naming
+## Coding Style & Naming Conventions
 
-- Formatting via Prettier; base rules in `.editorconfig` (2-space indent; Rust 4 spaces; LF; final newline).
-- ESLint for TS/React (see `eslint.config.js`). Prefer:
-  - Components: PascalCase files (e.g., `WallpaperCard.tsx`).
-  - Hooks: `useX` naming (e.g., `useSettings.ts`).
-  - Variables/functions: camelCase; types/interfaces: PascalCase.
+Code is TypeScript-first with React 19. Prettier enforces two-space indentation, trailing commas, and semicolons; run `pnpm format` or `pnpm format:check` before committing. ESLint (`eslint.config.js`) covers React hooks rules, import ordering, and TypeScript linting—address warnings via `pnpm lint` or `pnpm lint:fix`. Follow PascalCase for components, `use`-prefixed camelCase for hooks, and colocate component styles in CSS modules where applicable.
 
 ## Testing Guidelines
 
-- Framework: Vitest (+ jsdom, RTL). Config: `vitest.config.ts`.
-- Test files: `src/**/*.{test,spec}.{ts,tsx}`; colocate near source.
-- Coverage (soft thresholds): lines 70, funcs 40, branches 60, statements 70. Run `pnpm test` or `vitest run --coverage`.
+Frontend tests use Vitest plus Testing Library; keep specs in `*.test.tsx` files near the code or under `src/test`. Run `pnpm test:frontend` for UI logic, `pnpm test:rust` for backend commands, or `pnpm test` for both suites. Generate coverage via `pnpm test:frontend -- --coverage`, which writes to `coverage-frontend/`; maintain meaningful assertions instead of snapshot-only coverage.
 
-## Commit & PR Guidelines
+## Commit & Pull Request Guidelines
 
-- Use Conventional Commits (seen in history): `feat:`, `fix:`, `docs:`, `refactor:`, `ci:`, `chore(release)`, `chore(version)`.
-- PRs: include clear description, linked issues, and screenshots/GIFs for UI changes. Note platform (Windows/macOS/Linux) if relevant.
-- Before opening PR: `make check` passes; update tests and relevant docs (`README.md`, `CHANGELOG.md`).
+The project uses Conventional Commits (`type: short imperative`, e.g., `fix: handle null wallpaper url`). Scope commits tightly and update documentation or configuration when behavior changes. Before opening a PR, run `make check` and include output for any failing step. Reference related issues, attach screenshots for UI-facing tweaks, and outline testing performed. For release work, coordinate with maintainers and reuse `scripts/manage-version.sh` to bump versions consistently.
 
-## Notes for Desktop (Tauri)
+## Environment & Configuration Tips
 
-- Requires Rust 1.80+ and Node.js 22+. Use `pnpm tauri dev` to run the desktop app; `cargo test --manifest-path src-tauri/Cargo.toml` for Rust tests.
+Target Node.js 22 LTS, Rust 1.80+, and pnpm 10 to match CI expectations. Update `src-tauri/tauri.conf.json` when packaging changes are needed; keep icons under `src-tauri/icons`. Reuse helpers in `scripts/lib/` instead of duplicating shell logic, and avoid editing generated files under `src-tauri/gen` or `target/`.
