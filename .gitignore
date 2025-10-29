@@ -55,3 +55,5 @@ yarn.lock
 workspace/
 tmp/
 temp/
+
+.serena
