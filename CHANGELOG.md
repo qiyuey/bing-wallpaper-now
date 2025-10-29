@@ -2,6 +2,32 @@
 
 All notable changes to Bing Wallpaper Now will be documented in this file.
 
+## 0.3.4
+
+### Changed
+
+- ⚙️ **设置面板改为即时保存体验**
+  - 勾选开机自启动、自动更新、壁纸数量等选项立即保存，无需再点击“保存”按钮
+  - 主题切换后即时写入配置并同步 UI，左上角新增版本号标签，便于快速确认当前版本
+  - 调整设置面板布局与间距，目录路径支持省略号展示，避免长路径撑破弹窗
+- 🎨 **桌面卡片间距和行高微调**：优化虚拟列表的行高与网格间距，让卡片对齐更紧凑、滚动更连贯
+
+### Fixed
+
+- 🌗 **主题应用逻辑修复**：ThemeContext 现在在保存设置后会立刻刷新页面主题，确保深浅色模式瞬时生效
+
+### Quality
+
+- 🛠️ **`make check` 自动修复能力增强**
+  - Rust `cargo fmt`、ESLint、Prettier、MarkdownLint 失败时会尝试自动修复并重跑校验
+  - 命令行输出新增提示，帮助快速定位仍需人工处理的检查项
+
+### Tests
+
+- ✅ **前端测试全面适配新行为**
+  - Settings、App、hooks 测试改用 `waitFor` / `act` 处理异步状态
+  - `src/test/setup.ts` 模拟 Tauri API，提升测试隔离性与稳定性
+
 ## 0.3.3
 
 ### Fixed
