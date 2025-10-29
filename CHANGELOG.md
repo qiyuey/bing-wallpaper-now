@@ -37,12 +37,25 @@ All notable changes to Bing Wallpaper Now will be documented in this file.
   - 保留 4K 断点（min-width: 1920px）支持大屏显示器
   - 代码更简洁，减少 22 行冗余代码
 
+- 🔧 **简化版本管理命令**
+  - 重命名命令：`snapshot-patch` → `patch`，`snapshot-minor` → `minor`，`snapshot-major` → `major`
+  - 移除 release 后的自动 snapshot，开发者手动控制版本递增
+  - 更清晰的版本管理工作流
+  - 保持向后兼容（旧命令仍可用）
+
+- 🔄 **替换 rollback 为 retag 命令**
+  - 移除危险的 rollback 功能（删除标签、重置提交、强制推送）
+  - 新增 `make retag` 命令：安全地重新推送版本标签
+  - 用于重新触发 CI/CD 构建（如构建失败需重试）
+  - 仅对发布版本有效，带有完整验证
+
 ### Technical
 
 - 使用最新 Tauri 2.9.1（最新稳定版）
 - 创建 `src/utils/eventListener.ts` 工具模块
 - 所有测试通过（104 个测试）
 - TypeScript 类型检查通过
+- 简化的 Makefile 和版本管理脚本
 
 ## 0.3.2
 
