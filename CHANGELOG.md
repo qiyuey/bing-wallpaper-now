@@ -2,6 +2,48 @@
 
 All notable changes to Bing Wallpaper Now will be documented in this file.
 
+## 0.3.3
+
+### Fixed
+
+- 🐛 **修复 Tauri 事件监听器清理问题** (React StrictMode 兼容性)
+  - 解决了 React StrictMode 双重挂载导致的 `TypeError: undefined is not an object (evaluating 'listeners[eventId].handlerId')` 错误
+  - 创建安全的 unlisten 包装器，使其具有幂等性（可安全多次调用）
+  - 改进所有事件监听器生命周期管理（useBingWallpapers.ts, App.tsx, ThemeContext.tsx）
+  - 添加全局错误抑制机制处理 Tauri 内部边缘情况
+  - 修复主题切换时的双重保存问题
+  - 使用 useRef 模式提供稳定的处理器引用
+  - 所有改进都遵循 Tauri v2 + React StrictMode 的社区最佳实践
+
+- 🎨 **优化桌面窗口调整布局行为**
+  - 添加窄窗口响应式断点（<1024px）：将卡片最小宽度从 380px 降至 320px，防止水平滚动
+  - 在窄窗口下隐藏 "上次更新时间" 文本，防止头部按钮溢出视口
+  - 添加缺失的 `.wallpaper-grid-empty-hint` 样式，创建视觉层级（小字号 + 降低透明度）
+  - 修复空状态/加载状态容器布局：从横向改为纵向 flex 布局
+  - 修复极窄窗口（≤750px）卡片重叠问题，强制单列布局
+
+- 📱 **完整的响应式断点层级**（桌面端优化）
+  - ≤750px: 1 张卡片/行（防止重叠）
+  - 751-1024px: 2 张卡片/行
+  - 1025-1919px: 3 张卡片/行（默认桌面）
+  - ≥1920px: 4 张卡片/行（4K）
+
+### Changed
+
+- 🧹 **移除移动端和平板端响应式代码**
+  - 应用专为桌面平台设计（macOS, Windows, Linux）
+  - 删除不必要的移动端（<768px）和平板端（<1200px）媒体查询
+  - 简化 WallpaperGrid.tsx 响应式逻辑，专注桌面体验
+  - 保留 4K 断点（min-width: 1920px）支持大屏显示器
+  - 代码更简洁，减少 22 行冗余代码
+
+### Technical
+
+- 使用最新 Tauri 2.9.1（最新稳定版）
+- 创建 `src/utils/eventListener.ts` 工具模块
+- 所有测试通过（104 个测试）
+- TypeScript 类型检查通过
+
 ## 0.3.2
 
 ### Changed
