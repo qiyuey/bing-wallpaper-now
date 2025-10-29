@@ -319,8 +319,17 @@ body {
 }
 
 /* Desktop responsive breakpoints */
-/* For narrower desktop windows (e.g., 900-1024px), use smaller card width to prevent horizontal scroll */
-@media (max-width: 1024px) {
+/* For very narrow windows (<750px), force single column to prevent card overlap */
+@media (max-width: 750px) {
+  .wallpaper-row {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    padding: 0 1rem;
+  }
+}
+
+/* For narrower desktop windows (750-1024px), use smaller card width */
+@media (min-width: 751px) and (max-width: 1024px) {
   .wallpaper-row {
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: 1rem;

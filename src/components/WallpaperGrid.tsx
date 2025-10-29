@@ -13,6 +13,8 @@ interface WallpaperGridProps {
 const ROW_HEIGHT = 420; // 每行高度（图片240px + 内容区域 + 间距）
 const CARDS_PER_ROW_4K = 4; // 4K屏幕每行4张
 const CARDS_PER_ROW_DESKTOP = 3; // 桌面端每行3张
+const CARDS_PER_ROW_NARROW = 2; // 窄窗口每行2张
+const CARDS_PER_ROW_SINGLE = 1; // 极窄窗口每行1张
 
 // 骨架屏组件
 const SkeletonCard = memo(() => (
@@ -52,12 +54,18 @@ export const WallpaperGrid = memo(function WallpaperGrid({
         setContainerWidth(width);
         setContainerHeight(height);
 
-        // 根据宽度决定每行卡片数（仅桌面端）
-        if (width >= 1920) {
-          // 4K及以上分辨率（宽度>=1920）显示4张
+        // 根据宽度决定每行卡片数
+        if (width <= 750) {
+          // 极窄窗口（≤750px）显示1张，防止卡片重叠
+          setCardsPerRow(CARDS_PER_ROW_SINGLE);
+        } else if (width <= 1024) {
+          // 窄窗口（751-1024px）显示2张
+          setCardsPerRow(CARDS_PER_ROW_NARROW);
+        } else if (width >= 1920) {
+          // 4K及以上分辨率（≥1920px）显示4张
           setCardsPerRow(CARDS_PER_ROW_4K);
         } else {
-          // 桌面端默认显示3张
+          // 桌面端默认（1025-1919px）显示3张
           setCardsPerRow(CARDS_PER_ROW_DESKTOP);
         }
       }
