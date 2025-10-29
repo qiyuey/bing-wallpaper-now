@@ -4,6 +4,7 @@ import {
   useEffect,
   useState,
   ReactNode,
+  useRef,
 } from "react";
 import { invoke } from "@tauri-apps/api/core";
 
@@ -13,6 +14,7 @@ interface ThemeContextType {
   theme: Theme;
   actualTheme: "light" | "dark";
   setTheme: (theme: Theme) => Promise<void>;
+  applyThemeOnly: (theme: Theme) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -67,12 +69,20 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     initTheme();
   }, []);
 
+  // Use ref to keep the latest theme value without recreating the listener
+  const themeRef = useRef(theme);
+
+  useEffect(() => {
+    themeRef.current = theme;
+  }, [theme]);
+
   // Listen for system theme changes
+  // Use empty dependency array to ensure listener is only created once
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
     const handleChange = (e: { matches: boolean }) => {
-      if (theme === "system") {
+      if (themeRef.current === "system") {
         const newTheme = e.matches ? "dark" : "light";
         setActualTheme(newTheme);
         applyTheme(newTheme);
@@ -81,7 +91,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
     mediaQuery.addEventListener("change", handleChange);
     return () => mediaQuery.removeEventListener("change", handleChange);
-  }, [theme]);
+  }, []); // Empty dependency array - listener created once
+
+  // Apply theme to UI only, without saving to backend
+  const applyThemeOnly = (newTheme: Theme) => {
+    setThemeState(newTheme);
+    const resolvedTheme = newTheme === "system" ? getSystemTheme() : newTheme;
+    setActualTheme(resolvedTheme);
+    applyTheme(resolvedTheme);
+  };
 
   const setTheme = async (newTheme: Theme) => {
     try {
@@ -106,12 +124,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       });
 
       // Update local state
-      setThemeState(newTheme);
-
-      // Apply the resolved theme
-      const resolvedTheme = newTheme === "system" ? getSystemTheme() : newTheme;
-      setActualTheme(resolvedTheme);
-      applyTheme(resolvedTheme);
+      applyThemeOnly(newTheme);
     } catch (error) {
       console.error("Failed to save theme:", error);
       throw error;
@@ -119,7 +132,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, actualTheme, setTheme }}>
+    <ThemeContext.Provider
+      value={{ theme, actualTheme, setTheme, applyThemeOnly }}
+    >
       {children}
     </ThemeContext.Provider>
   );

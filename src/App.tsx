@@ -10,6 +10,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { listen } from "@tauri-apps/api/event";
 import { version } from "../package.json";
+import { createSafeUnlisten } from "./utils/eventListener";
 
 function App() {
   const {
@@ -28,47 +29,57 @@ function App() {
 
   // 监听托盘发出的 open-settings 事件，触发前端设置面板显示
   useEffect(() => {
-    const setupListener = async () => {
+    let mounted = true;
+    let unlisten: (() => void) | undefined;
+
+    (async () => {
       try {
-        const unlisten = await listen("open-settings", () => {
+        const unlistenFn = await listen("open-settings", () => {
           setShowSettings(true);
         });
-        return unlisten;
+        const safeUnlisten = createSafeUnlisten(unlistenFn);
+
+        if (mounted) {
+          unlisten = safeUnlisten;
+        } else {
+          safeUnlisten();
+        }
       } catch (e) {
         console.error("Failed to bind open-settings event:", e);
-        return null;
       }
-    };
-
-    let unlistenPromise = setupListener();
+    })();
 
     return () => {
-      unlistenPromise.then((unlisten) => {
-        if (unlisten) unlisten();
-      });
+      mounted = false;
+      unlisten?.();
     };
   }, []);
 
   // 监听托盘发出的 open-about 事件，触发前端关于对话框显示
   useEffect(() => {
-    const setupListener = async () => {
+    let mounted = true;
+    let unlisten: (() => void) | undefined;
+
+    (async () => {
       try {
-        const unlisten = await listen("open-about", () => {
+        const unlistenFn = await listen("open-about", () => {
           setShowAbout(true);
         });
-        return unlisten;
+        const safeUnlisten = createSafeUnlisten(unlistenFn);
+
+        if (mounted) {
+          unlisten = safeUnlisten;
+        } else {
+          safeUnlisten();
+        }
       } catch (e) {
         console.error("Failed to bind open-about event:", e);
-        return null;
       }
-    };
-
-    let unlistenPromise = setupListener();
+    })();
 
     return () => {
-      unlistenPromise.then((unlisten) => {
-        if (unlisten) unlisten();
-      });
+      mounted = false;
+      unlisten?.();
     };
   }, []);
 
@@ -107,24 +118,29 @@ function App() {
 
   // 监听托盘发出的 open-folder 事件（复用打开目录逻辑）
   useEffect(() => {
-    const setupListener = async () => {
+    let mounted = true;
+    let unlisten: (() => void) | undefined;
+
+    (async () => {
       try {
-        const unlisten = await listen("open-folder", () => {
+        const unlistenFn = await listen("open-folder", () => {
           handleOpenFolder();
         });
-        return unlisten;
+        const safeUnlisten = createSafeUnlisten(unlistenFn);
+
+        if (mounted) {
+          unlisten = safeUnlisten;
+        } else {
+          safeUnlisten();
+        }
       } catch (e) {
         console.error("Failed to bind open-folder event:", e);
-        return null;
       }
-    };
-
-    let unlistenPromise = setupListener();
+    })();
 
     return () => {
-      unlistenPromise.then((unlisten) => {
-        if (unlisten) unlisten();
-      });
+      mounted = false;
+      unlisten?.();
     };
   }, [handleOpenFolder]);
 

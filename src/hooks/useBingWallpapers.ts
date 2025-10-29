@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { LocalWallpaper } from "../types";
+import { createSafeUnlisten } from "../utils/eventListener";
 
 /**
  * 必应壁纸 Hook（扩展版）
@@ -122,7 +123,21 @@ export function useBingWallpapers() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Use refs to keep stable references to the callback functions
+  const fetchLocalWallpapersRef = useRef(fetchLocalWallpapers);
+  const pollStatusRef = useRef(pollStatus);
+
+  // Update refs when functions change
+  useEffect(() => {
+    fetchLocalWallpapersRef.current = fetchLocalWallpapers;
+  }, [fetchLocalWallpapers]);
+
+  useEffect(() => {
+    pollStatusRef.current = pollStatus;
+  }, [pollStatus]);
+
   // 监听后端壁纸更新事件，自动刷新列表（静默刷新，不显示 loading）
+  // 使用空依赖数组和 ref，确保监听器只创建一次，避免重复创建
   useEffect(() => {
     let unlisten: (() => void) | undefined;
     let mounted = true;
@@ -132,12 +147,20 @@ export function useBingWallpapers() {
         const { listen } = await import("@tauri-apps/api/event");
         if (!mounted) return;
 
-        unlisten = await listen("wallpaper-updated", () => {
-          console.warn("收到壁纸更新事件，刷新列表...");
-          // 静默刷新，不显示 loading
-          fetchLocalWallpapers(false);
-          pollStatus();
+        const unlistenFn = await listen("wallpaper-updated", () => {
+          // 使用 ref 来获取最新的函数，避免闭包陷阱
+          fetchLocalWallpapersRef.current(false);
+          pollStatusRef.current();
         });
+
+        // Wrap unlisten to make it safe (handles React StrictMode double-mount)
+        const safeUnlisten = createSafeUnlisten(unlistenFn);
+
+        if (mounted) {
+          unlisten = safeUnlisten;
+        } else {
+          safeUnlisten(); // Cleanup immediately if unmounted
+        }
       } catch (e) {
         console.error("Failed to bind wallpaper-updated event:", e);
       }
@@ -145,29 +168,9 @@ export function useBingWallpapers() {
 
     return () => {
       mounted = false;
-      if (unlisten) {
-        try {
-          const result = unlisten();
-          // Some implementations return a Promise; ignore rejections in tests
-          if (
-            result !== undefined &&
-            result !== null &&
-            typeof result === "object" &&
-            "then" in result &&
-            typeof (result as Record<string, unknown>).then === "function"
-          ) {
-            (result as Promise<void>).catch((e: unknown) => {
-              console.warn("unlisten promise rejected (ignored in tests):", e);
-            });
-          }
-        } catch (e) {
-          // In non-Tauri test environments, unlisten may rely on internals.
-          // Swallow to avoid noisy test failures.
-          console.warn("unlisten failed in test env:", e);
-        }
-      }
+      unlisten?.();
     };
-  }, [fetchLocalWallpapers, pollStatus]);
+  }, []); // Empty deps - listener created once, never recreated
 
   // 轮询后台状态（降低频率到每 10 秒，减少性能开销）
   useEffect(() => {

@@ -12,7 +12,7 @@ interface SettingsProps {
 export function Settings({ onClose, version }: SettingsProps) {
   const { settings, loading, updateSettings, getDefaultDirectory } =
     useSettings();
-  const { theme, setTheme } = useTheme();
+  const { theme, applyThemeOnly } = useTheme();
 
   const [formData, setFormData] = useState<AppSettings>({
     auto_update: true,
@@ -54,9 +54,9 @@ export function Settings({ onClose, version }: SettingsProps) {
 
       await updateSettings(settingsWithTheme);
 
-      // 如果主题改变了，通知 ThemeContext 更新
+      // 如果主题改变了，应用主题到 UI（不需要再保存，因为已经保存过了）
       if (localTheme !== theme) {
-        await setTheme(localTheme);
+        applyThemeOnly(localTheme);
       }
       onClose();
     } catch (err) {
