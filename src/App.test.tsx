@@ -86,7 +86,9 @@ describe("App", () => {
   it("should render app header with title", async () => {
     renderWithTheme(<App />);
 
-    expect(screen.getByText("Bing Wallpaper")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("Bing Wallpaper")).toBeInTheDocument();
+    });
     expect(screen.getByText("Now")).toBeInTheDocument();
   });
 
@@ -94,13 +96,19 @@ describe("App", () => {
     renderWithTheme(<App />);
 
     // Check for buttons by their title attributes
-    expect(screen.getByTitle("更新")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTitle("更新")).toBeInTheDocument();
+    });
     expect(screen.getByTitle("打开下载目录")).toBeInTheDocument();
     expect(screen.getByTitle("设置")).toBeInTheDocument();
   });
 
   it("should open settings modal when settings button is clicked", async () => {
     renderWithTheme(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByTitle("设置")).toBeInTheDocument();
+    });
 
     const settingsButton = screen.getByTitle("设置");
     fireEvent.click(settingsButton);
@@ -113,6 +121,10 @@ describe("App", () => {
 
   it("should call refresh handlers when refresh button is clicked", async () => {
     renderWithTheme(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByTitle("更新")).toBeInTheDocument();
+    });
 
     const refreshButton = screen.getByTitle("更新");
     fireEvent.click(refreshButton);
@@ -147,6 +159,10 @@ describe("App", () => {
     });
 
     renderWithTheme(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByTitle("打开下载目录")).toBeInTheDocument();
+    });
 
     const folderButton = screen.getByTitle("打开下载目录");
     fireEvent.click(folderButton);
@@ -271,10 +287,12 @@ describe("App", () => {
 
     // Trigger the event
     if (openSettingsCallback) {
-      openSettingsCallback({
-        event: "open-settings",
-        payload: undefined,
-      } as Event<unknown>);
+      await waitFor(() => {
+        openSettingsCallback!({
+          event: "open-settings",
+          payload: undefined,
+        } as Event<unknown>);
+      });
     }
 
     // Settings should open
@@ -363,8 +381,12 @@ describe("App", () => {
     });
   });
 
-  it("should close settings modal when onClose is called", async () => {
+  it("should close settings modal when X button is clicked", async () => {
     renderWithTheme(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByTitle("设置")).toBeInTheDocument();
+    });
 
     // Open settings
     const settingsButton = screen.getByTitle("设置");
@@ -378,9 +400,9 @@ describe("App", () => {
       { timeout: 3000 },
     );
 
-    // Find and click cancel button
-    const cancelButton = await screen.findByText("取消", {}, { timeout: 3000 });
-    fireEvent.click(cancelButton);
+    // Find and click X button to close
+    const closeButton = await screen.findByText("×", {}, { timeout: 3000 });
+    fireEvent.click(closeButton);
 
     // Settings should close (may take a moment for modal to unmount)
     await waitFor(
@@ -453,6 +475,10 @@ describe("App", () => {
     });
 
     renderWithTheme(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByTitle("更新")).toBeInTheDocument();
+    });
 
     const refreshButton = screen.getByTitle("更新");
     fireEvent.click(refreshButton);

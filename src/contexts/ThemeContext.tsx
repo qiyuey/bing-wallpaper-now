@@ -14,7 +14,7 @@ interface ThemeContextType {
   theme: Theme;
   actualTheme: "light" | "dark";
   setTheme: (theme: Theme) => Promise<void>;
-  applyThemeOnly: (theme: Theme) => void;
+  applyThemeToUI: (theme: Theme) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -94,7 +94,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, []); // Empty dependency array - listener created once
 
   // Apply theme to UI only, without saving to backend
-  const applyThemeOnly = (newTheme: Theme) => {
+  const applyThemeToUI = (newTheme: Theme) => {
     setThemeState(newTheme);
     const resolvedTheme = newTheme === "system" ? getSystemTheme() : newTheme;
     setActualTheme(resolvedTheme);
@@ -124,7 +124,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       });
 
       // Update local state
-      applyThemeOnly(newTheme);
+      applyThemeToUI(newTheme);
     } catch (error) {
       console.error("Failed to save theme:", error);
       throw error;
@@ -133,7 +133,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   return (
     <ThemeContext.Provider
-      value={{ theme, actualTheme, setTheme, applyThemeOnly }}
+      value={{ theme, actualTheme, setTheme, applyThemeToUI }}
     >
       {children}
     </ThemeContext.Provider>

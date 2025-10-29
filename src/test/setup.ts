@@ -12,7 +12,7 @@ global.window = Object.create(window);
 Object.defineProperty(window, "__TAURI_INTERNALS__", {
   value: {
     transformCallback: vi.fn(<T>(callback: T) => callback),
-    invoke: vi.fn((cmd: string, _args?: unknown) => {
+    invoke: vi.fn((cmd: string, args?: unknown) => {
       // Provide safe defaults for tests
       if (cmd === "get_settings") {
         return Promise.resolve({
@@ -24,7 +24,15 @@ Object.defineProperty(window, "__TAURI_INTERNALS__", {
         });
       }
       if (cmd === "update_settings") {
+        // Return the updated settings so the hook can update state
+        const updateArgs = args as { newSettings?: unknown };
+        if (updateArgs && updateArgs.newSettings) {
+          return Promise.resolve(updateArgs.newSettings);
+        }
         return Promise.resolve(null);
+      }
+      if (cmd === "get_default_wallpaper_directory") {
+        return Promise.resolve("/Users/Test/Pictures/BingWallpapers");
       }
       return Promise.resolve(undefined);
     }),

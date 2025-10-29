@@ -10,7 +10,7 @@ interface WallpaperGridProps {
 }
 
 // 行配置
-const ROW_HEIGHT = 420; // 每行高度（图片240px + 内容区域 + 间距）
+const ROW_HEIGHT = 404; // 每行高度（图片240px + 内容区域 + 2rem间距）
 const CARDS_PER_ROW_4K = 4; // 4K屏幕每行4张
 const CARDS_PER_ROW_DESKTOP = 3; // 桌面端每行3张
 const CARDS_PER_ROW_NARROW = 2; // 窄窗口每行2张

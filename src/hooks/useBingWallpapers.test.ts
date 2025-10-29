@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { renderHook, waitFor } from "@testing-library/react";
+import { renderHook, waitFor, act } from "@testing-library/react";
 import { invoke } from "@tauri-apps/api/core";
 import { useBingWallpapers } from "./useBingWallpapers";
 
@@ -13,11 +13,14 @@ describe("useBingWallpapers", () => {
     vi.mocked(invoke).mockResolvedValue([]);
   });
 
-  it("should initialize with default values", () => {
+  it("should initialize with default values", async () => {
     const { result } = renderHook(() => useBingWallpapers());
 
     expect(result.current.localWallpapers).toEqual([]);
     expect(result.current.loading).toBe(true);
+
+    // Wait for initial loading to complete
+    await waitFor(() => expect(result.current.loading).toBe(false));
   });
 
   it("should fetch local wallpapers on mount", async () => {
@@ -57,26 +60,34 @@ describe("useBingWallpapers", () => {
     expect(result.current.localWallpapers).toEqual([]);
   });
 
-  it("should expose setDesktopWallpaper function", () => {
+  it("should expose setDesktopWallpaper function", async () => {
     const { result } = renderHook(() => useBingWallpapers());
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
 
     expect(typeof result.current.setDesktopWallpaper).toBe("function");
   });
 
-  it("should expose forceUpdate function", () => {
+  it("should expose forceUpdate function", async () => {
     const { result } = renderHook(() => useBingWallpapers());
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
 
     expect(typeof result.current.forceUpdate).toBe("function");
   });
 
-  it("should expose cleanupWallpapers function", () => {
+  it("should expose cleanupWallpapers function", async () => {
     const { result } = renderHook(() => useBingWallpapers());
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
 
     expect(typeof result.current.cleanupWallpapers).toBe("function");
   });
 
-  it("should expose fetchLocalWallpapers function", () => {
+  it("should expose fetchLocalWallpapers function", async () => {
     const { result } = renderHook(() => useBingWallpapers());
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
 
     expect(typeof result.current.fetchLocalWallpapers).toBe("function");
   });
@@ -129,10 +140,13 @@ describe("useBingWallpapers", () => {
       expect(result.current.loading).toBe(false);
     });
 
-    const count = await result.current.cleanupWallpapers();
+    let count: number;
+    await act(async () => {
+      count = await result.current.cleanupWallpapers();
+    });
 
     expect(invoke).toHaveBeenCalledWith("cleanup_wallpapers");
-    expect(count).toBe(deletedCount);
+    expect(count!).toBe(deletedCount);
   });
 
   it("should handle cleanupWallpapers errors", async () => {
@@ -156,7 +170,9 @@ describe("useBingWallpapers", () => {
       expect(result.current.loading).toBe(false);
     });
 
-    await expect(result.current.cleanupWallpapers()).rejects.toThrow();
+    await act(async () => {
+      await expect(result.current.cleanupWallpapers()).rejects.toThrow();
+    });
 
     await waitFor(() => {
       expect(result.current.error).toContain(errorMessage);
@@ -187,7 +203,9 @@ describe("useBingWallpapers", () => {
       expect(result.current.loading).toBe(false);
     });
 
-    await result.current.forceUpdate();
+    await act(async () => {
+      await result.current.forceUpdate();
+    });
 
     expect(invoke).toHaveBeenCalledWith("force_update");
   });
@@ -221,7 +239,9 @@ describe("useBingWallpapers", () => {
       expect(result.current.loading).toBe(false);
     });
 
-    await result.current.forceUpdate();
+    await act(async () => {
+      await result.current.forceUpdate();
+    });
 
     expect(forceUpdateCalled).toBe(false);
     expect(result.current.isUpToDate).toBe(true);
@@ -298,7 +318,9 @@ describe("useBingWallpapers", () => {
       expect(result.current.loading).toBe(false);
     });
 
-    await result.current.fetchLocalWallpapers(true);
+    await act(async () => {
+      await result.current.fetchLocalWallpapers(true);
+    });
 
     expect(result.current.localWallpapers).toEqual(mockWallpapers);
   });
@@ -325,7 +347,10 @@ describe("useBingWallpapers", () => {
     const firstWallpapers = result.current.localWallpapers;
 
     // Fetch again with same data
-    await result.current.fetchLocalWallpapers(false);
+    await act(async () => {
+      await result.current.fetchLocalWallpapers(false);
+    });
+
     rerender();
 
     // Should be the same reference (no state update)

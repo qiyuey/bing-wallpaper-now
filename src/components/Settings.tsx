@@ -12,28 +12,9 @@ interface SettingsProps {
 export function Settings({ onClose, version }: SettingsProps) {
   const { settings, loading, updateSettings, getDefaultDirectory } =
     useSettings();
-  const { theme, applyThemeOnly } = useTheme();
-
-  const [formData, setFormData] = useState<AppSettings>({
-    auto_update: true,
-    save_directory: null,
-    keep_image_count: 8,
-    launch_at_startup: false,
-    theme: "system",
-  });
+  const { applyThemeToUI } = useTheme();
 
   const [defaultDir, setDefaultDir] = useState<string>("");
-  const [localTheme, setLocalTheme] = useState<Theme>(theme);
-
-  useEffect(() => {
-    if (settings) {
-      setFormData(settings);
-      // 同步主题到本地状态
-      if (settings.theme) {
-        setLocalTheme(settings.theme as Theme);
-      }
-    }
-  }, [settings]);
 
   useEffect(() => {
     getDefaultDirectory().then((dir) => {
@@ -41,48 +22,39 @@ export function Settings({ onClose, version }: SettingsProps) {
     });
   }, [getDefaultDirectory]);
 
-  const handleSave = async () => {
-    try {
-      // 将主题包含在设置中一起保存
-      const settingsWithTheme: AppSettings = {
-        auto_update: formData.auto_update,
-        save_directory: formData.save_directory,
-        keep_image_count: formData.keep_image_count,
-        launch_at_startup: formData.launch_at_startup,
-        theme: localTheme,
-      };
-
-      await updateSettings(settingsWithTheme);
-
-      // 如果主题改变了，应用主题到 UI（不需要再保存，因为已经保存过了）
-      if (localTheme !== theme) {
-        applyThemeOnly(localTheme);
-      }
-      onClose();
-    } catch (err) {
-      console.error("Save error:", err);
-      alert("保存失败: " + err);
-    }
-  };
-
-  const handleChange = (
+  const handleChange = async (
     field: keyof AppSettings,
     value: string | number | boolean | null,
   ) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    if (!settings) return;
+
+    try {
+      const updatedSettings = { ...settings, [field]: value };
+      await updateSettings(updatedSettings);
+
+      // 如果是主题变化，立即应用到UI
+      if (field === "theme" && typeof value === "string") {
+        applyThemeToUI(value as Theme);
+      }
+    } catch (err) {
+      console.error("Update settings error:", err);
+      alert("保存设置失败: " + err);
+    }
   };
 
   const handleSelectFolder = async () => {
+    if (!settings) return;
+
     try {
       const selected = await open({
         directory: true,
         multiple: false,
-        defaultPath: formData.save_directory || defaultDir,
+        defaultPath: settings.save_directory || defaultDir,
         title: "选择壁纸保存目录",
       });
 
       if (selected && typeof selected === "string") {
-        handleChange("save_directory", selected);
+        await handleChange("save_directory", selected);
       }
     } catch (err) {
       console.error("Failed to select folder:", err);
@@ -98,7 +70,10 @@ export function Settings({ onClose, version }: SettingsProps) {
     <div className="settings-overlay">
       <div className="settings-modal">
         <div className="settings-header">
-          <h2>设置</h2>
+          <div className="settings-header-left">
+            <h2>设置</h2>
+            {version && <span className="settings-version">v{version}</span>}
+          </div>
           <button onClick={onClose} className="btn-close">
             ×
           </button>
@@ -109,7 +84,7 @@ export function Settings({ onClose, version }: SettingsProps) {
             <label className="settings-label checkbox-label">
               <input
                 type="checkbox"
-                checked={formData.launch_at_startup}
+                checked={settings?.launch_at_startup ?? false}
                 onChange={(e) =>
                   handleChange("launch_at_startup", e.target.checked)
                 }
@@ -122,7 +97,7 @@ export function Settings({ onClose, version }: SettingsProps) {
             <label className="settings-label checkbox-label">
               <input
                 type="checkbox"
-                checked={formData.auto_update}
+                checked={settings?.auto_update ?? true}
                 onChange={(e) => handleChange("auto_update", e.target.checked)}
               />
               <span>自动更新壁纸</span>
@@ -137,8 +112,10 @@ export function Settings({ onClose, version }: SettingsProps) {
                   type="radio"
                   name="theme"
                   value="system"
-                  checked={localTheme === "system"}
-                  onChange={(e) => setLocalTheme(e.target.value as Theme)}
+                  checked={(settings?.theme ?? "system") === "system"}
+                  onChange={(e) =>
+                    handleChange("theme", e.target.value as Theme)
+                  }
                 />
                 <span>跟随系统</span>
               </label>
@@ -147,8 +124,10 @@ export function Settings({ onClose, version }: SettingsProps) {
                   type="radio"
                   name="theme"
                   value="light"
-                  checked={localTheme === "light"}
-                  onChange={(e) => setLocalTheme(e.target.value as Theme)}
+                  checked={(settings?.theme ?? "system") === "light"}
+                  onChange={(e) =>
+                    handleChange("theme", e.target.value as Theme)
+                  }
                 />
                 <span>浅色模式</span>
               </label>
@@ -157,8 +136,10 @@ export function Settings({ onClose, version }: SettingsProps) {
                   type="radio"
                   name="theme"
                   value="dark"
-                  checked={localTheme === "dark"}
-                  onChange={(e) => setLocalTheme(e.target.value as Theme)}
+                  checked={(settings?.theme ?? "system") === "dark"}
+                  onChange={(e) =>
+                    handleChange("theme", e.target.value as Theme)
+                  }
                 />
                 <span>深色模式</span>
               </label>
@@ -172,7 +153,7 @@ export function Settings({ onClose, version }: SettingsProps) {
                 type="number"
                 min="8"
                 max="10000"
-                value={formData.keep_image_count}
+                value={settings?.keep_image_count ?? 8}
                 onChange={(e) =>
                   handleChange(
                     "keep_image_count",
@@ -185,24 +166,28 @@ export function Settings({ onClose, version }: SettingsProps) {
           </div>
 
           <div className="settings-section">
-            <label className="settings-label">
-              保存目录:
-              <div className="settings-dir-row">
-                <div className="settings-dir-info">
-                  {formData.save_directory ??
-                    (defaultDir ? defaultDir : "加载中...")}
-                </div>
-                <button
-                  onClick={handleSelectFolder}
-                  className="btn btn-secondary btn-small"
-                  type="button"
-                >
-                  选择文件夹
-                </button>
+            <div className="settings-label">保存目录:</div>
+            <div className="settings-dir-row">
+              <div
+                className="settings-dir-info"
+                title={
+                  settings?.save_directory ??
+                  (defaultDir ? defaultDir : "加载中...")
+                }
+              >
+                {settings?.save_directory ??
+                  (defaultDir ? defaultDir : "加载中...")}
               </div>
-            </label>
-            {formData.save_directory &&
-              formData.save_directory !== defaultDir && (
+              <button
+                onClick={handleSelectFolder}
+                className="btn btn-secondary btn-small"
+                type="button"
+              >
+                选择文件夹
+              </button>
+            </div>
+            {settings?.save_directory &&
+              settings.save_directory !== defaultDir && (
                 <button
                   onClick={() => handleChange("save_directory", null)}
                   className="btn btn-link btn-small"
@@ -212,22 +197,6 @@ export function Settings({ onClose, version }: SettingsProps) {
                 </button>
               )}
           </div>
-        </div>
-
-        <div className="settings-footer">
-          <div style={{ flex: 1, display: "flex", alignItems: "center" }}>
-            {version && <span className="settings-version">v{version}</span>}
-          </div>
-          <button onClick={onClose} className="btn btn-secondary">
-            取消
-          </button>
-          <button
-            onClick={handleSave}
-            className="btn btn-primary"
-            disabled={loading}
-          >
-            保存
-          </button>
         </div>
       </div>
     </div>

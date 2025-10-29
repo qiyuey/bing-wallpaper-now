@@ -5,6 +5,8 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { Settings } from "./Settings";
 import { ThemeProvider } from "../contexts/ThemeContext";
 import * as dialog from "@tauri-apps/plugin-dialog";
+import * as useSettingsModule from "../hooks/useSettings";
+import { invoke } from "@tauri-apps/api/core";
 
 vi.mock("@tauri-apps/api/core");
 vi.mock("@tauri-apps/plugin-dialog");
@@ -16,32 +18,55 @@ const renderWithTheme = (component: React.ReactElement) => {
 
 describe("Settings", () => {
   const mockOnClose = vi.fn();
+  let mockUpdateSettings: ReturnType<typeof vi.fn>;
+  let mockGetDefaultDirectory: ReturnType<typeof vi.fn>;
+
+  const mockSettings = {
+    auto_update: true,
+    save_directory: null,
+    keep_image_count: 30,
+    launch_at_startup: false,
+    theme: "system" as const,
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
+
+    // Mock invoke for ThemeContext initialization
+    vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "get_settings") {
+        return Promise.resolve(mockSettings);
+      }
+      return Promise.resolve(undefined);
+    });
+
+    mockUpdateSettings = vi.fn().mockResolvedValue(undefined);
+    mockGetDefaultDirectory = vi
+      .fn()
+      .mockResolvedValue("/Users/Test/Pictures/BingWallpapers");
+
+    vi.spyOn(useSettingsModule, "useSettings").mockReturnValue({
+      settings: mockSettings,
+      loading: false,
+      error: null,
+      fetchSettings: vi.fn(),
+      updateSettings: mockUpdateSettings,
+      getDefaultDirectory: mockGetDefaultDirectory,
+    });
   });
 
-  it("should render settings modal", () => {
+  it("should render settings modal", async () => {
     renderWithTheme(<Settings onClose={mockOnClose} />);
 
     // Should show either the settings content or loading state
-    expect(screen.getByText(/设置|加载设置中.../i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(/设置|加载设置中.../i)).toBeInTheDocument();
+    });
   });
 
-  it("should close when cancel button is clicked", async () => {
+  it("should close modal when close button is clicked", async () => {
     renderWithTheme(<Settings onClose={mockOnClose} />);
 
-    // Wait for settings to load, then find cancel button
-    const cancelButton = await screen.findByText("取消", {}, { timeout: 3000 });
-    fireEvent.click(cancelButton);
-
-    expect(mockOnClose).toHaveBeenCalled();
-  });
-
-  it("should close when X button is clicked", async () => {
-    renderWithTheme(<Settings onClose={mockOnClose} />);
-
-    // Wait for settings to load, then find X button
     const closeButton = await screen.findByText("×", {}, { timeout: 3000 });
     fireEvent.click(closeButton);
 
@@ -51,7 +76,6 @@ describe("Settings", () => {
   it("should have form inputs when loaded", async () => {
     renderWithTheme(<Settings onClose={mockOnClose} />);
 
-    // Wait for the auto-update checkbox to appear
     const checkbox = await screen.findByLabelText(
       /自动更新/i,
       {},
@@ -74,7 +98,11 @@ describe("Settings", () => {
     fireEvent.click(checkbox);
 
     await waitFor(() => {
-      expect(checkbox.checked).toBe(!initialValue);
+      expect(mockUpdateSettings).toHaveBeenCalledWith(
+        expect.objectContaining({
+          auto_update: !initialValue,
+        }),
+      );
     });
   });
 
@@ -91,7 +119,11 @@ describe("Settings", () => {
     fireEvent.click(checkbox);
 
     await waitFor(() => {
-      expect(checkbox.checked).toBe(!initialValue);
+      expect(mockUpdateSettings).toHaveBeenCalledWith(
+        expect.objectContaining({
+          launch_at_startup: !initialValue,
+        }),
+      );
     });
   });
 
@@ -107,11 +139,15 @@ describe("Settings", () => {
     fireEvent.change(input, { target: { value: "20" } });
 
     await waitFor(() => {
-      expect(input.value).toBe("20");
+      expect(mockUpdateSettings).toHaveBeenCalledWith(
+        expect.objectContaining({
+          keep_image_count: 20,
+        }),
+      );
     });
   });
 
-  it("should not allow keep image count below 8", async () => {
+  it("should accept keep image count below 8", async () => {
     renderWithTheme(<Settings onClose={mockOnClose} />);
 
     const input = (await screen.findByLabelText(
@@ -120,12 +156,15 @@ describe("Settings", () => {
       { timeout: 3000 },
     )) as HTMLInputElement; // eslint-disable-line no-undef
 
-    // Try to set below minimum
+    // Try to set below minimum - the component will call updateSettings with this value
     fireEvent.change(input, { target: { value: "5" } });
 
-    // Input should still accept the value (validation happens on save)
     await waitFor(() => {
-      expect(input.value).toBe("5");
+      expect(mockUpdateSettings).toHaveBeenCalledWith(
+        expect.objectContaining({
+          keep_image_count: 5,
+        }),
+      );
     });
   });
 
@@ -166,7 +205,11 @@ describe("Settings", () => {
     fireEvent.click(selectButton);
 
     await waitFor(() => {
-      expect(screen.getByText("/new/folder")).toBeInTheDocument();
+      expect(mockUpdateSettings).toHaveBeenCalledWith(
+        expect.objectContaining({
+          save_directory: "/new/folder",
+        }),
+      );
     });
   });
 
@@ -182,25 +225,14 @@ describe("Settings", () => {
       { timeout: 3000 },
     );
 
-    // Wait for directory to load
-    await waitFor(() => {
-      const dirInfoElements = screen.getAllByText(/Pictures|加载中/i);
-      expect(dirInfoElements.length).toBeGreaterThan(0);
-    });
-
-    // Get initial directory text
-    const dirInfoElements = screen.getAllByText(/Pictures|加载中/i);
-    const initialText = dirInfoElements[0].textContent;
-
     fireEvent.click(selectButton);
 
     await waitFor(() => {
       expect(mockOpen).toHaveBeenCalled();
     });
 
-    // Directory should remain unchanged
-    const afterElements = screen.getAllByText(/Pictures|加载中/i);
-    expect(afterElements[0].textContent).toBe(initialText);
+    // updateSettings should not be called when dialog is cancelled
+    expect(mockUpdateSettings).not.toHaveBeenCalled();
   });
 
   it("should handle folder selection error", async () => {
@@ -232,95 +264,52 @@ describe("Settings", () => {
   });
 
   it("should show restore default directory button when custom directory is set", async () => {
-    const mockOpen = vi.fn().mockResolvedValue("/custom/folder");
-    vi.mocked(dialog.open).mockImplementation(mockOpen);
+    // Mock settings with custom directory
+    vi.spyOn(useSettingsModule, "useSettings").mockReturnValue({
+      settings: { ...mockSettings, save_directory: "/custom/folder" },
+      loading: false,
+      error: null,
+      fetchSettings: vi.fn(),
+      updateSettings: mockUpdateSettings,
+      getDefaultDirectory: mockGetDefaultDirectory,
+    });
 
     renderWithTheme(<Settings onClose={mockOnClose} />);
 
-    const selectButton = await screen.findByText(
-      /选择文件夹/i,
-      {},
-      { timeout: 3000 },
-    );
-    fireEvent.click(selectButton);
-
-    // Wait for custom directory to be set
-    await waitFor(() => {
-      expect(screen.getByText("/custom/folder")).toBeInTheDocument();
-    });
+    // Wait for component to render
+    await screen.findByText(/选择文件夹/i, {}, { timeout: 3000 });
 
     // Restore default button should appear
     expect(screen.getByText(/恢复默认目录/i)).toBeInTheDocument();
   });
 
   it("should restore default directory when restore button clicked", async () => {
-    const mockOpen = vi.fn().mockResolvedValue("/custom/folder");
-    vi.mocked(dialog.open).mockImplementation(mockOpen);
+    // Mock settings with custom directory
+    vi.spyOn(useSettingsModule, "useSettings").mockReturnValue({
+      settings: { ...mockSettings, save_directory: "/custom/folder" },
+      loading: false,
+      error: null,
+      fetchSettings: vi.fn(),
+      updateSettings: mockUpdateSettings,
+      getDefaultDirectory: mockGetDefaultDirectory,
+    });
 
     renderWithTheme(<Settings onClose={mockOnClose} />);
 
-    // Select custom folder first
-    const selectButton = await screen.findByText(
-      /选择文件夹/i,
-      {},
-      { timeout: 3000 },
-    );
-    fireEvent.click(selectButton);
-
-    await waitFor(() => {
-      expect(screen.getByText("/custom/folder")).toBeInTheDocument();
-    });
+    // Wait for component to render
+    await screen.findByText(/选择文件夹/i, {}, { timeout: 3000 });
 
     // Click restore default
     const restoreButton = screen.getByText(/恢复默认目录/i);
     fireEvent.click(restoreButton);
 
-    // Should show default directory again (either Pictures or loading)
+    // Should call updateSettings with null to restore default
     await waitFor(() => {
-      expect(screen.queryByText("/custom/folder")).not.toBeInTheDocument();
-      const dirElements = screen.getAllByText(/Pictures|加载中/i);
-      expect(dirElements.length).toBeGreaterThan(0);
+      expect(mockUpdateSettings).toHaveBeenCalledWith(
+        expect.objectContaining({
+          save_directory: null,
+        }),
+      );
     });
-  });
-
-  it("should call updateSettings and close on save", async () => {
-    renderWithTheme(<Settings onClose={mockOnClose} />);
-
-    const saveButton = await screen.findByText("保存", {}, { timeout: 3000 });
-    fireEvent.click(saveButton);
-
-    await waitFor(() => {
-      expect(mockOnClose).toHaveBeenCalled();
-    });
-  });
-
-  it("should show alert when save fails", async () => {
-    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
-
-    renderWithTheme(<Settings onClose={mockOnClose} />);
-
-    // Wait for settings to load
-    const saveButton = await screen.findByText("保存", {}, { timeout: 3000 });
-
-    // The save will succeed with the default mock, so we skip this test for now
-    // This test would require a more complex mock setup to fail updateSettings
-
-    alertSpy.mockRestore();
-
-    // Just verify button exists
-    expect(saveButton).toBeInTheDocument();
-  });
-
-  it("should disable save button when loading", async () => {
-    renderWithTheme(<Settings onClose={mockOnClose} />);
-
-    const saveButton = (await screen.findByText(
-      "保存",
-      {},
-      { timeout: 3000 },
-    )) as HTMLButtonElement; // eslint-disable-line no-undef
-
-    // Initially should not be disabled
-    expect(saveButton.disabled).toBe(false);
   });
 });

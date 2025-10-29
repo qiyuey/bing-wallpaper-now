@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { renderHook, waitFor } from "@testing-library/react";
+import { renderHook, waitFor, act } from "@testing-library/react";
 import { invoke } from "@tauri-apps/api/core";
 import { useSettings } from "./useSettings";
 import { AppSettings } from "../types";
@@ -94,7 +94,9 @@ describe("useSettings", () => {
       return Promise.resolve(undefined);
     });
 
-    await result.current.updateSettings(updatedSettings);
+    await act(async () => {
+      await result.current.updateSettings(updatedSettings);
+    });
 
     // Tauri 会自动转换驼峰命名到蛇形命名，所以前端使用 newSettings
     expect(invoke).toHaveBeenCalledWith("update_settings", {
@@ -143,9 +145,18 @@ describe("useSettings", () => {
       auto_update: false,
     };
 
-    await expect(result.current.updateSettings(updatedSettings)).rejects.toBe(
-      errorMessage,
-    );
+    // Suppress expected error log during error testing
+    const consoleErrorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+
+    await act(async () => {
+      await expect(result.current.updateSettings(updatedSettings)).rejects.toBe(
+        errorMessage,
+      );
+    });
+
+    consoleErrorSpy.mockRestore();
 
     await waitFor(() => {
       expect(result.current.error).toBe(errorMessage);
@@ -182,15 +193,24 @@ describe("useSettings", () => {
     const errorMessage = "Failed to get default directory";
     vi.mocked(invoke).mockRejectedValue(new Error(errorMessage));
 
+    // Suppress expected error log during error testing
+    const consoleErrorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+
     const directory = await result.current.getDefaultDirectory();
 
     expect(directory).toBeNull();
+
+    consoleErrorSpy.mockRestore();
   });
 
   it("should expose fetchSettings function", async () => {
     vi.mocked(invoke).mockResolvedValue(mockSettings);
 
     const { result } = renderHook(() => useSettings());
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
 
     expect(typeof result.current.fetchSettings).toBe("function");
   });
@@ -200,6 +220,8 @@ describe("useSettings", () => {
 
     const { result } = renderHook(() => useSettings());
 
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
     expect(typeof result.current.updateSettings).toBe("function");
   });
 
@@ -207,6 +229,8 @@ describe("useSettings", () => {
     vi.mocked(invoke).mockResolvedValue(mockSettings);
 
     const { result } = renderHook(() => useSettings());
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
 
     expect(typeof result.current.getDefaultDirectory).toBe("function");
   });
@@ -237,7 +261,9 @@ describe("useSettings", () => {
       return Promise.resolve(undefined);
     });
 
-    await result.current.fetchSettings();
+    await act(async () => {
+      await result.current.fetchSettings();
+    });
 
     await waitFor(() => {
       expect(result.current.settings).toEqual(newSettings);
@@ -280,9 +306,12 @@ describe("useSettings", () => {
 
     vi.mocked(invoke).mockReturnValue(updatePromise);
 
-    const updatePromiseResult = result.current.updateSettings({
-      ...mockSettings,
-      auto_update: false,
+    let updatePromiseResult: Promise<void>;
+    act(() => {
+      updatePromiseResult = result.current.updateSettings({
+        ...mockSettings,
+        auto_update: false,
+      });
     });
 
     // Should be loading during update
@@ -290,9 +319,12 @@ describe("useSettings", () => {
       expect(result.current.loading).toBe(true);
     });
 
-    resolveUpdate!(undefined);
-    await updatePromiseResult;
+    await act(async () => {
+      resolveUpdate!(undefined);
+      await updatePromiseResult;
+    });
 
+    // Wait for the update to complete and state to settle
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
     });

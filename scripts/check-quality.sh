@@ -36,6 +36,12 @@ PKG_MANAGER=$(project_detect_package_manager)
 # Array to track failed checks
 FAILED_CHECKS=()
 
+# Variables to track checks that have been auto-fixed (to prevent infinite retry)
+AUTO_FIXED_RUST_FORMAT=""
+AUTO_FIXED_ESLINT=""
+AUTO_FIXED_PRETTIER=""
+AUTO_FIXED_MARKDOWN=""
+
 # ============================================================================
 # Header
 # ============================================================================
@@ -43,6 +49,59 @@ FAILED_CHECKS=()
 print_major_header "Code Quality Checks"
 printf "${COLOR_YELLOW}Running comprehensive quality checks (format, lint, types, tests)${COLOR_RESET}\n"
 printf "${COLOR_YELLOW}Package Manager: ${PKG_MANAGER}${COLOR_RESET}\n\n"
+
+# ============================================================================
+# Helper Functions
+# ============================================================================
+
+# Auto-fix Rust format
+auto_fix_rust_format() {
+    local manifest=$(project_get_file_path "$PROJECT_CARGO_TOML" 2>/dev/null || echo "src-tauri/Cargo.toml")
+    printf "${COLOR_YELLOW}  → Auto-fixing Rust format...${COLOR_RESET}\n"
+    if cargo fmt --manifest-path "$manifest"; then
+        printf "${COLOR_GREEN}  ✓ Rust format auto-fixed${COLOR_RESET}\n"
+        return 0
+    else
+        printf "${COLOR_RED}  ✗ Failed to auto-fix Rust format${COLOR_RESET}\n"
+        return 1
+    fi
+}
+
+# Auto-fix ESLint
+auto_fix_eslint() {
+    printf "${COLOR_YELLOW}  → Auto-fixing ESLint issues...${COLOR_RESET}\n"
+    if $PKG_MANAGER run lint:fix; then
+        printf "${COLOR_GREEN}  ✓ ESLint issues auto-fixed${COLOR_RESET}\n"
+        return 0
+    else
+        printf "${COLOR_RED}  ✗ Failed to auto-fix ESLint issues${COLOR_RESET}\n"
+        return 1
+    fi
+}
+
+# Auto-fix Prettier
+auto_fix_prettier() {
+    printf "${COLOR_YELLOW}  → Auto-fixing Prettier format...${COLOR_RESET}\n"
+    if $PKG_MANAGER run format; then
+        printf "${COLOR_GREEN}  ✓ Prettier format auto-fixed${COLOR_RESET}\n"
+        return 0
+    else
+        printf "${COLOR_RED}  ✗ Failed to auto-fix Prettier format${COLOR_RESET}\n"
+        return 1
+    fi
+}
+
+# Auto-fix Markdown lint
+auto_fix_markdown() {
+    printf "${COLOR_YELLOW}  → Auto-fixing Markdown issues...${COLOR_RESET}\n"
+    if $PKG_MANAGER run lint:md:fix; then
+        printf "${COLOR_GREEN}  ✓ Markdown issues auto-fixed${COLOR_RESET}\n"
+        return 0
+    else
+        printf "${COLOR_RED}  ✗ Failed to auto-fix Markdown issues${COLOR_RESET}\n"
+        return 1
+    fi
+}
 
 # ============================================================================
 # Run All Quality Checks
@@ -54,8 +113,21 @@ print_separator
 if validate_rust_format; then
     increment_passed
 else
-    increment_failed
-    FAILED_CHECKS+=("Rust Code Format (cargo fmt)")
+    # Try auto-fix once
+    if [[ -z "$AUTO_FIXED_RUST_FORMAT" ]]; then
+        AUTO_FIXED_RUST_FORMAT="1"
+        auto_fix_rust_format
+        printf "${COLOR_YELLOW}  → Re-checking after auto-fix...${COLOR_RESET}\n"
+        if validate_rust_format; then
+            increment_passed
+        else
+            increment_failed
+            FAILED_CHECKS+=("Rust Code Format (cargo fmt)")
+        fi
+    else
+        increment_failed
+        FAILED_CHECKS+=("Rust Code Format (cargo fmt)")
+    fi
 fi
 
 # Check 2: Rust Clippy
@@ -94,8 +166,21 @@ print_separator
 if validate_eslint "$PKG_MANAGER"; then
     increment_passed
 else
-    increment_failed
-    FAILED_CHECKS+=("ESLint Check")
+    # Try auto-fix once
+    if [[ -z "$AUTO_FIXED_ESLINT" ]]; then
+        AUTO_FIXED_ESLINT="1"
+        auto_fix_eslint
+        printf "${COLOR_YELLOW}  → Re-checking after auto-fix...${COLOR_RESET}\n"
+        if validate_eslint "$PKG_MANAGER"; then
+            increment_passed
+        else
+            increment_failed
+            FAILED_CHECKS+=("ESLint Check")
+        fi
+    else
+        increment_failed
+        FAILED_CHECKS+=("ESLint Check")
+    fi
 fi
 
 # Check 6: Prettier
@@ -104,8 +189,21 @@ print_separator
 if validate_prettier "$PKG_MANAGER"; then
     increment_passed
 else
-    increment_failed
-    FAILED_CHECKS+=("Prettier Format Check")
+    # Try auto-fix once
+    if [[ -z "$AUTO_FIXED_PRETTIER" ]]; then
+        AUTO_FIXED_PRETTIER="1"
+        auto_fix_prettier
+        printf "${COLOR_YELLOW}  → Re-checking after auto-fix...${COLOR_RESET}\n"
+        if validate_prettier "$PKG_MANAGER"; then
+            increment_passed
+        else
+            increment_failed
+            FAILED_CHECKS+=("Prettier Format Check")
+        fi
+    else
+        increment_failed
+        FAILED_CHECKS+=("Prettier Format Check")
+    fi
 fi
 
 # Check 7: Frontend Tests
@@ -124,8 +222,21 @@ print_separator
 if validate_markdown_lint "$PKG_MANAGER"; then
     increment_passed
 else
-    increment_failed
-    FAILED_CHECKS+=("Markdown Lint Check")
+    # Try auto-fix once
+    if [[ -z "$AUTO_FIXED_MARKDOWN" ]]; then
+        AUTO_FIXED_MARKDOWN="1"
+        auto_fix_markdown
+        printf "${COLOR_YELLOW}  → Re-checking after auto-fix...${COLOR_RESET}\n"
+        if validate_markdown_lint "$PKG_MANAGER"; then
+            increment_passed
+        else
+            increment_failed
+            FAILED_CHECKS+=("Markdown Lint Check")
+        fi
+    else
+        increment_failed
+        FAILED_CHECKS+=("Markdown Lint Check")
+    fi
 fi
 
 # ============================================================================
