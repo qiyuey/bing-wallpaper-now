@@ -4,23 +4,22 @@
 # Version format: X.Y.Z or X.Y.Z-0 (development version)
 #
 # Usage:
-#   ./scripts/manage-version.sh snapshot-patch  # Create next patch development version
-#   ./scripts/manage-version.sh snapshot-minor  # Create next minor development version
-#   ./scripts/manage-version.sh snapshot-major  # Create next major development version
-#   ./scripts/manage-version.sh release         # FULLY AUTOMATED: Release and push
-#   ./scripts/manage-version.sh rollback        # Rollback last release
-#   ./scripts/manage-version.sh info            # Show version information
+#   ./scripts/manage-version.sh patch      # Create next patch development version
+#   ./scripts/manage-version.sh minor      # Create next minor development version
+#   ./scripts/manage-version.sh major      # Create next major development version
+#   ./scripts/manage-version.sh release    # Release and push (no auto snapshot)
+#   ./scripts/manage-version.sh rollback   # Rollback last release
+#   ./scripts/manage-version.sh info       # Show version information
 #
 # Workflow:
-#   1. After releasing 0.1.0, create 0.1.1-0 for development
-#   2. When development is complete, run `make release` (fully automated):
+#   1. After releasing 0.1.0, create 0.1.1-0 for development: make patch
+#   2. When development is complete, run `make release`:
 #      - Validates working directory is clean
 #      - Runs all pre-commit checks
 #      - Updates version from 0.1.1-0 to 0.1.1
 #      - Creates release commit and git tag
 #      - Pushes to remote (triggers CI/CD)
-#      - Automatically creates 0.1.2-0 for next development
-#      - Pushes development version to remote
+#   3. Manually create next dev version: make patch
 
 set -euo pipefail
 
@@ -184,32 +183,15 @@ release_version() {
     echo ""
     print_info "GitHub Actions will automatically build and publish to Releases"
 
-    # Create next development version
-    echo ""
-    print_info "Creating next development version..."
-
-    local next_version=$(version_bump "$release_version" "patch")
-    local dev_version=$(version_add_dev_suffix "$next_version")
-
-    project_update_all_versions "$dev_version"
-
-    git_stage "$PROJECT_PACKAGE_JSON" "$PROJECT_CARGO_TOML" "$PROJECT_TAURI_CONF" "$PROJECT_CARGO_LOCK"
-    git_commit "chore(version): bump to $dev_version"
-
-    print_success "Created development version: $dev_version"
-
-    # Push development version
-    print_info "Pushing development version to remote..."
-    git_push
-    print_success "Pushed development version to remote"
-
     echo ""
     print_success "Release completed successfully!"
     echo ""
     print_table_row "Released" "$release_version"
-    print_table_row "Next development" "$dev_version"
+    print_table_row "Git tag" "$tag"
     echo ""
-    print_info "Ready to start developing new features!"
+    print_info "Next steps:"
+    print_info "  1. Wait for GitHub Actions to complete the build"
+    print_info "  2. Create next development version: make patch"
 }
 
 # ============================================================================
@@ -334,12 +316,12 @@ main() {
         show_version_info
         echo ""
         print_info "Usage:"
-        echo "  $0 snapshot-patch      # Create next patch development version"
-        echo "  $0 snapshot-minor      # Create next minor development version"
-        echo "  $0 snapshot-major      # Create next major development version"
-        echo "  $0 release             # Release current development version"
-        echo "  $0 rollback            # Rollback last release"
-        echo "  $0 info                # Show version information"
+        echo "  $0 patch      # Create next patch development version"
+        echo "  $0 minor      # Create next minor development version"
+        echo "  $0 major      # Create next major development version"
+        echo "  $0 release    # Release current development version"
+        echo "  $0 rollback   # Rollback last release"
+        echo "  $0 info       # Show version information"
         echo ""
         exit 0
     fi
@@ -351,13 +333,13 @@ main() {
     fi
 
     case "$1" in
-        snapshot-patch)
+        patch|snapshot-patch)
             create_snapshot "patch"
             ;;
-        snapshot-minor)
+        minor|snapshot-minor)
             create_snapshot "minor"
             ;;
-        snapshot-major)
+        major|snapshot-major)
             create_snapshot "major"
             ;;
         release)
@@ -371,7 +353,7 @@ main() {
             ;;
         *)
             print_error "Unknown command: $1"
-            print_info "Usage: $0 <snapshot-patch|snapshot-minor|snapshot-major|release|rollback|info>"
+            print_info "Usage: $0 <patch|minor|major|release|rollback|info>"
             exit 1
             ;;
     esac

@@ -3,7 +3,7 @@
 # Quick Reference:
 #   make dev              # Start development mode
 #   make check            # Run quality checks
-#   make snapshot-patch   # Create SNAPSHOT version
+#   make patch            # Create patch dev version
 #   make release          # Release official version
 #
 # Requirements:
@@ -31,7 +31,7 @@ CHECK_SCRIPT := scripts/check-quality.sh
 
 .PHONY: all dev check
 .PHONY: clean deps install
-.PHONY: snapshot-patch snapshot-minor snapshot-major release
+.PHONY: patch minor major release
 .PHONY: help info
 
 # ============================================================================
@@ -73,17 +73,17 @@ check:
 # Version Management
 # ============================================================================
 
-## snapshot-patch: Create next patch development version (0.1.0 -> 0.1.1-0)
-snapshot-patch:
-	@bash $(VERSION_SCRIPT) snapshot-patch
+## patch: Create next patch development version (0.1.0 -> 0.1.1-0)
+patch:
+	@bash $(VERSION_SCRIPT) patch
 
-## snapshot-minor: Create next minor development version (0.1.0 -> 0.2.0-0)
-snapshot-minor:
-	@bash $(VERSION_SCRIPT) snapshot-minor
+## minor: Create next minor development version (0.1.0 -> 0.2.0-0)
+minor:
+	@bash $(VERSION_SCRIPT) minor
 
-## snapshot-major: Create next major development version (0.1.0 -> 1.0.0-0)
-snapshot-major:
-	@bash $(VERSION_SCRIPT) snapshot-major
+## major: Create next major development version (0.1.0 -> 1.0.0-0)
+major:
+	@bash $(VERSION_SCRIPT) major
 
 ## release: Release current development version, tag and push (fully automated)
 release:
@@ -130,10 +130,10 @@ help:
 	@echo "  make check            - Run all quality checks (recommended before commit)"
 	@echo ""
 	@echo "Version Management:"
-	@echo "  make snapshot-patch   - Create patch development version (0.1.0 -> 0.1.1-0)"
-	@echo "  make snapshot-minor   - Create minor development version (0.1.0 -> 0.2.0-0)"
-	@echo "  make snapshot-major   - Create major development version (0.1.0 -> 1.0.0-0)"
-	@echo "  make release          - Release version, tag and push (fully automated)"
+	@echo "  make patch            - Create patch development version (0.1.0 -> 0.1.1-0)"
+	@echo "  make minor            - Create minor development version (0.1.0 -> 0.2.0-0)"
+	@echo "  make major            - Create major development version (0.1.0 -> 1.0.0-0)"
+	@echo "  make release          - Release version, tag and push"
 	@echo ""
 	@echo "Other:"
 	@echo "  make clean            - Clean build artifacts"
@@ -142,7 +142,7 @@ help:
 	@echo ""
 	@echo "Workflow:"
 	@echo "  1. After release, create development version:"
-	@echo "     make snapshot-patch"
+	@echo "     make patch"
 	@echo ""
 	@echo "  2. Develop new features..."
 	@echo ""
