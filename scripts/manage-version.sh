@@ -8,7 +8,7 @@
 #   ./scripts/manage-version.sh minor      # Create next minor development version
 #   ./scripts/manage-version.sh major      # Create next major development version
 #   ./scripts/manage-version.sh release    # Release and push (no auto snapshot)
-#   ./scripts/manage-version.sh rollback   # Rollback last release
+#   ./scripts/manage-version.sh retag      # Re-push current version tag (re-trigger CI)
 #   ./scripts/manage-version.sh info       # Show version information
 #
 # Workflow:
@@ -222,87 +222,52 @@ show_version_info() {
 }
 
 # ============================================================================
-# Rollback Last Release
+# Re-push Version Tag
 # ============================================================================
 
-rollback_release() {
-    print_header "Rollback Last Release"
+retag_version() {
+    print_header "Re-push Version Tag"
     print_separator
     echo ""
 
-    # Get the latest tag
-    local latest_tag=$(git_latest_tag)
-
-    if [[ -z "$latest_tag" ]]; then
-        print_error "No tags found in repository"
-        exit 1
-    fi
-
-    print_warning "This will rollback the release: $latest_tag"
-    echo ""
-    print_info "Actions to be performed:"
-    echo "  1. Delete local tag: $latest_tag"
-    echo "  2. Delete remote tag: $latest_tag"
-    echo "  3. Reset to 2 commits before (release + snapshot)"
-    echo "  4. Force push to remote"
-    echo ""
-    print_warning "This operation is DESTRUCTIVE and cannot be undone!"
-    print_warning "Make sure you understand what you're doing."
-    echo ""
-
-    # Show recent commits
-    print_info "Recent commits (will reset to HEAD~2):"
-    git log --oneline -5
-    echo ""
-
-    if ! ask_confirmation "Are you absolutely sure you want to rollback?"; then
-        print_info "Rollback cancelled"
-        exit 0
-    fi
-
-    echo ""
-    print_step 1 4 "Deleting local tag $latest_tag"
-    if git_delete_tag "$latest_tag"; then
-        print_success "Local tag deleted"
-    else
-        print_error "Failed to delete local tag"
-        exit 1
-    fi
-
-    echo ""
-    print_step 2 4 "Deleting remote tag $latest_tag"
-    if git_delete_tag_remote "$latest_tag"; then
-        print_success "Remote tag deleted"
-    else
-        print_warning "Failed to delete remote tag (may not exist)"
-    fi
-
-    echo ""
-    print_step 3 4 "Resetting to HEAD~2"
-    if git_reset "HEAD~2" "hard"; then
-        print_success "Reset to HEAD~2 completed"
-    else
-        print_error "Failed to reset"
-        exit 1
-    fi
-
-    echo ""
-    print_step 4 4 "Force pushing to remote"
-    if git_force_push; then
-        print_success "Force push completed"
-    else
-        print_error "Failed to force push"
-        print_warning "You may need to manually push: git push origin main --force"
-        exit 1
-    fi
-
-    echo ""
-    print_success "Rollback completed successfully!"
-
     local current=$(project_get_version)
-    print_info "Current version after rollback: $current"
+
+    # Check if current version is a release version (not dev)
+    if version_is_dev "$current"; then
+        print_error "Current version is a development version: $current"
+        print_info "Cannot re-push dev version tags"
+        print_info "This command is only for release versions (without -0 suffix)"
+        exit 1
+    fi
+
+    local tag="$current"
+
+    print_info "Current release version: $current"
+    print_info "Will force-push tag: $tag"
     echo ""
-    print_info "You can now fix the issues and run 'make release' again"
+
+    # Check if tag exists locally
+    if ! git tag -l | grep -q "^${tag}$"; then
+        print_error "Tag '$tag' does not exist locally"
+        print_info "Create the tag first with: git tag $tag"
+        exit 1
+    fi
+
+    print_warning "This will force-push the tag to remote"
+    print_info "Use this to re-trigger CI/CD builds for the same version"
+    echo ""
+
+    # Push tag with force
+    print_info "Force-pushing tag $tag to remote..."
+    if git push origin "refs/tags/${tag}" --force; then
+        print_success "Tag pushed successfully!"
+        echo ""
+        print_info "GitHub Actions will start building for tag: $tag"
+        print_info "Check progress at: https://github.com/$(git remote get-url origin | sed 's/.*github.com[:/]\(.*\)\.git/\1/')/actions"
+    else
+        print_error "Failed to push tag"
+        exit 1
+    fi
 }
 
 # ============================================================================
@@ -320,7 +285,7 @@ main() {
         echo "  $0 minor      # Create next minor development version"
         echo "  $0 major      # Create next major development version"
         echo "  $0 release    # Release current development version"
-        echo "  $0 rollback   # Rollback last release"
+        echo "  $0 retag      # Re-push current version tag (re-trigger CI)"
         echo "  $0 info       # Show version information"
         echo ""
         exit 0
@@ -345,15 +310,15 @@ main() {
         release)
             release_version
             ;;
-        rollback)
-            rollback_release
+        retag)
+            retag_version
             ;;
         info)
             show_version_info
             ;;
         *)
             print_error "Unknown command: $1"
-            print_info "Usage: $0 <patch|minor|major|release|rollback|info>"
+            print_info "Usage: $0 <patch|minor|major|release|retag|info>"
             exit 1
             ;;
     esac

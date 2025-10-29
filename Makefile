@@ -31,7 +31,7 @@ CHECK_SCRIPT := scripts/check-quality.sh
 
 .PHONY: all dev check
 .PHONY: clean deps install
-.PHONY: patch minor major release
+.PHONY: patch minor major release retag
 .PHONY: help info
 
 # ============================================================================
@@ -85,9 +85,13 @@ minor:
 major:
 	@bash $(VERSION_SCRIPT) major
 
-## release: Release current development version, tag and push (fully automated)
+## release: Release current development version, tag and push
 release:
 	@bash $(VERSION_SCRIPT) release
+
+## retag: Re-push current version tag to re-trigger CI/CD build
+retag:
+	@bash $(VERSION_SCRIPT) retag
 
 # ============================================================================
 # Clean Commands
@@ -134,6 +138,7 @@ help:
 	@echo "  make minor            - Create minor development version (0.1.0 -> 0.2.0-0)"
 	@echo "  make major            - Create major development version (0.1.0 -> 1.0.0-0)"
 	@echo "  make release          - Release version, tag and push"
+	@echo "  make retag            - Re-push current version tag (re-trigger CI)"
 	@echo ""
 	@echo "Other:"
 	@echo "  make clean            - Clean build artifacts"
