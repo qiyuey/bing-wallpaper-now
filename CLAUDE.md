@@ -9,11 +9,13 @@ Bing Wallpaper Now is a cross-platform desktop application built with Tauri 2 th
 ## Development Commands
 
 ### Setup
+
 ```bash
 pnpm install                    # Install dependencies
 ```
 
 ### Development Workflow
+
 ```bash
 pnpm tauri dev                  # Full app with hot reload (recommended)
 make dev                        # Alternative command
@@ -21,6 +23,7 @@ pnpm dev                        # Frontend only (web UI, no backend)
 ```
 
 ### Code Quality (Run Before Commits)
+
 ```bash
 make check                      # Run ALL quality checks (mandatory)
 pnpm run typecheck              # TypeScript type checking
@@ -35,6 +38,7 @@ cargo clippy --manifest-path src-tauri/Cargo.toml  # Lint Rust code
 ```
 
 ### Testing
+
 ```bash
 pnpm test                       # Run both Rust and frontend tests
 pnpm test:rust                  # Rust unit tests only
@@ -43,12 +47,14 @@ pnpm test:frontend -- --coverage  # With coverage report
 ```
 
 ### Building
+
 ```bash
 pnpm build                      # Build frontend (TypeScript + Vite)
 pnpm tauri build                # Build complete app for distribution
 ```
 
 ### Version Management
+
 ```bash
 make patch                      # Create patch dev version (0.1.0 -> 0.1.1-0)
 make minor                      # Create minor dev version (0.1.0 -> 0.2.0-0)
@@ -132,7 +138,7 @@ The app uses a smart update system:
 
 ### State Management Flow
 
-```
+```text
 User Action (Frontend)
   → Tauri Command (IPC)
   → Rust Backend Handler
@@ -155,6 +161,7 @@ User Action (Frontend)
 ### Async/Non-blocking Operations
 
 All wallpaper operations are async to avoid blocking the UI thread:
+
 ```rust
 // Backend spawns async tasks
 tauri::async_runtime::spawn(async move {
@@ -217,6 +224,7 @@ tauri::async_runtime::spawn(async move {
 ## Plugin Permissions
 
 The app requires these Tauri plugin permissions (configured in `tauri.conf.json`):
+
 - `opener:allow-open-path` - Open wallpaper folder in file manager
 - `dialog:allow-message`, `dialog:allow-open`, `dialog:allow-save` - Folder picker
 - `store:allow-get`, `store:allow-set` - Settings persistence
