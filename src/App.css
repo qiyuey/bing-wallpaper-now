@@ -300,27 +300,10 @@ body {
   font-weight: 500;
 }
 
-/* Responsive */
-@media (max-width: 1200px) {
-  .wallpaper-virtual-list {
-    padding: 0 1.5rem;
-  }
-  .wallpaper-grid-static {
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    padding: 1.5rem;
-  }
-}
-
-@media (max-width: 768px) {
-  .wallpaper-virtual-list {
-    padding: 0 1rem;
-  }
+/* Desktop-only responsive breakpoint for larger screens */
+@media (min-width: 1920px) {
   .wallpaper-row {
-    gap: 1rem;
-  }
-  .wallpaper-grid-static {
-    grid-template-columns: 1fr;
-    padding: 1rem;
+    grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
   }
 }
 
