@@ -40,6 +40,15 @@ Object.defineProperty(window, "__TAURI_INTERNALS__", {
   writable: true,
 });
 
+// Mock __TAURI_EVENT_PLUGIN_INTERNALS__ for newer Tauri versions
+Object.defineProperty(window, "__TAURI_EVENT_PLUGIN_INTERNALS__", {
+  value: {
+    registerListener: vi.fn(() => 1),
+    unregisterListener: vi.fn((_event: string, _id: number) => {}),
+  },
+  writable: true,
+});
+
 // Mock @tauri-apps/api modules directly to avoid internal errors
 vi.mock("@tauri-apps/api/core", () => {
   return {
@@ -55,6 +64,7 @@ vi.mock("@tauri-apps/api/core", () => {
       }
       return Promise.resolve(undefined);
     },
+    convertFileSrc: vi.fn((path: string) => `asset://localhost/${path}`),
   };
 });
 
@@ -90,12 +100,6 @@ global.ResizeObserver = class ResizeObserver {
   disconnect() {}
 };
 
-// Mock @tauri-apps/api/core
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: vi.fn(),
-  convertFileSrc: vi.fn((path: string) => `asset://localhost/${path}`),
-}));
-
 // Mock @tauri-apps/plugin-opener
 vi.mock("@tauri-apps/plugin-opener", () => ({
   open: vi.fn(),
@@ -107,12 +111,6 @@ vi.mock("@tauri-apps/plugin-opener", () => ({
 vi.mock("@tauri-apps/plugin-dialog", () => ({
   open: vi.fn(),
   message: vi.fn(),
-}));
-
-// Mock @tauri-apps/api/event
-vi.mock("@tauri-apps/api/event", () => ({
-  listen: vi.fn(() => Promise.resolve(() => {})),
-  emit: vi.fn(),
 }));
 
 // Extend expect matchers

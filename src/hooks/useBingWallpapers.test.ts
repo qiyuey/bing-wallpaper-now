@@ -6,11 +6,6 @@ import { useBingWallpapers } from "./useBingWallpapers";
 // Mock Tauri invoke
 vi.mock("@tauri-apps/api/core");
 
-// Mock event listener
-vi.mock("@tauri-apps/api/event", () => ({
-  listen: vi.fn(() => Promise.resolve(() => {})),
-}));
-
 describe("useBingWallpapers", () => {
   beforeEach(() => {
     vi.clearAllMocks();
