@@ -253,6 +253,23 @@ retag_version() {
         exit 1
     fi
 
+    local head_commit
+    head_commit=$(git rev-parse HEAD)
+    local tag_commit
+    tag_commit=$(git rev-parse "$tag")
+
+    if [[ "$head_commit" != "$tag_commit" ]]; then
+        print_info "Updating local tag to point at current commit..."
+        if git tag -a -f "$tag" -m "Release $current" HEAD; then
+            print_success "Tag $tag now points to $(git rev-parse --short HEAD)"
+        else
+            print_error "Failed to update local tag"
+            exit 1
+        fi
+    else
+        print_info "Local tag already points to current commit"
+    fi
+
     print_warning "This will force-push the tag to remote"
     print_info "Use this to re-trigger CI/CD builds for the same version"
     echo ""
