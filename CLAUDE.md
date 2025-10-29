@@ -194,9 +194,9 @@ async fn your_command(
 }
 ```
 
-2. Register the command in the `.invoke_handler()` call in `lib.rs`
+1. Register the command in the `.invoke_handler()` call in `lib.rs`
 
-3. Call from frontend:
+1. Call from frontend:
 
 ```typescript
 import { invoke } from '@tauri-apps/api/core';
@@ -248,24 +248,29 @@ cargo test -- --nocapture
 The project uses automated version management and CI/CD:
 
 1. **Development cycle**: After releasing a version (e.g., `0.1.0`), create a development version:
+
    ```bash
    make patch    # Creates 0.1.1-0 for patch development
    make minor    # Creates 0.2.0-0 for minor features
    make major    # Creates 1.0.0-0 for breaking changes
    ```
 
-2. **Release process**: When ready to release:
+1. **Release process**: When ready to release:
+
    ```bash
    make release  # Runs checks, updates version, creates tag, pushes
    ```
+
    This triggers GitHub Actions to build and publish installers for all platforms.
 
-3. **Re-trigger CI**: If a build fails or you need to rebuild:
+1. **Re-trigger CI**: If a build fails or you need to rebuild:
+
    ```bash
    make retag    # Re-pushes the current version tag
    ```
 
 **Important**: The release script automatically:
+
 - Validates working directory is clean
 - Runs all quality checks (`make check`)
 - Updates version in `package.json`, `Cargo.toml`, and `tauri.conf.json`
