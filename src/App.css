@@ -199,6 +199,13 @@ body {
   font-weight: 400;
 }
 
+/* Hide last-update text on narrow windows to prevent header overflow */
+@media (max-width: 1024px) {
+  .last-update {
+    display: none;
+  }
+}
+
 /* Tabs */
 .app-tabs {
   background: var(--bg-glass);
@@ -292,15 +299,36 @@ body {
 .wallpaper-grid-loading,
 .wallpaper-grid-empty {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  text-align: center;
   min-height: 400px;
   color: var(--text-primary);
   font-size: 1.125rem;
   font-weight: 500;
+  gap: 0.5rem;
 }
 
-/* Desktop-only responsive breakpoint for larger screens */
+.wallpaper-grid-empty-hint {
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--text-tertiary);
+  opacity: 0.75;
+  margin-top: 0.25rem;
+}
+
+/* Desktop responsive breakpoints */
+/* For narrower desktop windows (e.g., 900-1024px), use smaller card width to prevent horizontal scroll */
+@media (max-width: 1024px) {
+  .wallpaper-row {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1rem;
+    padding: 0 1.5rem;
+  }
+}
+
+/* For 4K and larger screens */
 @media (min-width: 1920px) {
   .wallpaper-row {
     grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
