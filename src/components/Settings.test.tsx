@@ -149,7 +149,7 @@ describe("Settings", () => {
     });
   });
 
-  it("should accept keep image count below 8", async () => {
+  it("should normalize keep image count below 8 to 8", async () => {
     renderWithTheme(<Settings onClose={mockOnClose} />);
 
     const input = (await screen.findByLabelText(
@@ -158,13 +158,13 @@ describe("Settings", () => {
       { timeout: 3000 },
     )) as HTMLInputElement; // eslint-disable-line no-undef
 
-    // Try to set below minimum - the component will call updateSettings with this value
+    // Try to set below minimum - the component will normalize to 8
     fireEvent.change(input, { target: { value: "5" } });
 
     await waitFor(() => {
       expect(mockUpdateSettings).toHaveBeenCalledWith(
         expect.objectContaining({
-          keep_image_count: 5,
+          keep_image_count: 8, // 1-7 会被规范化为 8
         }),
       );
     });

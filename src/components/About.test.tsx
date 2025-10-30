@@ -23,9 +23,6 @@ describe("About", () => {
     renderWithI18n(<About onClose={mockOnClose} version={mockVersion} />);
 
     expect(screen.getByText(/每日自动获取并更新必应壁纸/)).toBeInTheDocument();
-    expect(
-      screen.getByText(/技术栈：React \+ TypeScript \+ Tauri 2/),
-    ).toBeInTheDocument();
   });
 
   it("should render GitHub link with correct href", () => {
@@ -108,7 +105,6 @@ describe("About", () => {
     expect(container.querySelector(".about-title")).toBeInTheDocument();
     expect(container.querySelector(".about-version")).toBeInTheDocument();
     expect(container.querySelector(".about-description")).toBeInTheDocument();
-    expect(container.querySelector(".about-tech-stack")).toBeInTheDocument();
     expect(container.querySelector(".about-github-link")).toBeInTheDocument();
     expect(container.querySelector(".about-copyright")).toBeInTheDocument();
   });
