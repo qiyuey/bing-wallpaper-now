@@ -24,6 +24,10 @@ All notable changes to Bing Wallpaper Now will be documented in this file.
   - 优化 Makefile 命令，改进错误处理和提示信息
   - 新增工具函数模块（`utils.rs`），统一语言检测逻辑
 
+- 📋 **索引文件格式优化**
+  - 将索引文件从 MessagePack 格式改为 JSON 格式，提升可读性和调试便利性
+  - 索引文件按时间排序，便于查看最新壁纸
+
 ### Changed
 
 - 🔧 **后端架构优化**
@@ -31,17 +35,49 @@ All notable changes to Bing Wallpaper Now will be documented in this file.
   - 提取 `apply_latest_wallpaper_if_needed`、`fetch_bing_images_with_retry`、`download_wallpapers_concurrently` 等函数
   - 改进错误处理，使用 `unwrap_or_else` 替代 `expect`，避免 panic
   - 优化日期计算逻辑，添加 fallback 机制处理边界情况
+  - 优化索引管理器，使用 `tokio::sync::Mutex` 替代 `std::sync::Mutex`，避免阻塞异步运行时
 
 - 🌐 **语言检测优化**
   - 统一语言检测逻辑到 `utils.rs` 模块
   - 改进系统时间回退检测，防止缓存逻辑异常
   - 优化 Bing API 市场代码获取逻辑
 
+- 🎨 **UI 样式优化**
+  - 增强 liquid glass（液态玻璃）效果，提升视觉质感
+  - 优化壁纸卡片、按钮、状态徽章的玻璃态效果
+  - 改进"已是最新"徽章样式，与整体设计风格统一
+  - 移除"关于"页面中的技术栈信息，简化界面
+
+- ⚙️ **设置功能增强**
+  - 保留壁纸数量支持 0（不限制），但至少保留 8 张
+  - 默认保留数量从 10000 改为 0（不限制）
+  - 优化设置页面尺寸，确保在任何窗口大小下都能完整显示
+
+- 🪟 **窗口尺寸优化**
+  - 调整窗口最小尺寸为 380x580，确保至少能完整显示一个壁纸卡片
+  - 优化标题布局，防止窗口过窄时标题换行
+
+- 📍 **最近更新时间显示**
+  - 恢复最近更新时间显示功能
+  - 更新时间显示在标题下方，充分利用左侧空白区域
+  - 优化更新时间的获取逻辑，优先从内存状态读取，必要时从索引文件读取
+
 - 📦 **依赖更新**
   - 更新多个前端和后端依赖到最新版本
   - 添加 `num_cpus` 依赖用于并发下载优化
+  - 移除 `rmp-serde` 依赖（不再使用 MessagePack）
 
 ### Fixed
+
+- 🐛 **修复跨天更新问题**
+  - 修复新一天开始时无法获取最新壁纸的问题
+  - 改进运行时状态缓存逻辑，确保跨天时正确检查新壁纸
+  - 修复手动刷新时强制更新的逻辑
+
+- 🐛 **修复索引与文件同步问题**
+  - 修复索引文件与实际文件不同步的问题
+  - 改进文件存在性检查，确保缺失的文件会被重新下载
+  - 优化索引加载逻辑，移除不必要的向后兼容代码
 
 - 🐛 **修复 React Hook 依赖问题**
   - 修复 `useSettings` 中 `fetchSettings` 缺少依赖项警告
@@ -50,11 +86,23 @@ All notable changes to Bing Wallpaper Now will be documented in this file.
 - 🐛 **修复 Rust 测试代码**
   - 修复测试中缺少 `language` 字段的问题
   - 改进错误处理，使用更安全的 unwrap 替代
+  - 修复 Clippy 警告（`ptr_arg`、`manual_clamp`、`collapsible_if`）
 
 - 🐛 **修复 ESLint 错误**
   - 修复 `useBingWallpapers.ts` 中 `NodeJS.Timeout` 类型问题
   - 修复 `useDynamicTagline.ts` 中 case 块词法声明问题
   - 修复 `translations.ts` 中 `navigator` 未定义问题
+
+- 🐛 **修复前端测试**
+  - 修复所有测试中的 `I18nProvider` 上下文问题
+  - 创建 `renderWithI18n` 测试工具函数
+  - 更新测试用例以匹配新的翻译文本
+
+### Removed
+
+- 🗑️ **移除"已是最新"功能**
+  - 移除前端"已是最新"状态检查和显示
+  - 简化更新逻辑，统一由后端处理
 
 ### Quality
 
@@ -62,6 +110,7 @@ All notable changes to Bing Wallpaper Now will be documented in this file.
   - 改进日期计算的错误处理，避免潜在 panic
   - 优化窗口隐藏的错误处理
   - 添加更完善的注释和文档
+  - 移除未使用的代码和依赖
 
 ## 0.3.5
 
