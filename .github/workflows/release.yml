@@ -20,6 +20,9 @@ env:
   # Faster compile (trade a little optimization time for speed)
   CARGO_PROFILE_RELEASE_CODEGEN_UNITS: 256
   CARGO_PROFILE_RELEASE_LTO: "false"
+  # Optimize Rust network operations
+  CARGO_NET_GIT_FETCH_WITH_CLI: true
+  CARGO_NET_RETRY: 10
 
 jobs:
   prepare:
@@ -180,6 +183,13 @@ jobs:
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          # Cache on failure to avoid rebuilding on transient errors
+          cache-on-failure: true
 
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
