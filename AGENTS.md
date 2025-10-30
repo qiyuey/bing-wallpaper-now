@@ -2,6 +2,19 @@
 
 > Repository guidelines for AI coding agents working on Bing Wallpaper Now
 
+## Setup commands
+
+- Install deps: `pnpm install`
+- Start dev server: `pnpm run tauri dev` (or `make dev`)
+- Run tests: `pnpm test`
+- Run quality checks: `make check`
+
+## Prerequisites
+
+- **Node.js**: 24+ (LTS)
+- **Rust**: 1.80+ (Edition 2024)
+- **pnpm**: 10.19.0 (specified in `packageManager` field)
+
 ## Project Overview
 
 Bing Wallpaper Now is a cross-platform desktop application that automatically fetches and sets Bing daily wallpapers. Built with Tauri 2.0, it combines a React/TypeScript frontend with a Rust backend.
@@ -10,27 +23,6 @@ Bing Wallpaper Now is a cross-platform desktop application that automatically fe
 - Frontend: React 19, TypeScript, Vite
 - Backend: Rust (Edition 2024), Tauri 2.0
 - Testing: Vitest (frontend), Cargo test (backend)
-- Package Manager: pnpm (version 10.19.0)
-
-## Setup & Development
-
-### Prerequisites
-
-- **Node.js**: 24+ (LTS)
-- **Rust**: 1.80+ (Edition 2024)
-- **pnpm**: 10.19.0 (specified in `packageManager` field)
-
-### Installation
-
-```bash
-# Install dependencies
-pnpm install
-
-# Start development mode (hot reload)
-pnpm run tauri dev
-# OR
-make dev
-```
 
 ### Common Commands
 
@@ -101,77 +93,40 @@ bing-wallpaper-now/
 └── package.json                 # Frontend dependencies & scripts
 ```
 
-## Code Style & Conventions
+## Code style
 
-### TypeScript/React
-
-- **TypeScript**: Strict mode enabled
-- **Quotes**: No specific preference configured (follows Prettier defaults)
-- **Semicolons**: Follow Prettier defaults (present)
-- **Naming**:
+- **TypeScript**: Strict mode enabled, follows Prettier defaults for quotes and semicolons
+- **TypeScript/React naming**:
   - Components: PascalCase (`WallpaperCard.tsx`)
   - Hooks: camelCase with "use" prefix (`useBingWallpapers.ts`)
   - Files: Match component/hook name
-- **React**:
-  - Functional components only
-  - Use hooks for state management
-  - React 19+ (no need to import React in JSX files)
-- **ESLint Rules**:
-  - Unused vars: warn (except with `_` prefix)
-  - `any` type: warn
-  - Console: warn (allow `console.warn` and `console.error`)
-  - React Hooks: enforce rules-of-hooks (error), exhaustive-deps (warn)
+- **React**: Functional components only, use hooks for state management, React 19+ (no need to import React in JSX files)
+- **ESLint rules**: Unused vars warn (except with `_` prefix), `any` type warn, console warn (allow `console.warn` and `console.error`), React Hooks enforce rules-of-hooks (error), exhaustive-deps (warn)
+- **Rust**: Edition 2024, use `cargo fmt --manifest-path src-tauri/Cargo.toml` for formatting, use `cargo clippy` for linting
+- **Rust naming**: Files snake_case (`bing_api.rs`), functions snake_case, types PascalCase, constants SCREAMING_SNAKE_CASE
+- **Rust patterns**: Use `anyhow::Result` for error handling, Tokio runtime (features = ["full"]) for async, add doc comments (`///`) for all public functions
+- **File organization**: Frontend source files in `src/`, backend source files in `src-tauri/src/`, tests colocated with source (`.test.ts`, `.test.tsx` for frontend), type definitions in `src/types/`
 
-### Rust
+## Testing instructions
 
-- **Edition**: 2024
-- **Formatting**: Use `cargo fmt --manifest-path src-tauri/Cargo.toml`
-- **Linting**: Use `cargo clippy` for warnings
-- **Naming**:
-  - Files: snake_case (`bing_api.rs`)
-  - Functions: snake_case
-  - Types: PascalCase
-  - Constants: SCREAMING_SNAKE_CASE
-- **Error Handling**: Use `anyhow::Result` for most functions
-- **Async**: Use Tokio runtime (features = ["full"])
-- **Documentation**: Add doc comments (`///`) for all public functions
+- Run `make check` to run all quality checks (format, lint, types, tests) before committing
+- Run `pnpm test` to run all tests (Rust + frontend)
+- Run `pnpm run test:frontend` for Vitest (React/TypeScript tests)
+- Run `pnpm run test:rust` for Cargo test (Rust tests)
+- Fix any test or type errors until the whole suite passes
+- After moving files or changing imports, run `pnpm run lint` and `pnpm run typecheck` to ensure ESLint and TypeScript rules still pass
+- Add or update tests for the code you change, even if nobody asked
+- Frontend tests: `src/**/*.{test,spec}.{ts,tsx}`, coverage thresholds: Lines 70%, Functions 40%, Branches 60%, Statements 70%
+- Backend tests: Same files as implementation (`#[cfg(test)]` modules), run with `-- --nocapture` to see println! output
 
-### File Organization
+## PR instructions
 
-- Frontend source files go in `src/`
-- Backend source files go in `src-tauri/src/`
-- Tests colocated with source (`.test.ts`, `.test.tsx` for frontend)
-- Type definitions in `src/types/`
-
-## Testing
-
-### Frontend (Vitest)
-
-```bash
-pnpm run test:frontend          # Run tests
-pnpm run test:frontend -- --coverage  # With coverage report
-```
-
-- **Framework**: Vitest with jsdom
-- **Location**: `src/**/*.{test,spec}.{ts,tsx}`
-- **Setup**: `src/test/setup.ts`
-- **Coverage thresholds**:
-  - Lines: 70%
-  - Functions: 40%
-  - Branches: 60%
-  - Statements: 70%
-- **Test utilities**: `@testing-library/react`, `@testing-library/jest-dom`
-
-### Backend (Rust)
-
-```bash
-cargo test --manifest-path src-tauri/Cargo.toml
-# OR
-pnpm run test:rust
-```
-
-- Tests are in the same files as implementation (`#[cfg(test)]` modules)
-- Run with `-- --nocapture` to see println! output
+- Always run `make check` before committing
+- Run `pnpm run lint` and `pnpm run typecheck` before submitting PR
+- Keep commits focused and atomic
+- Write clear commit messages
+- Add tests for new features
+- Update documentation if needed
 
 ## Tauri-Specific Notes
 
