@@ -87,7 +87,7 @@ pub async fn has_today_wallpaper(wallpaper_dir: &Path) -> bool {
     // 获取今天的日期字符串 (YYYYMMDD 格式)
     use chrono::Datelike;
     let today = Local::now().date_naive();
-    let today_str = format!("{}{:02}{:02}", today.year(), today.month(), today.day());
+    let today_str = format!("{:04}{:02}{:02}", today.year(), today.month(), today.day());
 
     // 读取本地壁纸列表
     match crate::storage::get_local_wallpapers(wallpaper_dir).await {
@@ -132,6 +132,7 @@ pub fn update_last_check_time(app: &AppHandle, state: &mut AppRuntimeState) -> R
 
 /// 检查是否可以跳过 API 请求（基于缓存策略）
 /// 如果距离上次 API 请求不足 5 分钟，且本地有今日壁纸，可以跳过 API 请求
+/// 注意：如果已经是新的一天，即使距离上次检查不足 5 分钟，也不能跳过（需要检查新壁纸）
 pub async fn can_skip_api_request(state: &AppRuntimeState, wallpaper_dir: &Path) -> bool {
     // 检查是否有最后检查时间
     let Some(ref last_check_str) = state.last_check_time else {
@@ -154,6 +155,18 @@ pub async fn can_skip_api_request(state: &AppRuntimeState, wallpaper_dir: &Path)
         log::warn!(target: "runtime", 
             "检测到系统时间回退，重置缓存检查（last_check: {}, now: {}）", 
             last_check, now);
+        return false;
+    }
+
+    // 重要：检查是否跨天了 - 如果跨天了，即使不足 5 分钟也不能跳过（需要检查新壁纸）
+    let last_check_date = last_check.date_naive();
+    let today = now.date_naive();
+    if last_check_date < today {
+        log::info!(target: "runtime",
+            "检测到跨天（上次检查：{}，今天：{}），需要检查新壁纸，不能跳过 API 请求",
+            last_check_date,
+            today
+        );
         return false;
     }
 

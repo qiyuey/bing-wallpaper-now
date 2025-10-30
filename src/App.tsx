@@ -105,7 +105,8 @@ function App() {
   const handleRefresh = async () => {
     await fetchLocalWallpapers();
     try {
-      await forceUpdate();
+      // 手动刷新时总是强制更新，忽略前端检查
+      await forceUpdate(true);
     } catch (err) {
       console.warn("Force update failed:", err);
     }

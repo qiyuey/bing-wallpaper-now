@@ -91,6 +91,16 @@ export function useBingWallpapers() {
       setLoading(true);
       setError(null);
       try {
+        // 强制更新模式：总是调用后端，忽略前端检查
+        if (force) {
+          await invoke("force_update");
+          await fetchLocalWallpapers(true);
+          await pollStatus();
+          setLoading(false);
+          return;
+        }
+
+        // 非强制更新模式：检查是否已是最新
         // 计算今日日期字符串（与 end_date 格式一致：YYYYMMDD）
         // 注意：Bing 的壁纸 start_date 是昨天，end_date 才是今天
         const now = new Date();
@@ -98,9 +108,8 @@ export function useBingWallpapers() {
           now.getDate(),
         ).padStart(2, "0")}`;
 
-        // 若已是最新且不是强制更新，不再触发后端 force_update，直接更新状态
+        // 若已是最新，不再触发后端 force_update，直接更新状态
         if (
-          !force &&
           localWallpapers.length > 0 &&
           localWallpapers[0].end_date === todayStr
         ) {
@@ -109,6 +118,7 @@ export function useBingWallpapers() {
           return;
         }
 
+        // 不是最新，调用后端强制更新
         await invoke("force_update");
         await fetchLocalWallpapers(true);
         await pollStatus();

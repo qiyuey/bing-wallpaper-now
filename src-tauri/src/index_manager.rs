@@ -1,15 +1,16 @@
 use crate::models::{LocalWallpaper, WallpaperIndex};
 use anyhow::{Context, Result};
+use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use tokio::fs;
 
 /// 索引文件名
-const INDEX_FILE: &str = "index.msgpack";
+const INDEX_FILE: &str = "index.json";
 
 /// 内存缓存的索引管理器
 ///
-/// 提供高效的壁纸元数据管理，使用单一 MessagePack 文件存储所有元数据，
+/// 提供高效的壁纸元数据管理，使用单一 JSON 文件存储所有元数据，
 /// 并在内存中缓存以减少磁盘 I/O。
 pub struct IndexManager {
     directory: PathBuf,
@@ -71,30 +72,70 @@ impl IndexManager {
             return Ok(WallpaperIndex::default());
         }
 
-        let bytes = fs::read(&path).await.context("Failed to read index file")?;
+        let contents = fs::read_to_string(&path)
+            .await
+            .context("Failed to read index file")?;
 
-        let index: WallpaperIndex =
-            rmp_serde::from_slice(&bytes).context("Failed to deserialize index")?;
+        // 解析 JSON 为临时结构（wallpapers 是数组）
+        #[derive(Deserialize)]
+        struct SortedIndex {
+            version: u32,
+            last_updated: chrono::DateTime<chrono::Utc>,
+            wallpapers: Vec<LocalWallpaper>,
+        }
+
+        let sorted_index: SortedIndex = serde_json::from_str(&contents)
+            .context("Failed to deserialize index")?;
 
         // 版本检查
-        if index.version != WallpaperIndex::VERSION {
+        if sorted_index.version != WallpaperIndex::VERSION {
             log::warn!(
                 "Index version mismatch (expected {}, got {}), creating new index",
                 WallpaperIndex::VERSION,
-                index.version
+                sorted_index.version
             );
             return Ok(WallpaperIndex::default());
         }
 
-        Ok(index)
+        // 将数组转换为 HashMap（按 start_date 作为 key）
+        let mut wallpapers = std::collections::HashMap::new();
+        for wallpaper in sorted_index.wallpapers {
+            wallpapers.insert(wallpaper.start_date.clone(), wallpaper);
+        }
+
+        Ok(WallpaperIndex {
+            version: sorted_index.version,
+            last_updated: sorted_index.last_updated,
+            wallpapers,
+        })
     }
 
     /// 保存索引到磁盘
     ///
     /// 使用原子写入（临时文件 + 重命名）确保数据完整性。
+    /// JSON 文件中的壁纸按 end_date 降序排序（最新的在前），便于阅读和调试。
     pub async fn save_index(&self, index: &WallpaperIndex) -> Result<()> {
-        // 序列化为 MessagePack（比 JSON 更紧凑、更快）
-        let bytes = rmp_serde::to_vec(index).context("Failed to serialize index")?;
+        // 创建排序后的序列化结构
+        #[derive(Serialize)]
+        struct SortedIndex {
+            version: u32,
+            last_updated: chrono::DateTime<chrono::Utc>,
+            wallpapers: Vec<LocalWallpaper>,
+        }
+
+        // 将 HashMap 转换为 Vec，并按 end_date 降序排序（最新的在前）
+        let mut wallpapers: Vec<_> = index.wallpapers.values().cloned().collect();
+        wallpapers.sort_by(|a, b| b.end_date.cmp(&a.end_date));
+
+        let sorted_index = SortedIndex {
+            version: index.version,
+            last_updated: index.last_updated,
+            wallpapers,
+        };
+
+        // 序列化为 JSON（人类可读格式，便于调试）
+        let json = serde_json::to_string_pretty(&sorted_index)
+            .context("Failed to serialize index")?;
 
         // 确保目录存在
         fs::create_dir_all(&self.directory)
@@ -103,7 +144,7 @@ impl IndexManager {
 
         // 原子写入
         let temp_path = self.index_path().with_extension("tmp");
-        fs::write(&temp_path, &bytes)
+        fs::write(&temp_path, json)
             .await
             .context("Failed to write temporary index file")?;
 

@@ -402,9 +402,14 @@ async fn fetch_bing_images_with_retry(mkt: &str) -> Option<Vec<models::BingImage
     const MAX_RETRIES: u32 = 10;
     const MAX_BACKOFF_SECS: u64 = 60; // 最大延迟 60 秒
 
+    info!(target: "update", "开始获取 Bing 图片（市场代码: {}, 最大重试次数: {}）", mkt, MAX_RETRIES);
+
     for attempt in 0..MAX_RETRIES {
+        info!(target: "update", "Bing API 请求第 {} 次尝试（共 {} 次）", attempt + 1, MAX_RETRIES);
+        
         match bing_api::fetch_bing_images(8, 0, mkt).await {
             Ok(v) => {
+                info!(target: "update", "Bing API 请求成功（第 {} 次尝试）: 获取到 {} 张图片", attempt + 1, v.len());
                 images_opt = Some(v);
                 break;
             }
@@ -430,6 +435,16 @@ async fn fetch_bing_images_with_retry(mkt: &str) -> Option<Vec<models::BingImage
             }
         }
     }
+    
+    match &images_opt {
+        Some(images) => {
+            info!(target: "update", "Bing API 获取完成: 成功获取 {} 张图片", images.len());
+        }
+        None => {
+            error!(target: "update", "Bing API 获取失败: 所有重试均失败");
+        }
+    }
+    
     images_opt
 }
 
@@ -514,7 +529,8 @@ async fn run_update_cycle_internal(app: &AppHandle, force_update: bool) {
         s.clone()
     };
 
-    if !settings_snapshot.auto_update {
+    // 强制更新时忽略 auto_update 设置，手动刷新总是应该执行
+    if !force_update && !settings_snapshot.auto_update {
         // 未开启自动更新，重置标志后返回
         let mut flag = state.update_in_progress.lock().await;
         *flag = false;
@@ -527,17 +543,23 @@ async fn run_update_cycle_internal(app: &AppHandle, force_update: bool) {
     };
 
     // 优化：在开始时读取一次本地壁纸列表，后续复用
+    // 重要：只保留实际存在的文件，避免 index 和实际文件不同步
     let existing_wallpapers = storage::get_local_wallpapers(&dir)
         .await
         .unwrap_or_default();
     let existing_files: HashSet<String> = existing_wallpapers
         .iter()
-        .map(|w| {
-            PathBuf::from(&w.file_path)
-                .file_name()
-                .and_then(|n| n.to_str())
-                .unwrap_or("")
-                .to_string()
+        .filter_map(|w| {
+            let path = PathBuf::from(&w.file_path);
+            // 只保留实际存在的文件
+            if path.exists() {
+                path.file_name()
+                    .and_then(|n| n.to_str())
+                    .map(|s| s.to_string())
+            } else {
+                warn!(target: "update", "index 中的文件不存在，将被忽略: {}", w.file_path);
+                None
+            }
         })
         .collect();
 
@@ -662,6 +684,7 @@ async fn run_update_cycle_internal(app: &AppHandle, force_update: bool) {
     // 更新所有壁纸的元数据（包括已存在的图片）
     // 这确保了语言切换时，已存在图片的标题和描述也会更新
     // 优化：非首次启动时也统一在这里批量保存，避免重复写入
+    // 注意：保存所有 API 返回的图片的元数据，不管文件是否存在（首次启动时文件还未下载，支持重新下载）
     let metadata_list: Vec<LocalWallpaper> = images
         .iter()
         .map(|image| {
@@ -673,10 +696,11 @@ async fn run_update_cycle_internal(app: &AppHandle, force_update: bool) {
         .collect();
 
     if !metadata_list.is_empty() {
+        let count = metadata_list.len();
         if let Err(e) = storage::save_wallpapers_metadata(metadata_list, &dir).await {
             warn!(target: "update", "更新元数据失败: {e}");
         } else {
-            info!(target: "update", "已更新所有壁纸元数据");
+            info!(target: "update", "已更新所有壁纸元数据（{} 条）", count);
             // 优化：移除这里的通知，统一在最后发送一次
         }
     }

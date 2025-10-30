@@ -1,5 +1,6 @@
 use crate::models::{BingImageArchive, BingImageEntry};
 use anyhow::{Context, Result};
+use log::{info, warn, error};
 
 const BING_API_URL: &str = "https://www.bing.com/HPImageArchive.aspx";
 const BING_BASE_URL: &str = "https://www.bing.com";
@@ -18,17 +19,45 @@ pub async fn fetch_bing_images(count: u8, idx: u8, mkt: &str) -> Result<Vec<Bing
         BING_API_URL, count, idx, mkt
     );
 
-    let response = reqwest::get(&url)
-        .await
-        .context("Failed to fetch from Bing API")?;
+    info!(target: "bing_api", "开始请求 Bing API: count={}, idx={}, mkt={}, url={}", count, idx, mkt, url);
 
-    let archive: BingImageArchive = response
-        .json()
-        .await
-        .context("Failed to parse Bing API response")?;
+    let start_time = std::time::Instant::now();
+    
+    let response = match reqwest::get(&url).await {
+        Ok(resp) => {
+            let elapsed = start_time.elapsed();
+            let status = resp.status();
+            info!(target: "bing_api", "Bing API 响应收到: status={}, 耗时={:.2}ms", status, elapsed.as_secs_f64() * 1000.0);
+            
+            if !status.is_success() {
+                warn!(target: "bing_api", "Bing API 返回非成功状态: status={}", status);
+            }
+            
+            resp
+        }
+        Err(e) => {
+            let elapsed = start_time.elapsed();
+            error!(target: "bing_api", "Bing API 请求失败: url={}, 耗时={:.2}ms, 错误={}", url, elapsed.as_secs_f64() * 1000.0, e);
+            return Err(e).context("Failed to fetch from Bing API");
+        }
+    };
+
+    let parse_start = std::time::Instant::now();
+    let archive: BingImageArchive = match response.json().await {
+        Ok(archive) => {
+            let elapsed = parse_start.elapsed();
+            info!(target: "bing_api", "Bing API 响应解析成功: 耗时={:.2}ms", elapsed.as_secs_f64() * 1000.0);
+            archive
+        }
+        Err(e) => {
+            let elapsed = parse_start.elapsed();
+            error!(target: "bing_api", "Bing API 响应解析失败: 耗时={:.2}ms, 错误={}", elapsed.as_secs_f64() * 1000.0, e);
+            return Err(e).context("Failed to parse Bing API response");
+        }
+    };
 
     // 为每个图片条目添加完整的 URL
-    let images = archive
+    let images: Vec<BingImageEntry> = archive
         .images
         .into_iter()
         .map(|mut img| {
@@ -38,6 +67,9 @@ pub async fn fetch_bing_images(count: u8, idx: u8, mkt: &str) -> Result<Vec<Bing
             img
         })
         .collect();
+
+    let total_elapsed = start_time.elapsed();
+    info!(target: "bing_api", "Bing API 请求完成: 获取到 {} 张图片, 总耗时={:.2}ms", images.len(), total_elapsed.as_secs_f64() * 1000.0);
 
     Ok(images)
 }
