@@ -2,6 +2,12 @@ import { memo, useCallback, useState, useEffect, useRef } from "react";
 import { List, RowComponentProps } from "react-window";
 import { WallpaperCard } from "./WallpaperCard";
 import { LocalWallpaper } from "../types";
+import {
+  CARDS_PER_ROW,
+  calculateRowHeight,
+  getCardsPerRow,
+} from "../config/layout";
+import { CONTAINER, TEXT } from "../config/ui";
 
 interface WallpaperGridProps {
   wallpapers: LocalWallpaper[];
@@ -9,12 +15,8 @@ interface WallpaperGridProps {
   loading?: boolean;
 }
 
-// 行配置
-const ROW_HEIGHT = 404; // 每行高度（图片240px + 内容区域 + 2rem间距）
-const CARDS_PER_ROW_4K = 4; // 4K屏幕每行4张
-const CARDS_PER_ROW_DESKTOP = 3; // 桌面端每行3张
-const CARDS_PER_ROW_NARROW = 2; // 窄窗口每行2张
-const CARDS_PER_ROW_SINGLE = 1; // 极窄窗口每行1张
+// 使用配置计算行高
+const ROW_HEIGHT = calculateRowHeight();
 
 // 骨架屏组件
 const SkeletonCard = memo(() => (
@@ -42,8 +44,8 @@ export const WallpaperGrid = memo(function WallpaperGrid({
 }: WallpaperGridProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
-  const [containerHeight, setContainerHeight] = useState(600);
-  const [cardsPerRow, setCardsPerRow] = useState(CARDS_PER_ROW_DESKTOP);
+  const [containerHeight, setContainerHeight] = useState(CONTAINER.DEFAULT_HEIGHT);
+  const [cardsPerRow, setCardsPerRow] = useState<number>(CARDS_PER_ROW.DESKTOP);
 
   // 监听容器尺寸变化（使用 ResizeObserver 自动获取可用高度）
   useEffect(() => {
@@ -54,20 +56,8 @@ export const WallpaperGrid = memo(function WallpaperGrid({
         setContainerWidth(width);
         setContainerHeight(height);
 
-        // 根据宽度决定每行卡片数
-        if (width <= 750) {
-          // 极窄窗口（≤750px）显示1张，防止卡片重叠
-          setCardsPerRow(CARDS_PER_ROW_SINGLE);
-        } else if (width <= 1024) {
-          // 窄窗口（751-1024px）显示2张
-          setCardsPerRow(CARDS_PER_ROW_NARROW);
-        } else if (width >= 1920) {
-          // 4K及以上分辨率（≥1920px）显示4张
-          setCardsPerRow(CARDS_PER_ROW_4K);
-        } else {
-          // 桌面端默认（1025-1919px）显示3张
-          setCardsPerRow(CARDS_PER_ROW_DESKTOP);
-        }
+        // 使用配置函数根据宽度决定每行卡片数
+        setCardsPerRow(getCardsPerRow(width));
       }
     };
 
@@ -140,9 +130,9 @@ export const WallpaperGrid = memo(function WallpaperGrid({
     return (
       <div ref={containerRef} className="wallpaper-container">
         <div className="wallpaper-grid-empty">
-          <p>暂无壁纸</p>
+          <p>{TEXT.NO_WALLPAPERS}</p>
           <p className="wallpaper-grid-empty-hint">
-            点击上方刷新按钮获取最新壁纸
+            {TEXT.NO_WALLPAPERS_HINT}
           </p>
         </div>
       </div>

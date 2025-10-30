@@ -11,6 +11,9 @@ import { openPath } from "@tauri-apps/plugin-opener";
 import { listen } from "@tauri-apps/api/event";
 import { version } from "../package.json";
 import { createSafeUnlisten } from "./utils/eventListener";
+import { getStandardIconProps } from "./config/icons";
+import { INLINE_SPACING, TEXT, EVENTS } from "./config/ui";
+import { useDynamicTagline } from "./hooks/useDynamicTagline";
 
 function App() {
   const {
@@ -24,6 +27,8 @@ function App() {
     isUpToDate,
   } = useBingWallpapers();
 
+  const dynamicTagline = useDynamicTagline("time-based"); // 使用基于时间段的动态标语
+
   const [showSettings, setShowSettings] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
 
@@ -34,7 +39,7 @@ function App() {
 
     (async () => {
       try {
-        const unlistenFn = await listen("open-settings", () => {
+        const unlistenFn = await listen(EVENTS.OPEN_SETTINGS, () => {
           setShowSettings(true);
         });
         const safeUnlisten = createSafeUnlisten(unlistenFn);
@@ -62,7 +67,7 @@ function App() {
 
     (async () => {
       try {
-        const unlistenFn = await listen("open-about", () => {
+        const unlistenFn = await listen(EVENTS.OPEN_ABOUT, () => {
           setShowAbout(true);
         });
         const safeUnlisten = createSafeUnlisten(unlistenFn);
@@ -90,7 +95,7 @@ function App() {
       await setDesktopWallpaper(wallpaper.file_path);
     } catch (err) {
       console.error("Failed to set wallpaper:", err);
-      alert("设置壁纸失败: " + String(err));
+      alert(`${TEXT.WALLPAPER_ERROR}: ${String(err)}`);
     }
   };
 
@@ -112,7 +117,7 @@ function App() {
       await openPath(folderPath);
     } catch (err) {
       console.error("Failed to open folder:", err);
-      alert("打开文件夹失败: " + String(err));
+      alert(`${TEXT.FOLDER_ERROR}: ${String(err)}`);
     }
   }, []);
 
@@ -123,7 +128,7 @@ function App() {
 
     (async () => {
       try {
-        const unlistenFn = await listen("open-folder", () => {
+        const unlistenFn = await listen(EVENTS.OPEN_FOLDER, () => {
           handleOpenFolder();
         });
         const safeUnlisten = createSafeUnlisten(unlistenFn);
@@ -155,13 +160,13 @@ function App() {
         }}
       >
         <div
-          style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}
+          style={{ display: "flex", flexDirection: "column", gap: INLINE_SPACING.TITLE_GAP }}
         >
           <h1 style={{ margin: 0 }} className="app-title">
-            <span className="app-title-main">Bing Wallpaper</span>
-            <span className="app-title-accent">Now</span>
+            <span className="app-title-main">{TEXT.APP_TITLE}</span>
+            <span className="app-title-accent">{TEXT.APP_SUBTITLE}</span>
           </h1>
-          <p className="app-tagline">世界之美 · 每日相遇</p>
+          <p className="app-tagline">{dynamicTagline}</p>
         </div>
         <div
           className="header-actions"
@@ -170,7 +175,7 @@ function App() {
             alignItems: "center",
             justifyContent: "flex-end",
             flex: 1,
-            marginLeft: "16px",
+            marginLeft: INLINE_SPACING.HEADER_MARGIN_LEFT,
           }}
         >
           {isUpToDate && (
@@ -182,12 +187,9 @@ function App() {
           <button onClick={handleRefresh} className="btn btn-icon" title="更新">
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
+              {...getStandardIconProps()}
               fill="none"
               stroke="currentColor"
-              strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
             >
@@ -201,12 +203,9 @@ function App() {
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
+              {...getStandardIconProps()}
               fill="none"
               stroke="currentColor"
-              strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
             >
@@ -221,12 +220,9 @@ function App() {
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
+              {...getStandardIconProps()}
               fill="none"
               stroke="currentColor"
-              strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
             >

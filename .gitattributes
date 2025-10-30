@@ -1,0 +1,81 @@
+# Git 行尾符配置
+# 统一使用 LF（Unix 风格），确保跨平台一致性
+
+# 默认所有文本文件使用 LF
+* text=auto eol=lf
+
+# 源代码文件
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.jsx text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.xml text eol=lf
+*.svg text eol=lf
+
+# 配置文件
+*.toml text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.ini text eol=lf
+*.conf text eol=lf
+*.config text eol=lf
+
+# Shell 脚本
+*.sh text eol=lf
+*.bash text eol=lf
+
+# Makefile
+Makefile text eol=lf
+makefile text eol=lf
+
+# Git 相关文件
+.gitattributes text eol=lf
+.gitignore text eol=lf
+.gitconfig text eol=lf
+
+# Rust 源代码
+*.rs text eol=lf
+
+# 文档文件
+*.txt text eol=lf
+*.adoc text eol=lf
+*.rst text eol=lf
+
+# 配置文件目录
+.gitattributes text eol=lf
+.editorconfig text eol=lf
+
+# 二进制文件（不转换）
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.icns binary
+*.svg binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.otf binary
+*.zip binary
+*.tar binary
+*.gz binary
+*.7z binary
+*.exe binary
+*.dll binary
+*.so binary
+*.dylib binary
+*.pdb binary
+
+# 锁文件（保持原样）
+*.lock text eol=lf
+pnpm-lock.yaml text eol=lf
+package-lock.json text eol=lf
+yarn.lock text eol=lf
+Cargo.lock text eol=lf
+
