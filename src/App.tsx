@@ -12,8 +12,9 @@ import { listen } from "@tauri-apps/api/event";
 import { version } from "../package.json";
 import { createSafeUnlisten } from "./utils/eventListener";
 import { getStandardIconProps } from "./config/icons";
-import { INLINE_SPACING, TEXT, EVENTS } from "./config/ui";
+import { INLINE_SPACING, EVENTS } from "./config/ui";
 import { useDynamicTagline } from "./hooks/useDynamicTagline";
+import { useI18n } from "./i18n/I18nContext";
 
 function App() {
   const {
@@ -27,7 +28,8 @@ function App() {
     isUpToDate,
   } = useBingWallpapers();
 
-  const dynamicTagline = useDynamicTagline("time-based"); // 使用基于时间段的动态标语
+  const { t, actualLanguage } = useI18n();
+  const dynamicTagline = useDynamicTagline("time-based", 60000, actualLanguage); // 使用基于时间段的动态标语，根据当前语言显示
 
   const [showSettings, setShowSettings] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
@@ -95,7 +97,7 @@ function App() {
       await setDesktopWallpaper(wallpaper.file_path);
     } catch (err) {
       console.error("Failed to set wallpaper:", err);
-      alert(`${TEXT.WALLPAPER_ERROR}: ${String(err)}`);
+      alert(`${t("wallpaperError")}: ${String(err)}`);
     }
   };
 
@@ -109,6 +111,17 @@ function App() {
     }
   };
 
+  // 语言切换时的刷新（强制更新，即使已是最新也重新获取）
+  const handleLanguageChangeRefresh = async () => {
+    // 立即刷新列表，以便显示新语言的标题和描述
+    await fetchLocalWallpapers(true);
+    try {
+      await forceUpdate(true); // 强制更新，跳过"已是最新"的检查
+    } catch (err) {
+      console.warn("Force update failed:", err);
+    }
+  };
+
   // 打开下载目录
   const handleOpenFolder = useCallback(async () => {
     try {
@@ -117,7 +130,7 @@ function App() {
       await openPath(folderPath);
     } catch (err) {
       console.error("Failed to open folder:", err);
-      alert(`${TEXT.FOLDER_ERROR}: ${String(err)}`);
+      alert(`${t("folderError")}: ${String(err)}`);
     }
   }, []);
 
@@ -163,8 +176,8 @@ function App() {
           style={{ display: "flex", flexDirection: "column", gap: INLINE_SPACING.TITLE_GAP }}
         >
           <h1 style={{ margin: 0 }} className="app-title">
-            <span className="app-title-main">{TEXT.APP_TITLE}</span>
-            <span className="app-title-accent">{TEXT.APP_SUBTITLE}</span>
+            <span className="app-title-main">{t("appTitle")}</span>
+            <span className="app-title-accent">{t("appSubtitle")}</span>
           </h1>
           <p className="app-tagline">{dynamicTagline}</p>
         </div>
@@ -179,12 +192,12 @@ function App() {
           }}
         >
           {isUpToDate && (
-            <span className="status-badge status-success">已是最新</span>
+            <span className="status-badge status-success">{t("isUpToDate")}</span>
           )}
           {lastUpdateTime && (
-            <div className="last-update">上次更新: {lastUpdateTime}</div>
+            <div className="last-update">{t("lastUpdate")}: {lastUpdateTime}</div>
           )}
-          <button onClick={handleRefresh} className="btn btn-icon" title="更新">
+          <button onClick={handleRefresh} className="btn btn-icon" title={t("refresh")}>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               {...getStandardIconProps()}
@@ -199,7 +212,7 @@ function App() {
           <button
             onClick={handleOpenFolder}
             className="btn btn-icon"
-            title="打开下载目录"
+            title={t("openFolder")}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -216,7 +229,7 @@ function App() {
           <button
             onClick={() => setShowSettings(true)}
             className="btn btn-icon"
-            title="设置"
+            title={t("settings")}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -243,7 +256,11 @@ function App() {
       </main>
 
       {showSettings && (
-        <Settings onClose={() => setShowSettings(false)} version={version} />
+        <Settings
+          onClose={() => setShowSettings(false)}
+          version={version}
+          onLanguageChange={handleLanguageChangeRefresh}
+        />
       )}
 
       {showAbout && (

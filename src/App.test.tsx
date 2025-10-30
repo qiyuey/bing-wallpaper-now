@@ -205,8 +205,8 @@ describe("App", () => {
     const todayWallpaper = [
       {
         id: todayStr,
-        start_date: todayStr,
-        end_date: todayStr,
+        start_date: "20240101", // Bing 的 start_date 是昨天
+        end_date: todayStr, // end_date 才是今天
         title: "Today's Wallpaper",
         copyright: "Test",
         copyright_link: "https://example.com/link",

@@ -7,7 +7,8 @@ import {
   calculateRowHeight,
   getCardsPerRow,
 } from "../config/layout";
-import { CONTAINER, TEXT } from "../config/ui";
+import { CONTAINER } from "../config/ui";
+import { useI18n } from "../i18n/I18nContext";
 
 interface WallpaperGridProps {
   wallpapers: LocalWallpaper[];
@@ -42,6 +43,7 @@ export const WallpaperGrid = memo(function WallpaperGrid({
   onSetWallpaper,
   loading = false,
 }: WallpaperGridProps) {
+  const { t } = useI18n();
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
   const [containerHeight, setContainerHeight] = useState(CONTAINER.DEFAULT_HEIGHT);
@@ -130,9 +132,9 @@ export const WallpaperGrid = memo(function WallpaperGrid({
     return (
       <div ref={containerRef} className="wallpaper-container">
         <div className="wallpaper-grid-empty">
-          <p>{TEXT.NO_WALLPAPERS}</p>
+          <p>{t("noWallpapers")}</p>
           <p className="wallpaper-grid-empty-hint">
-            {TEXT.NO_WALLPAPERS_HINT}
+            {t("noWallpapersHint")}
           </p>
         </div>
       </div>

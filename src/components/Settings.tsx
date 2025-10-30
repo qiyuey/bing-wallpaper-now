@@ -2,17 +2,20 @@ import { useState, useEffect } from "react";
 import { AppSettings } from "../types";
 import { useSettings } from "../hooks/useSettings";
 import { useTheme, Theme } from "../contexts/ThemeContext";
+import { useI18n } from "../i18n/I18nContext";
 import { open } from "@tauri-apps/plugin-dialog";
 
 interface SettingsProps {
   onClose: () => void;
   version?: string;
+  onLanguageChange?: () => void;
 }
 
-export function Settings({ onClose, version }: SettingsProps) {
+export function Settings({ onClose, version, onLanguageChange }: SettingsProps) {
   const { settings, loading, updateSettings, getDefaultDirectory } =
     useSettings();
   const { applyThemeToUI } = useTheme();
+  const { t, setLanguage } = useI18n();
 
   const [defaultDir, setDefaultDir] = useState<string>("");
 
@@ -36,9 +39,17 @@ export function Settings({ onClose, version }: SettingsProps) {
       if (field === "theme" && typeof value === "string") {
         applyThemeToUI(value as Theme);
       }
+      // 如果是语言变化，立即更新 i18n context
+      if (field === "language" && typeof value === "string") {
+        setLanguage(value as "auto" | "zh-CN" | "en-US");
+        // 语言变化时，触发重新获取壁纸数据（以获取新语言的标题和描述）
+        if (onLanguageChange) {
+          onLanguageChange();
+        }
+      }
     } catch (err) {
       console.error("Update settings error:", err);
-      alert("保存设置失败: " + err);
+      alert(t("settingsSaveError") + ": " + err);
     }
   };
 
@@ -50,7 +61,7 @@ export function Settings({ onClose, version }: SettingsProps) {
         directory: true,
         multiple: false,
         defaultPath: settings.save_directory || defaultDir,
-        title: "选择壁纸保存目录",
+        title: t("selectDirectory"),
       });
 
       if (selected && typeof selected === "string") {
@@ -58,12 +69,12 @@ export function Settings({ onClose, version }: SettingsProps) {
       }
     } catch (err) {
       console.error("Failed to select folder:", err);
-      alert("选择文件夹失败: " + String(err));
+      alert(t("settingsFolderSelectError") + ": " + String(err));
     }
   };
 
   if (loading && !settings) {
-    return <div className="settings-loading">加载设置中...</div>;
+    return <div className="settings-loading">{t("settingsLoading")}</div>;
   }
 
   return (
@@ -71,7 +82,7 @@ export function Settings({ onClose, version }: SettingsProps) {
       <div className="settings-modal">
         <div className="settings-header">
           <div className="settings-header-left">
-            <h2>设置</h2>
+            <h2>{t("settingsTitle")}</h2>
             {version && <span className="settings-version">v{version}</span>}
           </div>
           <button onClick={onClose} className="btn-close">
@@ -89,7 +100,7 @@ export function Settings({ onClose, version }: SettingsProps) {
                   handleChange("launch_at_startup", e.target.checked)
                 }
               />
-              <span>开机自启动</span>
+              <span>{t("launchAtStartup")}</span>
             </label>
           </div>
 
@@ -100,12 +111,12 @@ export function Settings({ onClose, version }: SettingsProps) {
                 checked={settings?.auto_update ?? true}
                 onChange={(e) => handleChange("auto_update", e.target.checked)}
               />
-              <span>自动更新壁纸</span>
+              <span>{t("autoUpdate")}</span>
             </label>
           </div>
 
           <div className="settings-section">
-            <label className="settings-label">主题:</label>
+            <label className="settings-label">{t("theme")}:</label>
             <div className="radio-group">
               <label className="radio-option">
                 <input
@@ -117,7 +128,7 @@ export function Settings({ onClose, version }: SettingsProps) {
                     handleChange("theme", e.target.value as Theme)
                   }
                 />
-                <span>跟随系统</span>
+                <span>{t("themeSystem")}</span>
               </label>
               <label className="radio-option">
                 <input
@@ -129,7 +140,7 @@ export function Settings({ onClose, version }: SettingsProps) {
                     handleChange("theme", e.target.value as Theme)
                   }
                 />
-                <span>浅色模式</span>
+                <span>{t("themeLight")}</span>
               </label>
               <label className="radio-option">
                 <input
@@ -141,14 +152,50 @@ export function Settings({ onClose, version }: SettingsProps) {
                     handleChange("theme", e.target.value as Theme)
                   }
                 />
-                <span>深色模式</span>
+                <span>{t("themeDark")}</span>
+              </label>
+            </div>
+          </div>
+
+          <div className="settings-section">
+            <label className="settings-label">{t("language")}:</label>
+            <div className="radio-group">
+              <label className="radio-option">
+                <input
+                  type="radio"
+                  name="language"
+                  value="auto"
+                  checked={(settings?.language ?? "auto") === "auto"}
+                  onChange={(e) => handleChange("language", e.target.value)}
+                />
+                <span>{t("languageAuto")}</span>
+              </label>
+              <label className="radio-option">
+                <input
+                  type="radio"
+                  name="language"
+                  value="zh-CN"
+                  checked={(settings?.language ?? "auto") === "zh-CN"}
+                  onChange={(e) => handleChange("language", e.target.value)}
+                />
+                <span>{t("languageZhCN")}</span>
+              </label>
+              <label className="radio-option">
+                <input
+                  type="radio"
+                  name="language"
+                  value="en-US"
+                  checked={(settings?.language ?? "auto") === "en-US"}
+                  onChange={(e) => handleChange("language", e.target.value)}
+                />
+                <span>{t("languageEnUS")}</span>
               </label>
             </div>
           </div>
 
           <div className="settings-section">
             <label className="settings-label">
-              保留壁纸数量:
+              {t("keepCount")}:
               <input
                 type="number"
                 min="8"
@@ -163,27 +210,28 @@ export function Settings({ onClose, version }: SettingsProps) {
                 className="settings-input"
               />
             </label>
+            <div className="settings-hint">{t("keepCountHint")}</div>
           </div>
 
           <div className="settings-section">
-            <div className="settings-label">保存目录:</div>
+            <div className="settings-label">{t("saveDirectory")}:</div>
             <div className="settings-dir-row">
               <div
                 className="settings-dir-info"
                 title={
                   settings?.save_directory ??
-                  (defaultDir ? defaultDir : "加载中...")
+                  (defaultDir ? defaultDir : t("loading"))
                 }
               >
                 {settings?.save_directory ??
-                  (defaultDir ? defaultDir : "加载中...")}
+                  (defaultDir ? defaultDir : t("loading"))}
               </div>
               <button
                 onClick={handleSelectFolder}
                 className="btn btn-secondary btn-small"
                 type="button"
               >
-                选择文件夹
+                {t("selectFolder")}
               </button>
             </div>
             {settings?.save_directory &&
@@ -193,7 +241,7 @@ export function Settings({ onClose, version }: SettingsProps) {
                   className="btn btn-link btn-small"
                   type="button"
                 >
-                  恢复默认目录
+                  {t("restoreDefault")}
                 </button>
               )}
           </div>

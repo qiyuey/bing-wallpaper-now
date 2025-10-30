@@ -27,6 +27,7 @@ describe("Settings", () => {
     keep_image_count: 30,
     launch_at_startup: false,
     theme: "system" as const,
+    language: "auto" as const,
   };
 
   beforeEach(() => {

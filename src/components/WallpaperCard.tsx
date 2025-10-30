@@ -3,6 +3,7 @@ import { LocalWallpaper } from "../types";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { useI18n } from "../i18n/I18nContext";
 
 interface WallpaperCardProps {
   wallpaper: LocalWallpaper;
@@ -17,6 +18,7 @@ export const WallpaperCard = memo(function WallpaperCard({
   wallpaper,
   onSetWallpaper,
 }: WallpaperCardProps) {
+  const { t } = useI18n();
   // 检查图片是否已加载过
   const isImageCached = loadedImagesCache.has(wallpaper.file_path);
 
@@ -121,14 +123,14 @@ export const WallpaperCard = memo(function WallpaperCard({
         className="wallpaper-image-container"
         onClick={handleImageClick}
         style={{ cursor: "pointer" }}
-        title="点击查看详情"
+        title={t("clickToViewDetails")}
       >
         {imageError ? (
           // 图片加载失败 - 仅显示错误状态，重试按钮在底部
           <div className="wallpaper-image-placeholder">
-            <p className="placeholder-error-text">加载失败</p>
+            <p className="placeholder-error-text">{t("imageLoadError")}</p>
             <p className="placeholder-hint-text">
-              图片可能还在下载中，请使用下方按钮重试
+              {t("imageLoadErrorHint")}
             </p>
           </div>
         ) : (
@@ -136,7 +138,7 @@ export const WallpaperCard = memo(function WallpaperCard({
             {imageLoading && (
               <div className="wallpaper-image-placeholder">
                 <div className="spinner"></div>
-                <p className="placeholder-loading-text">加载中...</p>
+                <p className="placeholder-loading-text">{t("loading")}</p>
               </div>
             )}
             <img
@@ -162,13 +164,13 @@ export const WallpaperCard = memo(function WallpaperCard({
           disabled={imageLoading}
           title={
             imageLoading
-              ? "图片加载中，请稍候..."
+              ? t("loading")
               : imageError
-                ? "点击重新加载图片"
-                : "设置为桌面壁纸"
+                ? t("retry")
+                : t("setWallpaper")
           }
         >
-          {imageLoading ? "加载中..." : imageError ? "重新加载" : "设置壁纸"}
+          {imageLoading ? t("loading") : imageError ? t("retry") : t("setWallpaper")}
         </button>
       </div>
     </div>

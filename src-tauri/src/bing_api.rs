@@ -9,12 +9,13 @@ const BING_BASE_URL: &str = "https://www.bing.com";
 /// # Arguments
 /// * `count` - 要获取的图片数量 (1-8)
 /// * `idx` - 起始索引,0表示今天
-pub async fn fetch_bing_images(count: u8, idx: u8) -> Result<Vec<BingImageEntry>> {
+/// * `mkt` - 市场/语言代码，例如 "zh-CN" 或 "en-US"
+pub async fn fetch_bing_images(count: u8, idx: u8, mkt: &str) -> Result<Vec<BingImageEntry>> {
     let count = count.min(8); // Bing API 限制最多8张
 
     let url = format!(
-        "{}?format=js&n={}&idx={}&mkt=zh-CN",
-        BING_API_URL, count, idx
+        "{}?format=js&n={}&idx={}&mkt={}",
+        BING_API_URL, count, idx, mkt
     );
 
     let response = reqwest::get(&url)
@@ -63,7 +64,7 @@ mod tests {
             return;
         }
 
-        let images = fetch_bing_images(1, 0).await;
+        let images = fetch_bing_images(1, 0, "zh-CN").await;
         assert!(images.is_ok(), "Bing fetch failed");
         let images = images.unwrap();
         assert!(!images.is_empty(), "No images returned");
@@ -143,7 +144,7 @@ mod tests {
     #[test]
     fn test_bing_api_url_format() {
         // Verify the expected URL format
-        let expected_format = format!("{}?format=js&n={}&idx={}&mkt=zh-CN", BING_API_URL, 3, 0);
+        let expected_format = format!("{}?format=js&n={}&idx={}&mkt={}", BING_API_URL, 3, 0, "zh-CN");
         assert!(expected_format.contains("format=js"));
         assert!(expected_format.contains("n=3"));
         assert!(expected_format.contains("idx=0"));

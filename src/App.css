@@ -717,7 +717,7 @@ body {
   border: 1px solid var(--border-primary);
   border-radius: 24px;
   width: 90%;
-  max-width: 520px;
+  max-width: 580px;
   max-height: 80vh;
   overflow: hidden;
   display: flex;
@@ -906,6 +906,9 @@ body {
   transition: all 0.2s ease;
   backdrop-filter: var(--blur-light);
   -webkit-backdrop-filter: var(--blur-light);
+  min-width: 0; /* 允许 flex 缩小 */
+  /* 文本居中，允许在极窄情况下换行 */
+  text-align: center;
 }
 
 .radio-option:hover {

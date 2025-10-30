@@ -13,6 +13,7 @@ describe("useSettings", () => {
     keep_image_count: 30,
     launch_at_startup: false,
     theme: "system",
+    language: "auto",
   };
 
   beforeEach(() => {
@@ -106,6 +107,7 @@ describe("useSettings", () => {
         keep_image_count: updatedSettings.keep_image_count,
         launch_at_startup: updatedSettings.launch_at_startup,
         theme: updatedSettings.theme,
+        language: updatedSettings.language,
       },
     });
 

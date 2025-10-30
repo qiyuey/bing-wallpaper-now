@@ -39,6 +39,7 @@ log = "0.4"
 futures = "0.3"
 tauri-plugin-single-instance = "2"
 image = { version = "0.25", features = ["png"] }
+num_cpus = "1"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6.3"

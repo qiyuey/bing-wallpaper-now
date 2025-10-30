@@ -101,11 +101,18 @@ pub struct AppSettings {
     pub launch_at_startup: bool,
     #[serde(default = "default_theme")]
     pub theme: String,
+    #[serde(default = "default_language")]
+    pub language: String,
 }
 
 /// 默认主题设置
 fn default_theme() -> String {
     "system".to_string()
+}
+
+/// 默认语言设置
+fn default_language() -> String {
+    "auto".to_string()
 }
 
 /// Migration helper: in future if more legacy fields are removed or value normalization is needed,
@@ -119,6 +126,7 @@ impl Default for AppSettings {
             keep_image_count: 10000,
             launch_at_startup: false,
             theme: default_theme(),
+            language: default_language(),
         }
     }
 }

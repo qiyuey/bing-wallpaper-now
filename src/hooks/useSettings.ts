@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { AppSettings } from "../types";
 
@@ -13,7 +13,7 @@ export function useSettings() {
   /**
    * 获取设置
    */
-  const fetchSettings = async () => {
+  const fetchSettings = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -24,7 +24,7 @@ export function useSettings() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   /**
    * 更新设置
@@ -41,6 +41,7 @@ export function useSettings() {
           keep_image_count: newSettings.keep_image_count,
           launch_at_startup: newSettings.launch_at_startup,
           theme: newSettings.theme,
+          language: newSettings.language || "auto",
         },
       });
       setSettings(newSettings);
@@ -68,7 +69,7 @@ export function useSettings() {
   // 初始加载
   useEffect(() => {
     fetchSettings();
-  }, []);
+  }, [fetchSettings]);
 
   return {
     settings,

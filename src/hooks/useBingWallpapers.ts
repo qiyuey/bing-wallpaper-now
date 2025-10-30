@@ -84,21 +84,24 @@ export function useBingWallpapers() {
   /**
    * 手动触发后台更新一次（force_update 已在后端执行拉取、下载、清理、自动应用）
    * 成功后更新本地列表与最后更新时间
+   * @param force 是否强制更新，即使已是最新也重新获取（用于语言切换等场景）
    */
-  const forceUpdate = useCallback(async () => {
+  const forceUpdate = useCallback(async (force: boolean = false) => {
     setLoading(true);
     setError(null);
     try {
-      // 计算今日日期字符串（与 start_date 格式一致：YYYYMMDD）
+      // 计算今日日期字符串（与 end_date 格式一致：YYYYMMDD）
+      // 注意：Bing 的壁纸 start_date 是昨天，end_date 才是今天
       const now = new Date();
       const todayStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(
         now.getDate(),
       ).padStart(2, "0")}`;
 
-      // 若已是最新（列表第一项日期与今日匹配），不再触发后端 force_update，直接更新状态
+      // 若已是最新且不是强制更新，不再触发后端 force_update，直接更新状态
       if (
+        !force &&
         localWallpapers.length > 0 &&
-        localWallpapers[0].start_date === todayStr
+        localWallpapers[0].end_date === todayStr
       ) {
         await pollStatus();
         setLoading(false);
@@ -172,28 +175,74 @@ export function useBingWallpapers() {
     };
   }, []); // Empty deps - listener created once, never recreated
 
-  // 轮询后台状态（降低频率到每 10 秒，减少性能开销）
+  // 优化：智能轮询后台状态
+  // 使用页面可见性 API 和焦点检测，在应用获得焦点或变为可见时才轮询
   useEffect(() => {
     let mounted = true;
-    const interval = setInterval(() => {
-      if (mounted) {
+    let intervalId: NodeJS.Timeout | null = null;
+    let lastPollTime = Date.now();
+
+    const pollWhenActive = () => {
+      if (!mounted) return;
+      
+      const now = Date.now();
+      const timeSinceLastPoll = now - lastPollTime;
+      
+      // 如果距离上次轮询超过 10 秒，立即轮询一次
+      if (timeSinceLastPoll >= 10000) {
         pollStatus();
+        lastPollTime = now;
       }
-    }, 10000);
+    };
+
+    const handleVisibilityChange = () => {
+      if (!mounted) return;
+      
+      // 当页面变为可见时，立即轮询一次
+      if (document.visibilityState === "visible") {
+        pollWhenActive();
+      }
+    };
+
+    const handleFocus = () => {
+      if (!mounted) return;
+      pollWhenActive();
+    };
+
+    // 监听页面可见性变化
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", handleFocus);
+
+    // 定期轮询（降低频率到每 30 秒，减少性能开销）
+    // 但通过可见性和焦点检测，实际轮询频率会更高
+    intervalId = setInterval(() => {
+      if (mounted && document.visibilityState === "visible") {
+        pollWhenActive();
+      }
+    }, 30000); // 30 秒间隔
+
+    // 初始轮询一次
+    pollStatus();
+
     return () => {
       mounted = false;
-      clearInterval(interval);
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", handleFocus);
     };
   }, [pollStatus]);
 
   // 计算是否已是最新（衍生状态，避免重复手动更新）
+  // 注意：Bing 的壁纸 start_date 是昨天，end_date 才是今天
   const isUpToDate = useMemo(() => {
     if (!localWallpapers.length) return false;
     const now = new Date();
     const todayStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(
       now.getDate(),
     ).padStart(2, "0")}`;
-    return localWallpapers[0].start_date === todayStr;
+    return localWallpapers[0].end_date === todayStr;
   }, [localWallpapers]);
 
   return {

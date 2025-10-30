@@ -130,6 +130,48 @@ pub fn update_last_check_time(app: &AppHandle, state: &mut AppRuntimeState) -> R
     Ok(())
 }
 
+/// 检查是否可以跳过 API 请求（基于缓存策略）
+/// 如果距离上次 API 请求不足 5 分钟，且本地有今日壁纸，可以跳过 API 请求
+pub async fn can_skip_api_request(
+    state: &AppRuntimeState,
+    wallpaper_dir: &Path,
+) -> bool {
+    // 检查是否有最后检查时间
+    let Some(ref last_check_str) = state.last_check_time else {
+        return false;
+    };
+
+    // 解析最后检查时间
+    let last_check = match chrono::DateTime::parse_from_rfc3339(last_check_str) {
+        Ok(dt) => dt.with_timezone(&Local),
+        Err(_) => return false,
+    };
+
+    // 检查距离上次检查是否不足 5 分钟
+    let now = Local::now();
+    let duration_since_check = now.signed_duration_since(last_check);
+    const CACHE_DURATION_MINUTES: i64 = 5;
+    
+    // 检查时间是否回退（系统时间可能被调整）
+    if duration_since_check.num_minutes() < 0 {
+        log::warn!(target: "runtime", 
+            "检测到系统时间回退，重置缓存检查（last_check: {}, now: {}）", 
+            last_check, now);
+        return false;
+    }
+    
+    if duration_since_check.num_minutes() < CACHE_DURATION_MINUTES {
+        // 如果距离上次检查不足 5 分钟，检查本地是否有今日壁纸
+        if has_today_wallpaper(wallpaper_dir).await {
+            log::info!(target: "runtime", 
+                "距离上次 API 请求不足 5 分钟且本地有今日壁纸，跳过 API 请求（缓存策略）");
+            return true;
+        }
+    }
+
+    false
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

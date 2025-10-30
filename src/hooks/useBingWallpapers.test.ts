@@ -216,11 +216,14 @@ describe("useBingWallpapers", () => {
 
     const todayWallpaper = [
       {
-        start_date: todayStr,
+        id: "test-id",
+        start_date: "20240101", // Bing 的 start_date 是昨天
+        end_date: todayStr, // end_date 才是今天
         title: "Today's Wallpaper",
         copyright: "Test",
+        copyright_link: "https://example.com/link",
         file_path: "/path/to/today.jpg",
-        url: "https://example.com/today.jpg",
+        download_time: new Date().toISOString(),
       },
     ];
 
@@ -253,11 +256,14 @@ describe("useBingWallpapers", () => {
 
     const todayWallpaper = [
       {
-        start_date: todayStr,
+        id: "test-id",
+        start_date: "20240101", // Bing 的 start_date 是昨天
+        end_date: todayStr, // end_date 才是今天
         title: "Today's Wallpaper",
         copyright: "Test",
+        copyright_link: "https://example.com/link",
         file_path: "/path/to/today.jpg",
-        url: "https://example.com/today.jpg",
+        download_time: new Date().toISOString(),
       },
     ];
 

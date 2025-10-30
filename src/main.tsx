@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { I18nProvider } from "./i18n/I18nContext";
 import "./theme.css";
 
 // Suppress Tauri listener errors caused by React StrictMode double-mounting
@@ -19,7 +20,9 @@ window.addEventListener("unhandledrejection", (event) => {
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <ThemeProvider>
-      <App />
+      <I18nProvider>
+        <App />
+      </I18nProvider>
     </ThemeProvider>
   </React.StrictMode>,
 );
