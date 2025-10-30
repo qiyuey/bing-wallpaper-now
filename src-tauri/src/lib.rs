@@ -880,26 +880,8 @@ fn setup_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
                 let _ = app.emit("open-about", ());
             }
             "quit" => {
-                // Properly cleanup before exit to avoid Windows class registration errors
-                // First, abort any running background tasks
-                if let Some(state) = app.try_state::<AppState>() {
-                    tauri::async_runtime::block_on(async {
-                        let handle = state.auto_update_handle.lock().await;
-                        handle.abort();
-                    });
-                }
-
-                // Destroy all windows to ensure WebView2 cleanup
-                if let Some(window) = app.get_webview_window("main") {
-                    // Use destroy() instead of close() for complete cleanup
-                    let _ = window.destroy();
-                }
-
-                // Small delay to ensure WebView2 cleanup completes
-                std::thread::sleep(std::time::Duration::from_millis(150));
-
-                // Use process::exit for immediate termination
-                std::process::exit(0);
+                // 优雅退出应用
+                app.exit(0);
             }
             _ => {}
         })
