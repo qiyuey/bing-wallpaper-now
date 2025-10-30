@@ -277,14 +277,19 @@ jobs:
         run: |
           export VERSION="${{ github.ref_name }}"
           export REPOSITORY="${{ github.repository }}"
-          export CHANGELOG="${{ needs.prepare.outputs.changelog }}"
           export PREVIOUS_TAG="${{ needs.prepare.outputs.previous_tag }}"
           if [ -n "$PREVIOUS_TAG" ]; then
             export COMPARE_LINK="[${PREVIOUS_TAG}...${VERSION}](https://github.com/${REPOSITORY}/compare/${PREVIOUS_TAG}...${VERSION})"
           else
             export COMPARE_LINK="[查看提交历史](https://github.com/${REPOSITORY}/commits/${VERSION})"
           fi
+          # Write changelog to temp file first to handle multiline content safely
+          # Use printf to preserve newlines and special characters (without adding extra newline)
+          printf '%s' "${{ needs.prepare.outputs.changelog }}" > changelog_temp.txt
+          # Export CHANGELOG by reading from file (handles multiline safely)
+          export CHANGELOG=$(cat changelog_temp.txt)
           envsubst < .github/release_body_template.md > release_body.md
+          rm -f changelog_temp.txt
           echo "Generated release_body.md preview (first 60 lines):"
           sed -n '1,60p' release_body.md
 
