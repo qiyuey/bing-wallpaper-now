@@ -111,10 +111,22 @@ pub async fn save_wallpapers_metadata(
 /// 删除旧的壁纸，只保留指定数量（使用索引）
 ///
 /// 自动删除图片文件、旧 JSON 元数据文件，并更新索引。
+/// 如果 keep_count 为 0，表示不限制数量，但至少保留 8 张。
 pub async fn cleanup_old_wallpapers(directory: &Path, keep_count: usize) -> Result<usize> {
     let manager = get_index_manager(directory);
     let mut wallpapers = manager.get_all_wallpapers().await?;
 
+    // 0 表示不限制数量，但至少保留 8 张
+    if keep_count == 0 {
+        // 如果总数小于等于 8，不删除任何壁纸
+        if wallpapers.len() <= 8 {
+            return Ok(0);
+        }
+        // 否则保留全部（不限制），不删除任何壁纸
+        return Ok(0);
+    }
+
+    // 非 0 情况：如果总数小于等于保留数量，不删除
     if wallpapers.len() <= keep_count {
         return Ok(0);
     }

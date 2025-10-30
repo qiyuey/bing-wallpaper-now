@@ -57,20 +57,10 @@ export function About({ onClose, version }: AboutProps) {
               style={{
                 fontSize: "0.9375rem",
                 lineHeight: 1.6,
-                marginBottom: "0.75rem",
               }}
               className="about-description"
             >
               {t("aboutDescription")}
-            </p>
-            <p
-              style={{
-                fontSize: "0.875rem",
-                lineHeight: 1.6,
-              }}
-              className="about-tech-stack"
-            >
-              {t("aboutTechStack")}
             </p>
           </div>
 

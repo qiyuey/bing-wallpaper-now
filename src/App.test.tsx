@@ -196,46 +196,6 @@ describe("App", () => {
     });
   });
 
-  it("should display 已是最新 badge when wallpapers are up to date", async () => {
-    const today = new Date();
-    const todayStr = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, "0")}${String(today.getDate()).padStart(2, "0")}`;
-
-    const todayWallpaper = [
-      {
-        id: todayStr,
-        start_date: "20240101", // Bing 的 start_date 是昨天
-        end_date: todayStr, // end_date 才是今天
-        title: "Today's Wallpaper",
-        copyright: "Test",
-        copyright_link: "https://example.com/link",
-        file_path: "/path/to/today.jpg",
-        download_time: new Date().toISOString(),
-      },
-    ];
-
-    vi.mocked(invoke).mockImplementation((cmd: string) => {
-      if (cmd === "get_local_wallpapers") {
-        return Promise.resolve(todayWallpaper);
-      }
-      if (cmd === "get_settings") {
-        return Promise.resolve({
-          auto_update: true,
-          save_directory: null,
-          keep_image_count: 8,
-          launch_at_startup: false,
-          language: "zh-CN",
-        });
-      }
-      return Promise.resolve(null);
-    });
-
-    renderWithTheme(<App />);
-
-    await waitFor(() => {
-      expect(screen.getByText("已是最新")).toBeInTheDocument();
-    });
-  });
-
   it("should display last update time when available", async () => {
     const mockTime = "2024-01-01 12:00:00";
     vi.mocked(invoke).mockImplementation((cmd: string) => {

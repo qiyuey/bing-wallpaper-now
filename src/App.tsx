@@ -25,7 +25,6 @@ function App() {
     setDesktopWallpaper,
     forceUpdate,
     lastUpdateTime,
-    isUpToDate,
   } = useBingWallpapers();
 
   const { t, actualLanguage } = useI18n();
@@ -101,23 +100,22 @@ function App() {
     }
   };
 
-  // 壁纸壁纸列表与触发后端更新
+  // 刷新壁纸列表与触发后端更新
   const handleRefresh = async () => {
     await fetchLocalWallpapers();
     try {
-      // 手动刷新时总是强制更新，忽略前端检查
       await forceUpdate(true);
     } catch (err) {
       console.warn("Force update failed:", err);
     }
   };
 
-  // 语言切换时的刷新（强制更新，即使已是最新也重新获取）
+  // 语言切换时的刷新（强制更新）
   const handleLanguageChangeRefresh = async () => {
     // 立即刷新列表，以便显示新语言的标题和描述
     await fetchLocalWallpapers(true);
     try {
-      await forceUpdate(true); // 强制更新，跳过"已是最新"的检查
+      await forceUpdate(true);
     } catch (err) {
       console.warn("Force update failed:", err);
     }
@@ -178,13 +176,22 @@ function App() {
             display: "flex",
             flexDirection: "column",
             gap: INLINE_SPACING.TITLE_GAP,
+            minWidth: 0,
+            flexShrink: 1,
           }}
         >
           <h1 style={{ margin: 0 }} className="app-title">
             <span className="app-title-main">{t("appTitle")}</span>
             <span className="app-title-accent">{t("appSubtitle")}</span>
           </h1>
-          <p className="app-tagline">{dynamicTagline}</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+            <p className="app-tagline">{dynamicTagline}</p>
+            {lastUpdateTime && (
+              <div className="last-update">
+                {t("lastUpdate")}: {lastUpdateTime}
+              </div>
+            )}
+          </div>
         </div>
         <div
           className="header-actions"
@@ -192,20 +199,11 @@ function App() {
             display: "flex",
             alignItems: "center",
             justifyContent: "flex-end",
-            flex: 1,
+            flex: "0 0 auto",
             marginLeft: INLINE_SPACING.HEADER_MARGIN_LEFT,
+            gap: "0.625rem",
           }}
         >
-          {isUpToDate && (
-            <span className="status-badge status-success">
-              {t("isUpToDate")}
-            </span>
-          )}
-          {lastUpdateTime && (
-            <div className="last-update">
-              {t("lastUpdate")}: {lastUpdateTime}
-            </div>
-          )}
           <button
             onClick={handleRefresh}
             className="btn btn-icon"

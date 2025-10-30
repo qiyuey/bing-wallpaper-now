@@ -2,11 +2,23 @@ use crate::models::{LocalWallpaper, WallpaperIndex};
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use tokio::fs;
+use tokio::sync::Mutex;
 
 /// 索引文件名
 const INDEX_FILE: &str = "index.json";
+
+/// JSON 序列化/反序列化用的排序索引结构
+///
+/// 用于在磁盘上以数组形式存储壁纸（按 end_date 降序排序），
+/// 便于阅读和调试。
+#[derive(Serialize, Deserialize)]
+struct SortedIndex {
+    version: u32,
+    last_updated: chrono::DateTime<chrono::Utc>,
+    wallpapers: Vec<LocalWallpaper>,
+}
 
 /// 内存缓存的索引管理器
 ///
@@ -41,7 +53,7 @@ impl IndexManager {
     pub async fn load_index(&self) -> Result<WallpaperIndex> {
         // 检查缓存
         {
-            let cache = self.cache.lock().unwrap();
+            let cache = self.cache.lock().await;
             if let Some(index) = cache.as_ref() {
                 return Ok(index.clone());
             }
@@ -58,7 +70,7 @@ impl IndexManager {
 
         // 更新缓存
         {
-            let mut cache = self.cache.lock().unwrap();
+            let mut cache = self.cache.lock().await;
             *cache = Some(index.clone());
         }
 
@@ -76,14 +88,6 @@ impl IndexManager {
             .await
             .context("Failed to read index file")?;
 
-        // 解析 JSON 为临时结构（wallpapers 是数组）
-        #[derive(Deserialize)]
-        struct SortedIndex {
-            version: u32,
-            last_updated: chrono::DateTime<chrono::Utc>,
-            wallpapers: Vec<LocalWallpaper>,
-        }
-
         let sorted_index: SortedIndex = serde_json::from_str(&contents)
             .context("Failed to deserialize index")?;
 
@@ -98,10 +102,11 @@ impl IndexManager {
         }
 
         // 将数组转换为 HashMap（按 start_date 作为 key）
-        let mut wallpapers = std::collections::HashMap::new();
-        for wallpaper in sorted_index.wallpapers {
-            wallpapers.insert(wallpaper.start_date.clone(), wallpaper);
-        }
+        let wallpapers = sorted_index
+            .wallpapers
+            .into_iter()
+            .map(|w| (w.start_date.clone(), w))
+            .collect();
 
         Ok(WallpaperIndex {
             version: sorted_index.version,
@@ -115,14 +120,6 @@ impl IndexManager {
     /// 使用原子写入（临时文件 + 重命名）确保数据完整性。
     /// JSON 文件中的壁纸按 end_date 降序排序（最新的在前），便于阅读和调试。
     pub async fn save_index(&self, index: &WallpaperIndex) -> Result<()> {
-        // 创建排序后的序列化结构
-        #[derive(Serialize)]
-        struct SortedIndex {
-            version: u32,
-            last_updated: chrono::DateTime<chrono::Utc>,
-            wallpapers: Vec<LocalWallpaper>,
-        }
-
         // 将 HashMap 转换为 Vec，并按 end_date 降序排序（最新的在前）
         let mut wallpapers: Vec<_> = index.wallpapers.values().cloned().collect();
         wallpapers.sort_by(|a, b| b.end_date.cmp(&a.end_date));
@@ -154,7 +151,7 @@ impl IndexManager {
 
         // 更新缓存
         {
-            let mut cache = self.cache.lock().unwrap();
+            let mut cache = self.cache.lock().await;
             *cache = Some(index.clone());
         }
 
@@ -250,8 +247,8 @@ impl IndexManager {
     ///
     /// 清除内存中的缓存，下次访问时会重新从磁盘加载。
     #[allow(dead_code)]
-    pub fn clear_cache(&self) {
-        let mut cache = self.cache.lock().unwrap();
+    pub async fn clear_cache(&self) {
+        let mut cache = self.cache.lock().await;
         *cache = None;
     }
 
@@ -260,7 +257,7 @@ impl IndexManager {
     /// 清除缓存并重新从磁盘加载索引。
     #[allow(dead_code)]
     pub async fn reload(&self) -> Result<WallpaperIndex> {
-        self.clear_cache();
+        self.clear_cache().await;
         self.load_index().await
     }
 }

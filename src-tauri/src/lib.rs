@@ -199,8 +199,11 @@ async fn get_settings(
 }
 
 /// 设置归一化（内部函数）
+/// 0 表示不限制，必须保留 8 张以上（0 时不受限制）
 fn normalize_settings(mut s: AppSettings) -> AppSettings {
-    if s.keep_image_count < 8 {
+    // 0 表示不限制，跳过检查
+    // 如果设置了数量但小于 8，则强制设为 8
+    if s.keep_image_count != 0 && s.keep_image_count < 8 {
         s.keep_image_count = 8;
     }
     s
@@ -294,6 +297,18 @@ mod lib_tests {
         };
         let n = normalize_settings(s);
         assert_eq!(n.keep_image_count, 8);
+
+        // 测试 0 表示不限制
+        let s_unlimited = AppSettings {
+            auto_update: true,
+            save_directory: None,
+            keep_image_count: 0,
+            launch_at_startup: false,
+            theme: "system".to_string(),
+            language: "auto".to_string(),
+        };
+        let n_unlimited = normalize_settings(s_unlimited);
+        assert_eq!(n_unlimited.keep_image_count, 0);
     }
 }
 
@@ -319,10 +334,34 @@ async fn get_default_wallpaper_directory() -> Result<String, String> {
 }
 
 /// 获取最后一次成功更新时间（本地时区）
+/// 优先从内存状态读取，如果为空则从索引文件读取
 #[tauri::command]
-async fn get_last_update_time(state: tauri::State<'_, AppState>) -> Result<Option<String>, String> {
-    let guard = state.last_update_time.lock().await;
-    Ok(guard.map(|dt| dt.format("%Y-%m-%d %H:%M:%S").to_string()))
+async fn get_last_update_time(
+    state: tauri::State<'_, AppState>,
+) -> Result<Option<String>, String> {
+    // 优先从内存状态读取
+    {
+        let guard = state.last_update_time.lock().await;
+        if let Some(dt) = *guard {
+            return Ok(Some(dt.format("%Y-%m-%d %H:%M:%S").to_string()));
+        }
+    }
+
+    // 如果内存中没有，尝试从索引文件读取
+    let wallpaper_dir = {
+        let dir = state.wallpaper_directory.lock().await;
+        dir.clone()
+    };
+
+    let index_manager = index_manager::IndexManager::new(wallpaper_dir.clone());
+    match index_manager.load_index().await {
+        Ok(index) => {
+            // 从索引文件的 last_updated 字段读取
+            let local_time = index.last_updated.with_timezone(&Local);
+            Ok(Some(local_time.format("%Y-%m-%d %H:%M:%S").to_string()))
+        }
+        Err(_) => Ok(None),
+    }
 }
 
 #[tauri::command]
@@ -508,6 +547,28 @@ async fn download_wallpapers_concurrently(
     (success_count, fail_count)
 }
 
+/// 从壁纸列表中提取实际存在的文件名集合
+///
+/// 用于在下载前检查哪些文件已经存在，避免重复下载。
+/// 只保留实际存在的文件，避免 index 和实际文件不同步。
+async fn get_existing_file_names(wallpapers: &[LocalWallpaper]) -> HashSet<String> {
+    wallpapers
+        .iter()
+        .filter_map(|w| {
+            let path = PathBuf::from(&w.file_path);
+            // 只保留实际存在的文件
+            if path.exists() {
+                path.file_name()
+                    .and_then(|n| n.to_str())
+                    .map(|s| s.to_string())
+            } else {
+                warn!(target: "update", "index 中的文件不存在，将被忽略: {}", w.file_path);
+                None
+            }
+        })
+        .collect()
+}
+
 /// 内部更新循环实现
 /// @param force_update: 是否强制更新（忽略智能检查）
 async fn run_update_cycle_internal(app: &AppHandle, force_update: bool) {
@@ -547,21 +608,7 @@ async fn run_update_cycle_internal(app: &AppHandle, force_update: bool) {
     let existing_wallpapers = storage::get_local_wallpapers(&dir)
         .await
         .unwrap_or_default();
-    let existing_files: HashSet<String> = existing_wallpapers
-        .iter()
-        .filter_map(|w| {
-            let path = PathBuf::from(&w.file_path);
-            // 只保留实际存在的文件
-            if path.exists() {
-                path.file_name()
-                    .and_then(|n| n.to_str())
-                    .map(|s| s.to_string())
-            } else {
-                warn!(target: "update", "index 中的文件不存在，将被忽略: {}", w.file_path);
-                None
-            }
-        })
-        .collect();
+    let existing_files = get_existing_file_names(&existing_wallpapers).await;
 
     // 智能更新检查（非强制更新时）
     if !force_update {
@@ -1311,7 +1358,7 @@ pub fn run() {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 // Check if this is a real quit request (from tray menu)
                 // If not, just hide the window
-                window.hide().unwrap();
+                let _ = window.hide();
                 api.prevent_close();
             }
         })

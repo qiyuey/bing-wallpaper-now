@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { LocalWallpaper } from "../types";
 import { createSafeUnlisten } from "../utils/eventListener";
@@ -84,41 +84,12 @@ export function useBingWallpapers() {
   /**
    * 手动触发后台更新一次（force_update 已在后端执行拉取、下载、清理、自动应用）
    * 成功后更新本地列表与最后更新时间
-   * @param force 是否强制更新，即使已是最新也重新获取（用于语言切换等场景）
    */
   const forceUpdate = useCallback(
-    async (force: boolean = false) => {
+    async (_force: boolean = false) => {
       setLoading(true);
       setError(null);
       try {
-        // 强制更新模式：总是调用后端，忽略前端检查
-        if (force) {
-          await invoke("force_update");
-          await fetchLocalWallpapers(true);
-          await pollStatus();
-          setLoading(false);
-          return;
-        }
-
-        // 非强制更新模式：检查是否已是最新
-        // 计算今日日期字符串（与 end_date 格式一致：YYYYMMDD）
-        // 注意：Bing 的壁纸 start_date 是昨天，end_date 才是今天
-        const now = new Date();
-        const todayStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(
-          now.getDate(),
-        ).padStart(2, "0")}`;
-
-        // 若已是最新，不再触发后端 force_update，直接更新状态
-        if (
-          localWallpapers.length > 0 &&
-          localWallpapers[0].end_date === todayStr
-        ) {
-          await pollStatus();
-          setLoading(false);
-          return;
-        }
-
-        // 不是最新，调用后端强制更新
         await invoke("force_update");
         await fetchLocalWallpapers(true);
         await pollStatus();
@@ -129,7 +100,7 @@ export function useBingWallpapers() {
         setLoading(false);
       }
     },
-    [localWallpapers, fetchLocalWallpapers, pollStatus],
+    [fetchLocalWallpapers, pollStatus],
   );
 
   // 初始加载：只加载本地，并获取一次状态（初始加载显示 loading）
@@ -247,23 +218,11 @@ export function useBingWallpapers() {
     };
   }, [pollStatus]);
 
-  // 计算是否已是最新（衍生状态，避免重复手动更新）
-  // 注意：Bing 的壁纸 start_date 是昨天，end_date 才是今天
-  const isUpToDate = useMemo(() => {
-    if (!localWallpapers.length) return false;
-    const now = new Date();
-    const todayStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(
-      now.getDate(),
-    ).padStart(2, "0")}`;
-    return localWallpapers[0].end_date === todayStr;
-  }, [localWallpapers]);
-
   return {
     localWallpapers,
     loading,
     error,
     lastUpdateTime,
-    isUpToDate,
     fetchLocalWallpapers,
     setDesktopWallpaper,
     cleanupWallpapers,

@@ -123,7 +123,7 @@ impl Default for AppSettings {
         Self {
             auto_update: true,
             save_directory: None,
-            keep_image_count: 10000,
+            keep_image_count: 0,
             launch_at_startup: false,
             theme: default_theme(),
             language: default_language(),
@@ -149,7 +149,7 @@ mod tests {
         let settings = AppSettings::default();
         assert!(settings.auto_update);
         assert_eq!(settings.save_directory, None);
-        assert_eq!(settings.keep_image_count, 10000);
+        assert_eq!(settings.keep_image_count, 0);
         assert!(!settings.launch_at_startup);
     }
 

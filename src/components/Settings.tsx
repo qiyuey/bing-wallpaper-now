@@ -199,22 +199,21 @@ export function Settings({
 
           <div className="settings-section">
             <label className="settings-label">
-              {t("keepCount")}:
+              {t("keepCount")}: {t("keepCountHint")}
               <input
                 type="number"
-                min="8"
+                min="0"
                 max="100000"
-                value={settings?.keep_image_count ?? 8}
-                onChange={(e) =>
-                  handleChange(
-                    "keep_image_count",
-                    parseInt(e.target.value) || 8,
-                  )
-                }
+                value={settings?.keep_image_count ?? 0}
+                onChange={(e) => {
+                  const value = parseInt(e.target.value) || 0;
+                  // 如果输入的值在 1-7 之间，自动设为 8
+                  const normalizedValue = value > 0 && value < 8 ? 8 : value;
+                  handleChange("keep_image_count", normalizedValue);
+                }}
                 className="settings-input"
               />
             </label>
-            <div className="settings-hint">{t("keepCountHint")}</div>
           </div>
 
           <div className="settings-section">

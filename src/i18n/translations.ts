@@ -51,7 +51,7 @@ export const translations = {
     languageZhCN: "中文",
     languageEnUS: "English",
     keepCount: "保留壁纸数量",
-    keepCountHint: "（0 表示不限制，建议保留 8 张以上）",
+    keepCountHint: "（0 表示不限制，至少保留 8 张）",
     saveDirectory: "保存目录",
     settingsLoading: "加载设置中...",
     settingsSaveError: "保存设置失败",
@@ -63,12 +63,10 @@ export const translations = {
     aboutVersion: "版本",
     aboutDescription:
       "每日自动获取并更新必应壁纸，支持高清壁纸下载和桌面壁纸设置。",
-    aboutTechStack: "技术栈：React + TypeScript + Tauri 2",
     aboutGitHub: "GitHub 仓库",
     aboutCopyright: "© 2025 Bing Wallpaper Now",
 
     // 状态
-    isUpToDate: "已是最新",
     lastUpdate: "上次更新",
     refresh: "更新",
 
@@ -127,7 +125,7 @@ export const translations = {
     languageZhCN: "中文",
     languageEnUS: "English",
     keepCount: "Keep Wallpaper Count",
-    keepCountHint: "(0 means unlimited, recommended to keep 8 or more)",
+    keepCountHint: "(0 means unlimited, at least keep 8)",
     saveDirectory: "Save Directory",
     settingsLoading: "Loading settings...",
     settingsSaveError: "Failed to save settings",
@@ -139,12 +137,10 @@ export const translations = {
     aboutVersion: "Version",
     aboutDescription:
       "Automatically fetch and update Bing wallpapers daily, with support for HD wallpaper downloads and desktop wallpaper settings.",
-    aboutTechStack: "Tech Stack: React + TypeScript + Tauri 2",
     aboutGitHub: "GitHub Repository",
     aboutCopyright: "© 2025 Bing Wallpaper Now",
 
     // 状态
-    isUpToDate: "Up to Date",
     lastUpdate: "Last Update",
     refresh: "Refresh",
 
