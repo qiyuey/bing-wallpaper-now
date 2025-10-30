@@ -2,8 +2,6 @@
 
 Review code changes for architecture quality, modularity, bug potential, and refactoring opportunities. Focus on Tauri + React architecture with Rust backend and TypeScript frontend.
 
-**IMPORTANT: When executing this command, you MUST automatically fix all discovered issues and warnings, not just report them.**
-
 ## Review Process
 
 ### 1. Analyze Current Changes
@@ -32,7 +30,6 @@ For each modified file:
 - Use `grep` tool to find usages and dependencies
 - Use `codebase_search` to understand module relationships
 - Identify affected modules and their boundaries
-- **IMPORTANT: Fix issues immediately when discovered, do not just record them**
 
 ### 2. Architecture Quality Checklist
 
@@ -327,65 +324,13 @@ git diff --name-only main...HEAD
   - React component props
   - Rust module public APIs
 
-**Step 4: Fix All Issues Automatically**
+**Step 4: Provide Recommendations**
 
-**CRITICAL: You MUST automatically fix all discovered issues, not just report them!**
-
-For each discovered issue:
-
-1. **Critical Priority Issues** - **MUST fix immediately**
-   - Panic risks (unwraps, indexing without bounds check, `block_on` in async)
-   - Data loss potential
-   - Security vulnerabilities
-   - Memory leaks or resource leaks
-   - Use `search_replace` or `write` tools to fix code directly
-
-2. **High Priority Issues** - **MUST fix immediately**
-   - Bug potential (race conditions, null handling, missing error handling)
-   - Performance issues (blocking operations, unnecessary re-renders)
-   - Major architectural issues (tight coupling, mixed concerns)
-   - Type safety issues (TypeScript `any` types)
-   - Use `search_replace` or `write` tools to fix code directly
-
-3. **Medium Priority Issues** - **Fix with priority**
-   - Code smells (long functions, duplication, magic numbers)
-   - Testability concerns
-   - Architectural improvements
-   - Code style inconsistencies
-
-4. **Low Priority Issues** - **Fix if possible**
-   - Code style improvements
-   - Minor optimizations
-   - Documentation improvements
-
-**Fix Workflow:**
-
-1. After identifying an issue, immediately fix it using appropriate tools:
-   - Use `search_replace` to modify existing code
-   - Use `read_file` to read file content
-   - Use `write` to create new files or rewrite files
-   - Use `grep` to find related code
-
-2. After fixing, verify:
-   - Run `pnpm run lint` to check ESLint errors
-   - Run `pnpm run typecheck` to check TypeScript type errors
-   - Run `pnpm run format:check` to check formatting issues
-   - Run `pnpm run lint:md` to check Markdown formatting
-   - Run `read_lints` tool to check all lint errors
-
-3. If issues remain after fixing, continue fixing until all issues are resolved
-
-4. Ensure fixed code still passes tests:
-   - Run `pnpm test` to ensure tests pass
-   - If tests fail, fix code until tests pass
-
-**Fix Principles:**
-
-- Do not just report issues - you must actually fix the code
-- Prioritize fixing Critical and High priority issues
-- After fixing, must run verification tools to ensure no issues remain
-- Fixes must conform to project code standards and best practices
-- If fixes require major refactoring, refactor first then fix
+- List specific issues found with file paths and line numbers
+- Categorize by priority (Critical/High/Medium/Low)
+- Suggest concrete refactoring steps
+- Provide code examples when helpful
+- Estimate effort for fixes
 
 ### 7. Issue Priority Levels
 
@@ -428,44 +373,21 @@ Review report should be organized as follows (concise and focused):
 ### Overall Assessment
 [Brief summary of code quality, architectural improvements, highlights, etc.]
 
-### Fixed Issues
-1. **[`file.ts:line`]** [Issue Title] - **FIXED**
-   - **Fix**: [What was fixed]
-   - **Verification**: [What verification tools were run, results]
+### Recommendations
+1. **[`file.ts:line`]** [Issue Title]
+   - **Impact**: [Why this is important]
+   - **Fix**: [Specific suggestions with code examples]
+   - **Effort**: [Quick/Medium/Major]
 
-### High Priority Issues (Fixed)
-1. **[`file.ts:line`]** [Issue Title] - **FIXED**
-   - **Fix**: [What was fixed]
-   - **Verification**: [What verification tools were run, results]
-
-### Medium Priority Issues (Fixed)
-1. **[`file.tsx:line`]** [Issue Title] - **FIXED**
-   - **Fix**: [What was fixed]
-
-### Verification Results
-- ESLint: [Pass/Fail]
-- TypeScript: [Pass/Fail]
-- Formatting: [Pass/Fail]
-- Markdown: [Pass/Fail]
-- Tests: [Pass/Fail]
-
-### Fix Summary
-- Critical issues: [X] found, [X] fixed
-- High issues: [X] found, [X] fixed
-- Medium issues: [X] found, [X] fixed
-- Low issues: [X] found, [X] fixed
+### Considerations
+1. **[`file.tsx:line`]** [Issue Title] - [Suggestion] - [Effort]
 ```
-
-**IMPORTANT: Report must show all issues have been fixed and provide verification results.**
 
 ## Notes
 
-- **CRITICAL REQUIREMENT: Must fix all discovered issues, not just report them**
 - Focus on the actual changes made, not the entire codebase
 - Be constructive and specific
-- **Auto-fix all issues**: Don't just report problems - fix them immediately
-- **Priority order**: Critical → High → Medium → Low
-- **Verification required**: After fixing, run lint, typecheck, format checks, and tests
+- Prioritize critical bugs and architectural issues
 - **Code Simplicity**: Prefer simple, straightforward solutions over clever or complex ones
   - Write code that is easy to understand and maintain
   - Avoid unnecessary abstractions or design patterns
@@ -476,7 +398,6 @@ Review report should be organized as follows (concise and focused):
   - Rust: Edition 2024, use `anyhow::Result`, snake_case for functions
   - TypeScript: Strict mode, functional components, hooks for state
   - Tauri: Use commands for backend communication, events for notifications
-- **Fix workflow**:
-  1. Identify issue → 2. Fix code → 3. Verify with tools → 4. Run tests → 5. Report fixed
-- **Never skip fixes**: All Critical and High priority issues must be fixed before reporting
-- **Verify before reporting**: Always run `make check` or equivalent after all fixes
+- When suggesting refactoring, explain the benefit clearly
+- Provide code examples when helpful
+- Estimate effort to help prioritize fixes
