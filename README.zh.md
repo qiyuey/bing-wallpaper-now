@@ -118,6 +118,88 @@ xattr -rd com.apple.quarantine "/Applications/Bing Wallpaper Now.app"
 <details>
 <summary><b>开发指南（面向贡献者）</b></summary>
 
+### 开发环境要求
+
+- Node.js 24+ (LTS)
+- Rust 1.80+ (Edition 2024)
+- 操作系统：macOS 10.15+ / Windows 10+ / Linux
+
+### 安装依赖
+
+```bash
+pnpm install
+```
+
+### 开发模式
+
+```bash
+pnpm run tauri dev
+```
+
+### 构建应用
+
+```bash
+pnpm run tauri build
+```
+
+构建产物位于 `src-tauri/target/release/bundle/` 目录。
+
+### 项目结构
+
+```bash
+bing-wallpaper-now/
+├── src/                          # 前端（React + TypeScript）
+│   ├── components/               # React 组件
+│   ├── hooks/                    # React Hooks
+│   └── types/                    # TypeScript 类型定义
+├── src-tauri/                    # 后端（Rust + Tauri）
+│   ├── src/
+│   │   ├── bing_api.rs          # Bing API 集成
+│   │   ├── wallpaper_manager.rs # 壁纸管理
+│   │   ├── download_manager.rs  # 图片下载器
+│   │   └── storage.rs           # 文件存储
+│   └── Cargo.toml               # Rust 依赖
+└── scripts/                      # 构建脚本
+```
+
+### 技术栈
+
+**前端**：React 19, TypeScript, Vite
+
+**后端**：Tauri 2.0, Rust (Edition 2024)
+
+**核心库**：
+
+- `reqwest` - HTTP 客户端
+- `serde/serde_json` - 序列化
+- `chrono` - 日期时间处理
+- `wallpaper` - 跨平台壁纸设置
+- `objc2` - macOS 原生 API 绑定
+
+### 开发工作流
+
+1. Fork 本仓库
+2. 创建功能分支（`git checkout -b feature/AmazingFeature`）
+3. 提交更改（`git commit -m 'Add some AmazingFeature'`）
+4. 推送到分支（`git push origin feature/AmazingFeature`）
+5. 提交 Pull Request
+
+### 代码质量检查
+
+提交 PR 前请运行：
+
+```bash
+make check  # 运行所有检查
+
+# 或单独运行：
+pnpm run lint          # ESLint
+pnpm run format:check  # Prettier
+pnpm run typecheck     # TypeScript
+cargo fmt              # Rust 格式化
+cargo clippy           # Rust 检查
+cargo test             # Rust 测试
+```
+
 </details>
 
 ## 📄 许可证

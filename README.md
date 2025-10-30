@@ -2,24 +2,22 @@
 
 [English](README.md) | [中文](README.zh.md)
 
-A cross-platform desktop application that automatically fetches and sets beautiful Bing daily wallpapers.
+A cross-platform desktop app to automatically fetch and set Bing's daily beautiful wallpapers.
 
 [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)](https://github.com/qiyuey/bing-wallpaper-now/releases)
 [![License](https://img.shields.io/badge/license-Anti--996-blue)](https://github.com/996icu/996.ICU)
 
 ## 📦 Download & Install
 
-Download the latest version from [GitHub Releases](https://github.com/qiyuey/bing-wallpaper-now/releases):
+Get the latest version from [GitHub Releases](https://github.com/qiyuey/bing-wallpaper-now/releases):
 
-- **Windows**: `.msi` installer or `.exe` portable version
+- **Windows**: `.msi` installer or `.exe` portable
 - **macOS**: `.dmg` disk image
-- **Linux**: `.deb` (Debian/Ubuntu) or `.rpm` (Fedora/RedHat) or `.AppImage` (Universal)
+- **Linux**: `.deb` (Debian/Ubuntu), `.rpm` (Fedora/RedHat), or `.AppImage` (universal)
 
 ### macOS Installation Note
 
-The app is code-signed, but uses free signing (not from an Apple Developer account). On first launch:
-
-Run this command in Terminal:
+If you see "App is damaged or cannot be opened", run the following in Terminal (add `sudo` in front if needed):
 
 ```bash
 xattr -rd com.apple.quarantine "/Applications/Bing Wallpaper Now.app"
@@ -27,133 +25,124 @@ xattr -rd com.apple.quarantine "/Applications/Bing Wallpaper Now.app"
 
 ## ✨ Features
 
-### Core Functionality
+### Core Features
 
-- 📸 **Daily Wallpapers** - Automatically fetch Bing's daily featured wallpapers (up to 8)
-- 🖼️ **High Resolution** - Download in UHD (Ultra High Definition) resolution
-- 🎨 **One-Click Setup** - Set as desktop wallpaper with a single click
-- 📁 **Local Management** - Automatically save wallpapers locally with history browsing
-- 🔄 **Background Updates** - Auto-download new wallpapers in the background without blocking UI
-- 🗑️ **Smart Cleanup** - Automatically clean old wallpapers based on retention count
+- 📸 **Daily Wallpapers** - Automatically fetch up to 8 Bing daily wallpapers
+- 🖼️ **High Resolution** - Download UHD (Ultra HD) wallpapers
+- 🎨 **One Click Set** - Set as desktop wallpaper with a single click
+- 📁 **Local Gallery** - Save all wallpapers locally, browse full history
+- 🔄 **Background Fetch** - Downloads in the background, UI never blocked
+- 🗑️ **Smart Cleanup** - Auto clean old wallpapers by retention count
 
-### macOS Exclusive Features
+### macOS Exclusive
 
-- 🖥️ **Multi-Monitor Support** - Set wallpaper for all displays simultaneously
-- 🎯 **Fullscreen App Support** - Perfect handling of wallpaper setting in fullscreen scenarios
-- 🔄 **Space Auto-Recovery** - Automatically restore wallpaper when switching Spaces or exiting fullscreen
+- 🖥️ **Multiple Monitors** - Set wallpaper on all displays
+- 🎯 **Fullscreen App Support** - Handles wallpapers in fullscreen usage
+- 🔄 **Auto Restore on Space Switch** - Automatically restore wallpaper when switching Spaces or exiting fullscreen
 
 ### User Experience
 
-- 🚀 **Fast Response** - Prioritize loading local cache, fetch remote data in background
-- 💾 **System Tray** - Minimize to tray without occupying taskbar space
-- ⚙️ **Flexible Configuration** - Customize save directory, retention count, startup options
-- 🎨 **Theme Support** - Light, dark, and system theme modes
-- 🌐 **Copyright Links** - Click images to visit detailed info pages
-- 📂 **Quick Access** - One-click to open wallpaper save folder
+- 🚀 **Fast Load** - Loads local cache first, fetches remote in the background
+- 💾 **System Tray** - Minimize to tray, does not occupy taskbar
+- ⚙️ **Configurable** - Custom save directory, retention policy, startup options
+- 🎨 **Themes** - Light, dark, and system-follow modes
 
-## 🎯 How to Use
+## 🎯 Usage
 
 ### First Launch
 
-1. Download and install the application
+1. Download and install the app
 2. Launch "Bing Wallpaper Now"
-3. The app will automatically fetch today's Bing wallpapers
-4. Browse the wallpaper gallery in the main window
+3. The app will fetch today’s Bing wallpaper
+4. Browse the gallery in the main window
 
-### Setting Wallpapers
+### Set Wallpaper
 
-- **Click any wallpaper card** to set it as your desktop background
-- The wallpaper will be applied immediately
+- **Click any wallpaper card** to immediately set it as your desktop wallpaper
+- The wallpaper is applied instantly
 - On macOS, it applies to all connected displays
 
 ### System Tray
 
-The app lives in your system tray for quick access:
+The app runs in your system tray for quick access:
 
-- **Left Click** - Show/hide main window
-- **Right Click** - Access menu (Show window, Exit)
-- **Close Window** - Minimizes to tray (app keeps running)
+- **Left click** - Show/hide main window
+- **Right click** - Menu (show window, quit)
+- **Close window** - Minimize to tray (app keeps running)
 
 ### Settings
 
-Click the "Settings" button (star icon) to customize:
+Click the "Settings" (star icon) to customize:
 
-- **Auto Update** - Automatically fetch new wallpapers and apply the latest one
-- **Save Directory** - Choose where to store downloaded wallpapers
-- **Retention Count** - Set how many wallpapers to keep (minimum 8)
-- **Launch at Startup** - Start the app when your system boots
-
-### Other Features
-
-- **Copyright Info** - Click the copyright link on any wallpaper to learn more about it
-- **Open Folder** - Click "Open Wallpaper Folder" to view all saved wallpapers
-- **History** - Browse and set any previously downloaded wallpaper
+- **Auto Update** - Automatically fetch and set the latest wallpaper
+- **Save Directory** - Choose where to store wallpapers
+- **Retention Count** - How many wallpapers to keep (at least 8)
 
 ## ❓ FAQ
 
-**Q: How often does it update wallpapers?**  
-**A:** Bing releases new wallpapers daily. Enable "Auto Update" in settings to fetch them automatically.
+**Q: How often are wallpapers updated?**  
+**A:** Bing releases new wallpapers daily. Enable "Auto Update" to fetch the latest automatically.
 
-**Q: Where are wallpapers saved?**  
-**A:** By default, they're saved in your system's pictures directory under "Bing Wallpaper Now". You can change this in Settings.
+**Q: Where are my wallpapers saved?**  
+**A:** By default, they're in a "Bing Wallpaper Now" folder in your system pictures directory, but you can change this in settings.
 
-**Q: Does it work offline?**  
-**A:** Yes! Previously downloaded wallpapers are available offline and can be set anytime.
+**Q: Can I use it offline?**  
+**A:** Yes! Previously downloaded wallpapers are always available and can still be set offline.
 
 **Q: How much storage does it use?**  
-**A:** Each UHD wallpaper is about 1-3MB. With the minimum retention of 8 wallpapers, it uses approximately 8-24MB.
+**A:** Each UHD wallpaper is roughly 1–3MB. Keeping 8 uses 8–24MB.
 
-**Q: Can I keep wallpapers forever?**  
-**A:** Currently, wallpapers are auto-cleaned based on retention count. A favorites feature is planned for future releases.
+**Q: Can wallpapers be kept forever?**  
+**A:** Currently, old wallpapers are auto-cleaned based on your retention setting (default up to 10000). Favorites feature planned in future.
 
 ## 🗺️ Roadmap
 
-### Planned Features
+### Upcoming Features
 
-- 🔔 **System Notifications** - Get notified when new wallpapers are available
+- 🔔 **System Notifications** - Get notified when a new wallpaper is available
 - 🌍 **Multi-language Support** - Internationalization (i18n)
-- ⭐ **Wallpaper Favorites** - Save and quickly access your favorite wallpapers
-- ✨ **UI/UX Enhancements** - Modern design with smooth animations and better layouts
+- ⭐ **Favorites** - Save and quickly access your favorite wallpapers
+- ✨ **UI Improvements** - Modernized UI, smooth animations and layout
 
 ## 📞 Support & Feedback
 
-- **Report Issues**: [GitHub Issues](https://github.com/qiyuey/bing-wallpaper-now/issues)
-- **Feature Requests**: Always welcome!
+- **Report issues**: [GitHub Issues](https://github.com/qiyuey/bing-wallpaper-now/issues)
+- **Feature requests**: Always welcome!
 
 ## 🤝 Contributing
 
-Want to help improve Bing Wallpaper Now? Contributions are welcome!
+Want to help make Bing Wallpaper Now better? You're welcome!
 
-Review the [Repository Guidelines](AGENTS.md) for coding standards, workflow, and tooling expectations, then check out the development documentation below if you're contributing code.
+Please read [AGENTS.md](AGENTS.md) for code style, workflow and tooling guidelines, then refer to the development docs below.
 
 <details>
-<summary><b>Development Guide (for Contributors)</b></summary>
+<summary><b>Developer Guide</b></summary>
 
-### Prerequisites
+### Requirements
 
-- Node.js 22+ (LTS)
+- Node.js 24+ (LTS)
 - Rust 1.80+ (Edition 2024)
 - OS: macOS 10.15+ / Windows 10+ / Linux
 
-### Install Dependencies
+### Install dependencies
 
 ```bash
 pnpm install
 ```
 
-### Development Mode
+### Development mode
 
 ```bash
 pnpm run tauri dev
 ```
 
-### Build Application
+### Build app
 
 ```bash
 pnpm run tauri build
 ```
 
-Build artifacts are located in `src-tauri/target/release/bundle/` directory.
+Builds are in `src-tauri/target/release/bundle/`.
 
 ### Project Structure
 
@@ -162,7 +151,7 @@ bing-wallpaper-now/
 ├── src/                          # Frontend (React + TypeScript)
 │   ├── components/               # React components
 │   ├── hooks/                    # React Hooks
-│   └── types/                    # TypeScript types
+│   └── types/                    # TypeScript type definitions
 ├── src-tauri/                    # Backend (Rust + Tauri)
 │   ├── src/
 │   │   ├── bing_api.rs          # Bing API integration
@@ -175,29 +164,29 @@ bing-wallpaper-now/
 
 ### Tech Stack
 
-**Frontend**: React 18, TypeScript, Vite
+**Frontend**: React 19, TypeScript, Vite
 
 **Backend**: Tauri 2.0, Rust (Edition 2024)
 
-**Key Libraries**:
+**Core crates**:
 
 - `reqwest` - HTTP client
 - `serde/serde_json` - Serialization
-- `chrono` - Date/time handling
-- `wallpaper` - Cross-platform wallpaper setting
-- `objc2` - macOS native API bindings
+- `chrono` - Dates and time
+- `wallpaper` - Cross-platform wallpaper setter
+- `objc2` - macOS native APIs
 
-### Development Workflow
+### Workflow
 
-1. Fork this repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
+1. Fork this repo
+2. Create feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push your branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-### Code Quality
+### Quality Checks
 
-Before submitting a PR:
+Before submitting a PR, run:
 
 ```bash
 make check  # Run all checks
@@ -206,8 +195,8 @@ make check  # Run all checks
 pnpm run lint          # ESLint
 pnpm run format:check  # Prettier
 pnpm run typecheck     # TypeScript
-cargo fmt              # Rust format
-cargo clippy           # Rust lint
+cargo fmt              # Rust formatting
+cargo clippy           # Rust lints
 cargo test             # Rust tests
 ```
 
@@ -215,23 +204,17 @@ cargo test             # Rust tests
 
 ## 📄 License
 
-MIT License - see [LICENSE](LICENSE) file for details.
+MIT License - see [LICENSE](LICENSE).
 
-This project also supports the [Anti-996 License](https://github.com/996icu/996.ICU). We advocate for:
+Project also supports the [Anti-996 License](https://github.com/996icu/996.ICU), advocating for:
 
 - ⏰ Reasonable working hours
 - 🏖️ Work-life balance
 - 💪 Developer well-being
 
-**Work-life balance matters. Say NO to 996! 💪**
+**Say NO to 996, prioritize your well-being! 💪**
 
 ## 🙏 Acknowledgments
 
-- [Bing](https://www.bing.com) - For providing beautiful daily wallpapers
-- [Claude Code](https://claude.com/code) - AI development assistant powering project development
-- [Tauri](https://tauri.app) - Lightweight cross-platform app framework
-- Open source community - For continuous support and contributions
-
----
-
-Made with ❤️ by the open source community
+- [Bing](https://www.bing.com) - Beautiful daily wallpapers
+- [Claude Code](https://claude.com/code) - AI dev assistant for code generation

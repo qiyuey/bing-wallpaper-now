@@ -49,12 +49,13 @@ jobs:
             fi
           fi
           echo "STORE_PATH=$STORE_PATH" >> $GITHUB_ENV
+          echo "store_path=$STORE_PATH" >> $GITHUB_OUTPUT
           echo "Computed pnpm store path: $STORE_PATH"
 
       - name: Cache pnpm store
         uses: actions/cache@v4
         with:
-          path: ${{ env.STORE_PATH }}
+          path: ${{ steps.pnpm-store.outputs.store_path }}
           key: pnpm-store-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
             pnpm-store-${{ runner.os }}-
