@@ -29,7 +29,7 @@
    ============================================================================ */
 :root[data-theme="light"] {
   /* 页面渐变背景 */
-  --bg-gradient: linear-gradient(135deg, #7c8cff 0%, #aa7bf3 48%, #ff8ccc 100%);
+  --bg-gradient: linear-gradient(135deg, #ff8ccc 0%, #aa7bf3 58%, #7c8cff 100%);
 
   /* 卡片玻璃态背景 */
   --bg-glass: rgba(255, 255, 255, 0.58);
@@ -151,7 +151,7 @@
    ============================================================================ */
 :root[data-theme="dark"] {
   /* 页面渐变背景 */
-  --bg-gradient: linear-gradient(135deg, #2d2d44 0%, #2a3a5a 50%, #1e4a7a 100%);
+  --bg-gradient: linear-gradient(135deg, #2d2d44 0%, #2a3a5a 55%, #1a5a8a 100%);
 
   /* 卡片玻璃态背景 */
   --bg-glass: rgba(55, 55, 75, 0.98);

@@ -77,10 +77,31 @@ body {
 }
 
 .app-title-main {
-  font-size: 2rem;
-  font-weight: 700;
-  letter-spacing: -0.3px;
-  opacity: 0.95;
+  font-size: clamp(1.75rem, 4vw, 2.125rem);
+  font-weight: 900;
+  font-variation-settings: "wght" 900;
+  letter-spacing: -0.4px;
+  opacity: 1;
+  /* 优化的字体系列 - 优先使用系统字体 */
+  font-family:
+    -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+    "SF Pro Rounded", "Helvetica Neue", "Segoe UI", "Roboto", "MiSans Heavy",
+    "MiSans Bold", "MiSans", "HarmonyOS Sans SC", "PingFang SC",
+    "Hiragino Sans GB", "Source Han Sans SC", "Noto Sans CJK SC",
+    "Microsoft YaHei", sans-serif;
+  /* 大字号字体渲染优化 - 使用antialiased获得更清晰的效果 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* 优化文本渲染 */
+  text-rendering: optimizeLegibility;
+  /* 启用字体特性：字距调整、标准连字 */
+  font-feature-settings:
+    "kern" 1,
+    "liga" 1,
+    "clig" 1;
+  font-kerning: normal;
+  /* 确保字体平滑缩放 */
+  font-synthesis: weight;
   background: linear-gradient(
     135deg,
     var(--text-primary) 0%,
@@ -93,42 +114,58 @@ body {
   -webkit-text-stroke: 0.35px rgba(15, 23, 42, 0.35);
 }
 
-/* 浅色模式 - 深色渐变 + 向下阴影 */
+/* 浅色模式 - 深色渐变 + 柔和阴影提升对比度 */
 :root[data-theme="light"] .app-title-main {
-  background: linear-gradient(135deg, #1f2633 0%, #1f2937 55%, #212c3d 100%);
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  text-stroke: 0.32px rgba(21, 30, 44, 0.38);
-  -webkit-text-stroke: 0.32px rgba(21, 30, 44, 0.38);
-  filter: drop-shadow(0 2px 3px rgba(15, 23, 42, 0.22))
-    drop-shadow(0 0 4px rgba(30, 41, 59, 0.18));
+  text-stroke: 0.4px rgba(15, 23, 42, 0.35);
+  -webkit-text-stroke: 0.4px rgba(15, 23, 42, 0.35);
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.15))
+    drop-shadow(0 2px 6px rgba(0, 0, 0, 0.12))
+    drop-shadow(0 0 8px rgba(255, 255, 255, 0.4));
 }
 
-/* 深色模式 - 浅色渐变 + 微光晕 */
+/* 深色模式 - 浅色渐变 + 柔和光晕提升可见性 */
 :root[data-theme="dark"] .app-title-main {
   background: linear-gradient(
     135deg,
-    rgba(255, 255, 255, 0.95) 0%,
-    rgba(255, 255, 255, 0.75) 100%
+    rgba(255, 255, 255, 1) 0%,
+    rgba(255, 255, 255, 0.95) 50%,
+    rgba(255, 255, 255, 0.9) 100%
   );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  filter: drop-shadow(0 1px 2px rgba(255, 255, 255, 0.1));
-  text-stroke: 0.35px rgba(15, 23, 42, 0.2);
-  -webkit-text-stroke: 0.35px rgba(15, 23, 42, 0.2);
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.25))
+    drop-shadow(0 2px 6px rgba(0, 0, 0, 0.2))
+    drop-shadow(0 0 10px rgba(255, 255, 255, 0.15));
+  text-stroke: 0.35px rgba(0, 0, 0, 0.25);
+  -webkit-text-stroke: 0.35px rgba(0, 0, 0, 0.25);
 }
 
 .app-title-accent {
-  font-size: 2rem;
+  font-size: clamp(1.75rem, 4vw, 2.125rem);
   font-family:
-    "MiSans Heavy", "MiSans Bold", "MiSans", "HarmonyOS Sans SC", "PingFang SC",
-    "Source Han Sans SC Bold", "Source Han Sans SC", "Noto Sans CJK SC Bold",
-    "Noto Sans CJK SC", "Microsoft YaHei", "Microsoft YaHei UI", "Segoe UI",
-    sans-serif;
+    -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Rounded",
+    "Helvetica Neue", "Segoe UI", "Roboto", "MiSans Heavy", "MiSans Bold",
+    "MiSans", "HarmonyOS Sans SC", "PingFang SC", "Source Han Sans SC Bold",
+    "Source Han Sans SC", "Noto Sans CJK SC Bold", "Noto Sans CJK SC",
+    "Microsoft YaHei", "Microsoft YaHei UI", sans-serif;
   font-weight: 900;
   font-variation-settings: "wght" 900;
+  letter-spacing: -0.4px;
+  /* 字体渲染优化 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings:
+    "kern" 1,
+    "liga" 1,
+    "clig" 1;
+  font-kerning: normal;
+  font-synthesis: weight;
   background: linear-gradient(
     135deg,
     var(--accent-color) 0%,
@@ -137,28 +174,36 @@ body {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  letter-spacing: -0.3px;
-  text-stroke: 0.45px rgba(63, 63, 116, 0.4);
-  -webkit-text-stroke: 0.45px rgba(63, 63, 116, 0.4);
+  text-stroke: 0.4px rgba(99, 102, 241, 0.3);
+  -webkit-text-stroke: 0.4px rgba(99, 102, 241, 0.3);
   filter: drop-shadow(0 2px 8px rgba(99, 102, 241, 0.3))
     drop-shadow(0 0 2px rgba(255, 255, 255, 0.8));
 }
 
-/* 浅色模式 - 更深的颜色 + 自然光照的向下阴影 */
+/* 浅色模式 - 柔和发光效果，与深色模式质感一致 */
 :root[data-theme="light"] .app-title-accent {
-  background: linear-gradient(135deg, #5a5df6 0%, #4f46e5 50%, #3f37c9 100%);
+  background: linear-gradient(135deg, #6366f1 0%, #5a5df6 50%, #4f46e5 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  text-stroke: 0.4px rgba(74, 74, 138, 0.4);
-  -webkit-text-stroke: 0.4px rgba(74, 74, 138, 0.4);
-  filter: drop-shadow(0 2px 6px rgba(79, 70, 229, 0.22))
-    drop-shadow(0 0 10px rgba(129, 140, 248, 0.38));
+  text-stroke: 0.35px rgba(99, 102, 241, 0.25);
+  -webkit-text-stroke: 0.35px rgba(99, 102, 241, 0.25);
+  filter: drop-shadow(0 1px 3px rgba(79, 70, 229, 0.18))
+    drop-shadow(0 2px 8px rgba(79, 70, 229, 0.12))
+    drop-shadow(0 0 6px rgba(129, 140, 248, 0.3));
 }
 
-/* 深色模式下的光晕效果 */
+/* 深色模式 - 柔和发光效果 */
 :root[data-theme="dark"] .app-title-accent {
-  filter: drop-shadow(0 2px 12px rgba(129, 140, 248, 0.4));
+  background: linear-gradient(135deg, #a5b4fc 0%, #818cf8 50%, #6366f1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-stroke: 0.35px rgba(129, 140, 248, 0.25);
+  -webkit-text-stroke: 0.35px rgba(129, 140, 248, 0.25);
+  filter: drop-shadow(0 1px 3px rgba(129, 140, 248, 0.2))
+    drop-shadow(0 2px 8px rgba(129, 140, 248, 0.15))
+    drop-shadow(0 0 6px rgba(129, 140, 248, 0.25));
 }
 
 /* App Tagline */

@@ -20,6 +20,7 @@
 Bing Wallpaper Now is a cross-platform desktop application that automatically fetches and sets Bing daily wallpapers. Built with Tauri 2.0, it combines a React/TypeScript frontend with a Rust backend.
 
 **Tech Stack:**
+
 - Frontend: React 19, TypeScript, Vite
 - Backend: Rust (Edition 2024), Tauri 2.0
 - Testing: Vitest (frontend), Cargo test (backend)
@@ -64,7 +65,7 @@ make release                # Release current dev version and tag
 
 ## Project Structure
 
-```
+```text
 bing-wallpaper-now/
 ├── src/                          # Frontend (React + TypeScript)
 │   ├── components/               # React components
@@ -164,6 +165,7 @@ Rust functions exposed to frontend via `#[tauri::command]` macro:
 ### Development Workflow
 
 1. After a release, create a new development version:
+
    ```bash
    make patch  # Creates version like 0.3.6-0
    ```
@@ -171,11 +173,13 @@ Rust functions exposed to frontend via `#[tauri::command]` macro:
 2. Develop features, commit changes regularly
 
 3. Before committing, run quality checks:
+
    ```bash
    make check  # Runs lint, format check, typecheck, tests
    ```
 
 4. When ready to release:
+
    ```bash
    make release  # Removes -0 suffix, creates git tag, pushes
    ```
@@ -209,12 +213,15 @@ Rust functions exposed to frontend via `#[tauri::command]` macro:
 ### Build Issues
 
 **Issue**: Node.js version mismatch
+
 - **Solution**: Ensure Node.js 24+ is installed. Use `node --version` to check.
 
 **Issue**: Rust compilation errors
+
 - **Solution**: Update Rust: `rustup update`. Ensure 1.80+ with edition 2024 support.
 
 **Issue**: Tauri dev fails on macOS
+
 - **Solution**: Install Xcode Command Line Tools: `xcode-select --install`
 
 ### Development Tips
@@ -232,12 +239,14 @@ Rust functions exposed to frontend via `#[tauri::command]` macro:
 Endpoint: `https://www.bing.com/HPImageArchive.aspx`
 
 Query parameters:
+
 - `format=js` - JSON response
 - `idx=0` - Start index (0 = today, 1 = yesterday, etc.)
 - `n=8` - Number of images (max 8)
 - `mkt=en-US` - Market/locale
 
 Response contains:
+
 - `images[]` - Array of wallpaper objects
 - `url` - Partial URL path (needs to be prefixed with `https://www.bing.com`)
 - `copyright` - Image attribution
@@ -264,6 +273,7 @@ Response contains:
 ## License
 
 MIT License + Anti-996 License
+
 - Advocates for reasonable working hours
 - Work-life balance
 - Developer well-being
