@@ -103,6 +103,7 @@ xattr -rd com.apple.quarantine "/Applications/Bing Wallpaper Now.app"
 - 🌍 **多语言支持** - 国际化 (i18n)
 - ⭐ **壁纸收藏** - 保存并快速访问您喜爱的壁纸
 - ✨ **界面优化** - 现代化设计，流畅动画和更好的布局
+- 🔄 **自动更新** - 应用自动检查并安装更新
 
 ## 📞 支持与反馈
 

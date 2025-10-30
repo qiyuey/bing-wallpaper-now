@@ -103,6 +103,7 @@ Click the "Settings" (star icon) to customize:
 - 🌍 **Multi-language Support** - Internationalization (i18n)
 - ⭐ **Favorites** - Save and quickly access your favorite wallpapers
 - ✨ **UI Improvements** - Modernized UI, smooth animations and layout
+- 🔄 **Auto Update** - Automatic app update checking and installation
 
 ## 📞 Support & Feedback
 
