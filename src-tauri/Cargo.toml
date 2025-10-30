@@ -1,6 +1,6 @@
 [package]
 name = "bing-wallpaper-now"
-version = "0.3.5-0"
+version = "0.3.5"
 description = "A Bing Wallpaper App"
 authors = ["qiyuey"]
 edition = "2024"
