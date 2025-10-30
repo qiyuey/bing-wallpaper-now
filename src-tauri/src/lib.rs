@@ -336,9 +336,7 @@ async fn get_default_wallpaper_directory() -> Result<String, String> {
 /// 获取最后一次成功更新时间（本地时区）
 /// 优先从内存状态读取，如果为空则从索引文件读取
 #[tauri::command]
-async fn get_last_update_time(
-    state: tauri::State<'_, AppState>,
-) -> Result<Option<String>, String> {
+async fn get_last_update_time(state: tauri::State<'_, AppState>) -> Result<Option<String>, String> {
     // 优先从内存状态读取
     {
         let guard = state.last_update_time.lock().await;
@@ -445,7 +443,7 @@ async fn fetch_bing_images_with_retry(mkt: &str) -> Option<Vec<models::BingImage
 
     for attempt in 0..MAX_RETRIES {
         info!(target: "update", "Bing API 请求第 {} 次尝试（共 {} 次）", attempt + 1, MAX_RETRIES);
-        
+
         match bing_api::fetch_bing_images(8, 0, mkt).await {
             Ok(v) => {
                 info!(target: "update", "Bing API 请求成功（第 {} 次尝试）: 获取到 {} 张图片", attempt + 1, v.len());
@@ -474,7 +472,7 @@ async fn fetch_bing_images_with_retry(mkt: &str) -> Option<Vec<models::BingImage
             }
         }
     }
-    
+
     match &images_opt {
         Some(images) => {
             info!(target: "update", "Bing API 获取完成: 成功获取 {} 张图片", images.len());
@@ -483,7 +481,7 @@ async fn fetch_bing_images_with_retry(mkt: &str) -> Option<Vec<models::BingImage
             error!(target: "update", "Bing API 获取失败: 所有重试均失败");
         }
     }
-    
+
     images_opt
 }
 

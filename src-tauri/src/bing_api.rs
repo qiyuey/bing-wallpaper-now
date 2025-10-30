@@ -1,6 +1,6 @@
 use crate::models::{BingImageArchive, BingImageEntry};
 use anyhow::{Context, Result};
-use log::{info, warn, error};
+use log::{error, info, warn};
 
 const BING_API_URL: &str = "https://www.bing.com/HPImageArchive.aspx";
 const BING_BASE_URL: &str = "https://www.bing.com";
@@ -22,17 +22,17 @@ pub async fn fetch_bing_images(count: u8, idx: u8, mkt: &str) -> Result<Vec<Bing
     info!(target: "bing_api", "开始请求 Bing API: count={}, idx={}, mkt={}, url={}", count, idx, mkt, url);
 
     let start_time = std::time::Instant::now();
-    
+
     let response = match reqwest::get(&url).await {
         Ok(resp) => {
             let elapsed = start_time.elapsed();
             let status = resp.status();
             info!(target: "bing_api", "Bing API 响应收到: status={}, 耗时={:.2}ms", status, elapsed.as_secs_f64() * 1000.0);
-            
+
             if !status.is_success() {
                 warn!(target: "bing_api", "Bing API 返回非成功状态: status={}", status);
             }
-            
+
             resp
         }
         Err(e) => {

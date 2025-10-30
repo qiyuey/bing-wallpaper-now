@@ -88,8 +88,8 @@ impl IndexManager {
             .await
             .context("Failed to read index file")?;
 
-        let sorted_index: SortedIndex = serde_json::from_str(&contents)
-            .context("Failed to deserialize index")?;
+        let sorted_index: SortedIndex =
+            serde_json::from_str(&contents).context("Failed to deserialize index")?;
 
         // 版本检查
         if sorted_index.version != WallpaperIndex::VERSION {
@@ -131,8 +131,8 @@ impl IndexManager {
         };
 
         // 序列化为 JSON（人类可读格式，便于调试）
-        let json = serde_json::to_string_pretty(&sorted_index)
-            .context("Failed to serialize index")?;
+        let json =
+            serde_json::to_string_pretty(&sorted_index).context("Failed to serialize index")?;
 
         // 确保目录存在
         fs::create_dir_all(&self.directory)
