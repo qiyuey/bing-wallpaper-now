@@ -202,18 +202,6 @@ jobs:
             patchelf \
             xdg-utils
 
-      - name: Install OpenSSL (macOS Intel only)
-        if: matrix.os == 'macos-15-intel'
-        run: |
-          echo "Installing OpenSSL@3 for native Intel build..."
-          brew install openssl@3 || true
-          OPENSSL_PREFIX=$(brew --prefix openssl@3)
-          echo "OPENSSL_DIR=$OPENSSL_PREFIX" >> $GITHUB_ENV
-          echo "OPENSSL_INCLUDE_DIR=$OPENSSL_PREFIX/include" >> $GITHUB_ENV
-          echo "OPENSSL_LIB_DIR=$OPENSSL_PREFIX/lib" >> $GITHUB_ENV
-          echo "PKG_CONFIG_PATH=$OPENSSL_PREFIX/lib/pkgconfig" >> $GITHUB_ENV
-          echo "Installed OpenSSL@3 at: $OPENSSL_PREFIX"
-
       - name: Patch tauri.conf.json (skip beforeBuildCommand)
         shell: bash
         run: |
