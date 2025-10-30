@@ -2,6 +2,67 @@
 
 All notable changes to Bing Wallpaper Now will be documented in this file.
 
+## 0.3.6
+
+### Added
+
+- 🌍 **多语言支持（国际化）**
+  - 新增中文（简体）和英文两种语言支持
+  - 支持自动检测系统语言，或手动选择语言
+  - 新增语言设置选项，支持"自动"、"中文"、"English"三种模式
+  - 所有界面文本完整翻译，包括设置面板、错误提示、操作按钮等
+  - 动态标语支持多语言显示，根据语言设置自动切换
+
+- 🛠️ **代码审查工具**
+  - 新增 `.cursor/commands/review.md` 代码审查命令
+  - 支持架构质量检查（高内聚、低耦合、模块化）
+  - 自动检测潜在 Bug 和重构机会
+  - 提供快速改进建议和行动选项
+
+- 📝 **代码质量改进**
+  - 新增 `.gitattributes` 统一行尾符配置（LF），确保跨平台一致性
+  - 优化 Makefile 命令，改进错误处理和提示信息
+  - 新增工具函数模块（`utils.rs`），统一语言检测逻辑
+
+### Changed
+
+- 🔧 **后端架构优化**
+  - 重构 `run_update_cycle_internal` 函数，拆分为更小的模块化函数
+  - 提取 `apply_latest_wallpaper_if_needed`、`fetch_bing_images_with_retry`、`download_wallpapers_concurrently` 等函数
+  - 改进错误处理，使用 `unwrap_or_else` 替代 `expect`，避免 panic
+  - 优化日期计算逻辑，添加 fallback 机制处理边界情况
+
+- 🌐 **语言检测优化**
+  - 统一语言检测逻辑到 `utils.rs` 模块
+  - 改进系统时间回退检测，防止缓存逻辑异常
+  - 优化 Bing API 市场代码获取逻辑
+
+- 📦 **依赖更新**
+  - 更新多个前端和后端依赖到最新版本
+  - 添加 `num_cpus` 依赖用于并发下载优化
+
+### Fixed
+
+- 🐛 **修复 React Hook 依赖问题**
+  - 修复 `useSettings` 中 `fetchSettings` 缺少依赖项警告
+  - 修复 `App.tsx` 中 `handleOpenFolder` 缺少 `t` 依赖项
+
+- 🐛 **修复 Rust 测试代码**
+  - 修复测试中缺少 `language` 字段的问题
+  - 改进错误处理，使用更安全的 unwrap 替代
+
+- 🐛 **修复 ESLint 错误**
+  - 修复 `useBingWallpapers.ts` 中 `NodeJS.Timeout` 类型问题
+  - 修复 `useDynamicTagline.ts` 中 case 块词法声明问题
+  - 修复 `translations.ts` 中 `navigator` 未定义问题
+
+### Quality
+
+- ✅ **代码质量提升**
+  - 改进日期计算的错误处理，避免潜在 panic
+  - 优化窗口隐藏的错误处理
+  - 添加更完善的注释和文档
+
 ## 0.3.5
 
 ### Changed
