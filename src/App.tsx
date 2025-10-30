@@ -184,7 +184,9 @@ function App() {
             <span className="app-title-main">{t("appTitle")}</span>
             <span className="app-title-accent">{t("appSubtitle")}</span>
           </h1>
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+          <div
+            style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}
+          >
             <p className="app-tagline">{dynamicTagline}</p>
             {lastUpdateTime && (
               <div className="last-update">
