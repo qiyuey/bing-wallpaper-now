@@ -188,10 +188,6 @@ release_version() {
     echo ""
     print_table_row "Released" "$release_version"
     print_table_row "Git tag" "$tag"
-    echo ""
-    print_info "Next steps:"
-    print_info "  1. Wait for GitHub Actions to complete the build"
-    print_info "  2. Create next development version: make patch"
 }
 
 # ============================================================================
