@@ -129,3 +129,76 @@ pub fn update_last_check_time(app: &AppHandle, state: &mut AppRuntimeState) -> R
     save_runtime_state(app, state)?;
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::{Duration, Local};
+
+    #[test]
+    fn test_should_update_today_never_updated() {
+        let state = AppRuntimeState {
+            last_successful_update: None,
+            last_check_time: None,
+        };
+
+        assert!(should_update_today(&state));
+    }
+
+    #[test]
+    fn test_should_update_today_updated_yesterday() {
+        let yesterday = Local::now() - Duration::days(1);
+        let state = AppRuntimeState {
+            last_successful_update: Some(yesterday.to_rfc3339()),
+            last_check_time: None,
+        };
+
+        assert!(should_update_today(&state));
+    }
+
+    #[test]
+    fn test_should_update_today_updated_today() {
+        let state = AppRuntimeState {
+            last_successful_update: Some(Local::now().to_rfc3339()),
+            last_check_time: None,
+        };
+
+        assert!(!should_update_today(&state));
+    }
+
+    #[test]
+    fn test_should_update_today_invalid_timestamp() {
+        let state = AppRuntimeState {
+            last_successful_update: Some("invalid-timestamp".to_string()),
+            last_check_time: None,
+        };
+
+        // Should return true when timestamp is invalid
+        assert!(should_update_today(&state));
+    }
+
+    #[test]
+    fn test_should_update_today_old_date() {
+        let old_date = Local::now() - Duration::days(7);
+        let state = AppRuntimeState {
+            last_successful_update: Some(old_date.to_rfc3339()),
+            last_check_time: None,
+        };
+
+        assert!(should_update_today(&state));
+    }
+
+    #[test]
+    fn test_should_update_today_future_date() {
+        // Edge case: if somehow the last update is in the future
+        // (e.g., system clock changed), should still work correctly
+        let future = Local::now() + Duration::days(1);
+        let state = AppRuntimeState {
+            last_successful_update: Some(future.to_rfc3339()),
+            last_check_time: None,
+        };
+
+        // Future date should be considered "already updated today"
+        assert!(!should_update_today(&state));
+    }
+}

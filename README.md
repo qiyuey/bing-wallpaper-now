@@ -200,7 +200,7 @@ bing-wallpaper-now/
 Before submitting a PR:
 
 ```bash
-make pre-commit  # Run all checks
+make check  # Run all checks
 
 # Or individually:
 pnpm run lint          # ESLint
@@ -228,6 +228,7 @@ This project also supports the [Anti-996 License](https://github.com/996icu/996.
 ## 🙏 Acknowledgments
 
 - [Bing](https://www.bing.com) - For providing beautiful daily wallpapers
+- [Claude Code](https://claude.com/code) - AI development assistant powering project development
 - [Tauri](https://tauri.app) - Lightweight cross-platform app framework
 - Open source community - For continuous support and contributions
 

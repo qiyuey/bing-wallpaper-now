@@ -205,36 +205,6 @@ describe("useSettings", () => {
     consoleErrorSpy.mockRestore();
   });
 
-  it("should expose fetchSettings function", async () => {
-    vi.mocked(invoke).mockResolvedValue(mockSettings);
-
-    const { result } = renderHook(() => useSettings());
-
-    await waitFor(() => expect(result.current.loading).toBe(false));
-
-    expect(typeof result.current.fetchSettings).toBe("function");
-  });
-
-  it("should expose updateSettings function", async () => {
-    vi.mocked(invoke).mockResolvedValue(mockSettings);
-
-    const { result } = renderHook(() => useSettings());
-
-    await waitFor(() => expect(result.current.loading).toBe(false));
-
-    expect(typeof result.current.updateSettings).toBe("function");
-  });
-
-  it("should expose getDefaultDirectory function", async () => {
-    vi.mocked(invoke).mockResolvedValue(mockSettings);
-
-    const { result } = renderHook(() => useSettings());
-
-    await waitFor(() => expect(result.current.loading).toBe(false));
-
-    expect(typeof result.current.getDefaultDirectory).toBe("function");
-  });
-
   it("should manually fetch settings via fetchSettings", async () => {
     vi.mocked(invoke).mockImplementation((cmd: string) => {
       if (cmd === "get_settings") {

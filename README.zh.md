@@ -17,9 +17,7 @@
 
 ### macOS 安装说明
 
-应用已经过代码签名，但由于使用的是免费签名（非 Apple Developer 账号），首次打开时：
-
-在终端运行以下命令：
+若出现“应用已损坏”或“无法打开”，在终端执行（需要管理员权限时可在前面加 sudo）：
 
 ```bash
 xattr -rd com.apple.quarantine "/Applications/Bing Wallpaper Now.app"
@@ -48,8 +46,6 @@ xattr -rd com.apple.quarantine "/Applications/Bing Wallpaper Now.app"
 - 💾 **系统托盘** - 最小化到托盘，不占用任务栏空间
 - ⚙️ **灵活配置** - 自定义保存目录、保留数量、启动选项
 - 🎨 **主题支持** - 浅色、深色和跟随系统主题模式
-- 🌐 **版权链接** - 点击图片可访问详细介绍页面
-- 📂 **快速访问** - 一键打开壁纸保存文件夹
 
 ## 🎯 使用方法
 
@@ -81,13 +77,6 @@ xattr -rd com.apple.quarantine "/Applications/Bing Wallpaper Now.app"
 - **自动更新** - 自动获取新壁纸并应用最新一张
 - **保存目录** - 选择壁纸保存位置
 - **保留数量** - 设置保留的壁纸数量（最少 8 张）
-- **开机启动** - 系统启动时自动启动应用
-
-### 其他功能
-
-- **版权信息** - 点击壁纸上的版权链接了解更多信息
-- **打开文件夹** - 点击"打开壁纸文件夹"查看所有保存的壁纸
-- **历史记录** - 浏览并设置任何之前下载的壁纸
 
 ## ❓ 常见问题
 
@@ -104,7 +93,7 @@ xattr -rd com.apple.quarantine "/Applications/Bing Wallpaper Now.app"
 **答：** 每张 UHD 壁纸约 1-3MB。最少保留 8 张壁纸，大约占用 8-24MB。
 
 **问：可以永久保留壁纸吗？**  
-**答：** 目前壁纸会根据保留数量自动清理。未来版本计划添加收藏功能。
+**答：** 目前壁纸会根据保留数量自动清理，默认 10000 张。未来版本计划添加收藏功能。
 
 ## 🗺️ 发展路线图
 
@@ -124,92 +113,10 @@ xattr -rd com.apple.quarantine "/Applications/Bing Wallpaper Now.app"
 
 想要帮助改进 Bing Wallpaper Now？欢迎贡献！
 
-如果您有兴趣贡献代码，请查看下面的开发文档。
+请先阅读 [代码库规范](AGENTS.md) 了解编码标准、工作流程和工具要求，然后查看下面的开发文档。
 
 <details>
 <summary><b>开发指南（面向贡献者）</b></summary>
-
-### 环境要求
-
-- Node.js 22+（LTS 版本）
-- Rust 1.80+（Edition 2024）
-- 操作系统：macOS 10.15+ / Windows 10+ / Linux
-
-### 安装依赖
-
-```bash
-pnpm install
-```
-
-### 开发模式
-
-```bash
-pnpm run tauri dev
-```
-
-### 构建应用
-
-```bash
-pnpm run tauri build
-```
-
-构建产物位于 `src-tauri/target/release/bundle/` 目录。
-
-### 项目结构
-
-```bash
-bing-wallpaper-now/
-├── src/                          # 前端（React + TypeScript）
-│   ├── components/               # React 组件
-│   ├── hooks/                    # React Hooks
-│   └── types/                    # TypeScript 类型定义
-├── src-tauri/                    # 后端（Rust + Tauri）
-│   ├── src/
-│   │   ├── bing_api.rs          # Bing API 集成
-│   │   ├── wallpaper_manager.rs # 壁纸管理
-│   │   ├── download_manager.rs  # 图片下载器
-│   │   └── storage.rs           # 文件存储
-│   └── Cargo.toml               # Rust 依赖
-└── scripts/                      # 构建脚本
-```
-
-### 技术栈
-
-**前端**: React 18, TypeScript, Vite
-
-**后端**: Tauri 2.0, Rust（Edition 2024）
-
-**核心库**:
-
-- `reqwest` - HTTP 客户端
-- `serde/serde_json` - 序列化
-- `chrono` - 日期时间处理
-- `wallpaper` - 跨平台壁纸设置
-- `objc2` - macOS 原生 API 绑定
-
-### 开发流程
-
-1. Fork 本项目
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 开启 Pull Request
-
-### 代码质量
-
-提交 PR 前：
-
-```bash
-make pre-commit  # 运行所有检查
-
-# 或者分别运行：
-pnpm run lint          # ESLint
-pnpm run format:check  # Prettier
-pnpm run typecheck     # TypeScript
-cargo fmt              # Rust 代码格式化
-cargo clippy           # Rust 代码检查
-cargo test             # Rust 测试
-```
 
 </details>
 
@@ -228,9 +135,4 @@ MIT 许可证 - 详见 [LICENSE](LICENSE) 文件。
 ## 🙏 致谢
 
 - [Bing](https://www.bing.com) - 提供精美的每日壁纸
-- [Tauri](https://tauri.app) - 轻量级跨平台应用框架
-- 开源社区 - 持续的支持与贡献
-
----
-
-用 ❤️ 由开源社区制作
+- [Claude Code](https://claude.com/code) - AI 开发助手，助力项目开发

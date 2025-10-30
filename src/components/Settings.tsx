@@ -152,7 +152,7 @@ export function Settings({ onClose, version }: SettingsProps) {
               <input
                 type="number"
                 min="8"
-                max="10000"
+                max="100000"
                 value={settings?.keep_image_count ?? 8}
                 onChange={(e) =>
                   handleChange(
