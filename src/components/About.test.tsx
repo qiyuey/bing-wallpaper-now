@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { screen, fireEvent } from "@testing-library/react";
+import { renderWithI18n } from "../test/test-utils";
 import { About } from "./About";
 
 describe("About", () => {
@@ -11,7 +12,7 @@ describe("About", () => {
   });
 
   it("should render about modal with version", () => {
-    render(<About onClose={mockOnClose} version={mockVersion} />);
+    renderWithI18n(<About onClose={mockOnClose} version={mockVersion} />);
 
     expect(screen.getByText("关于")).toBeInTheDocument();
     expect(screen.getByText("Bing Wallpaper Now")).toBeInTheDocument();
@@ -19,7 +20,7 @@ describe("About", () => {
   });
 
   it("should render description and tech stack", () => {
-    render(<About onClose={mockOnClose} version={mockVersion} />);
+    renderWithI18n(<About onClose={mockOnClose} version={mockVersion} />);
 
     expect(screen.getByText(/每日自动获取并更新必应壁纸/)).toBeInTheDocument();
     expect(
@@ -28,7 +29,7 @@ describe("About", () => {
   });
 
   it("should render GitHub link with correct href", () => {
-    render(<About onClose={mockOnClose} version={mockVersion} />);
+    renderWithI18n(<About onClose={mockOnClose} version={mockVersion} />);
 
     const githubLink = screen.getByText("GitHub 仓库").closest("a");
     expect(githubLink).toBeInTheDocument();
@@ -41,13 +42,13 @@ describe("About", () => {
   });
 
   it("should render copyright text", () => {
-    render(<About onClose={mockOnClose} version={mockVersion} />);
+    renderWithI18n(<About onClose={mockOnClose} version={mockVersion} />);
 
     expect(screen.getByText(/© 2025 Bing Wallpaper Now/)).toBeInTheDocument();
   });
 
   it("should call onClose when X button is clicked", () => {
-    render(<About onClose={mockOnClose} version={mockVersion} />);
+    renderWithI18n(<About onClose={mockOnClose} version={mockVersion} />);
 
     const closeButton = screen.getByText("×");
     fireEvent.click(closeButton);
@@ -56,7 +57,7 @@ describe("About", () => {
   });
 
   it("should call onClose when close button is clicked", () => {
-    render(<About onClose={mockOnClose} version={mockVersion} />);
+    renderWithI18n(<About onClose={mockOnClose} version={mockVersion} />);
 
     const closeButton = screen.getByText("关闭");
     fireEvent.click(closeButton);
@@ -66,7 +67,7 @@ describe("About", () => {
 
   it("should render with different version numbers", () => {
     const version2 = "2.5.3";
-    const { rerender } = render(
+    const { rerender } = renderWithI18n(
       <About onClose={mockOnClose} version={version2} />,
     );
 
@@ -79,7 +80,7 @@ describe("About", () => {
   });
 
   it("should have correct CSS classes for styling", () => {
-    const { container } = render(
+    const { container } = renderWithI18n(
       <About onClose={mockOnClose} version={mockVersion} />,
     );
 
@@ -91,7 +92,7 @@ describe("About", () => {
   });
 
   it("should render GitHub SVG icon", () => {
-    const { container } = render(
+    const { container } = renderWithI18n(
       <About onClose={mockOnClose} version={mockVersion} />,
     );
 
@@ -100,7 +101,7 @@ describe("About", () => {
   });
 
   it("should have semantic class names for content sections", () => {
-    const { container } = render(
+    const { container } = renderWithI18n(
       <About onClose={mockOnClose} version={mockVersion} />,
     );
 
@@ -114,7 +115,7 @@ describe("About", () => {
 
   it("should prevent multiple close callbacks on rapid clicks", () => {
     const mockOnCloseSingle = vi.fn();
-    render(<About onClose={mockOnCloseSingle} version={mockVersion} />);
+    renderWithI18n(<About onClose={mockOnCloseSingle} version={mockVersion} />);
 
     const closeButton = screen.getByText("关闭");
     fireEvent.click(closeButton);

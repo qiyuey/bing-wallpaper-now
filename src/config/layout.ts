@@ -70,7 +70,7 @@ export const SPACING = {
 /**
  * 计算虚拟列表行高
  * 公式：图片高度 + 信息区域 + 操作区域 + 行间距
- * 
+ *
  * 详细计算：
  * - 图片高度：240px
  * - 信息区域：顶部内边距 + 标题高度 + 标题间距 + 副标题高度 + 底部内边距
@@ -79,22 +79,22 @@ export const SPACING = {
  */
 export function calculateRowHeight(): number {
   const imageHeight = CARD_DIMENSIONS.IMAGE_HEIGHT;
-  
+
   // 信息区域高度
   const infoHeight =
     CARD_DIMENSIONS.INFO_PADDING_Y * 2 + // 上下内边距
     Math.ceil(
-      CARD_DIMENSIONS.TITLE_FONT_SIZE * CARD_DIMENSIONS.TITLE_LINE_HEIGHT
+      CARD_DIMENSIONS.TITLE_FONT_SIZE * CARD_DIMENSIONS.TITLE_LINE_HEIGHT,
     ) + // 标题实际高度（考虑 line-height）
     CARD_DIMENSIONS.TITLE_MARGIN_BOTTOM + // 标题底部间距
     Math.ceil(
-      CARD_DIMENSIONS.SUBTITLE_FONT_SIZE * CARD_DIMENSIONS.SUBTITLE_LINE_HEIGHT
+      CARD_DIMENSIONS.SUBTITLE_FONT_SIZE * CARD_DIMENSIONS.SUBTITLE_LINE_HEIGHT,
     ); // 副标题实际高度（考虑继承的 line-height: 1.6）
-  
+
   // 操作区域高度
   const actionsHeight =
     CARD_DIMENSIONS.ACTIONS_PADDING_BOTTOM + CARD_DIMENSIONS.BUTTON_HEIGHT;
-  
+
   // 行间距
   const rowSpacing = SPACING.ROW_MARGIN_BOTTOM + SPACING.ROW_PADDING_BOTTOM;
 
@@ -115,4 +115,3 @@ export function getCardsPerRow(width: number): number {
     return CARDS_PER_ROW.DESKTOP;
   }
 }
-

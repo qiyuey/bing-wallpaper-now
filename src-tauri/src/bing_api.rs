@@ -144,7 +144,10 @@ mod tests {
     #[test]
     fn test_bing_api_url_format() {
         // Verify the expected URL format
-        let expected_format = format!("{}?format=js&n={}&idx={}&mkt={}", BING_API_URL, 3, 0, "zh-CN");
+        let expected_format = format!(
+            "{}?format=js&n={}&idx={}&mkt={}",
+            BING_API_URL, 3, 0, "zh-CN"
+        );
         assert!(expected_format.contains("format=js"));
         assert!(expected_format.contains("n=3"));
         assert!(expected_format.contains("idx=0"));

@@ -48,4 +48,3 @@ export function getStandardIconProps() {
 export function getSmallIconProps() {
   return { ...ICON_PROPS.small };
 }
-

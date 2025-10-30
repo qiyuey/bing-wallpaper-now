@@ -132,7 +132,7 @@ function App() {
       console.error("Failed to open folder:", err);
       alert(`${t("folderError")}: ${String(err)}`);
     }
-  }, []);
+  }, [t]);
 
   // 监听托盘发出的 open-folder 事件（复用打开目录逻辑）
   useEffect(() => {
@@ -173,7 +173,11 @@ function App() {
         }}
       >
         <div
-          style={{ display: "flex", flexDirection: "column", gap: INLINE_SPACING.TITLE_GAP }}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: INLINE_SPACING.TITLE_GAP,
+          }}
         >
           <h1 style={{ margin: 0 }} className="app-title">
             <span className="app-title-main">{t("appTitle")}</span>
@@ -192,12 +196,20 @@ function App() {
           }}
         >
           {isUpToDate && (
-            <span className="status-badge status-success">{t("isUpToDate")}</span>
+            <span className="status-badge status-success">
+              {t("isUpToDate")}
+            </span>
           )}
           {lastUpdateTime && (
-            <div className="last-update">{t("lastUpdate")}: {lastUpdateTime}</div>
+            <div className="last-update">
+              {t("lastUpdate")}: {lastUpdateTime}
+            </div>
           )}
-          <button onClick={handleRefresh} className="btn btn-icon" title={t("refresh")}>
+          <button
+            onClick={handleRefresh}
+            className="btn btn-icon"
+            title={t("refresh")}
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               {...getStandardIconProps()}

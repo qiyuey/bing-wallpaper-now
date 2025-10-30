@@ -11,7 +11,11 @@ interface SettingsProps {
   onLanguageChange?: () => void;
 }
 
-export function Settings({ onClose, version, onLanguageChange }: SettingsProps) {
+export function Settings({
+  onClose,
+  version,
+  onLanguageChange,
+}: SettingsProps) {
   const { settings, loading, updateSettings, getDefaultDirectory } =
     useSettings();
   const { applyThemeToUI } = useTheme();

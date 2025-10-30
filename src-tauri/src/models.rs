@@ -161,6 +161,7 @@ mod tests {
             keep_image_count: 20,
             launch_at_startup: true,
             theme: "dark".to_string(),
+            language: "auto".to_string(),
         };
 
         let json = serde_json::to_string(&settings).unwrap();

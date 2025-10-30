@@ -46,7 +46,9 @@ export const WallpaperGrid = memo(function WallpaperGrid({
   const { t } = useI18n();
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
-  const [containerHeight, setContainerHeight] = useState(CONTAINER.DEFAULT_HEIGHT);
+  const [containerHeight, setContainerHeight] = useState(
+    CONTAINER.DEFAULT_HEIGHT,
+  );
   const [cardsPerRow, setCardsPerRow] = useState<number>(CARDS_PER_ROW.DESKTOP);
 
   // 监听容器尺寸变化（使用 ResizeObserver 自动获取可用高度）
@@ -133,9 +135,7 @@ export const WallpaperGrid = memo(function WallpaperGrid({
       <div ref={containerRef} className="wallpaper-container">
         <div className="wallpaper-grid-empty">
           <p>{t("noWallpapers")}</p>
-          <p className="wallpaper-grid-empty-hint">
-            {t("noWallpapersHint")}
-          </p>
+          <p className="wallpaper-grid-empty-hint">{t("noWallpapersHint")}</p>
         </div>
       </div>
     );

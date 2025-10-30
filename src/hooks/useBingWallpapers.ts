@@ -86,38 +86,41 @@ export function useBingWallpapers() {
    * 成功后更新本地列表与最后更新时间
    * @param force 是否强制更新，即使已是最新也重新获取（用于语言切换等场景）
    */
-  const forceUpdate = useCallback(async (force: boolean = false) => {
-    setLoading(true);
-    setError(null);
-    try {
-      // 计算今日日期字符串（与 end_date 格式一致：YYYYMMDD）
-      // 注意：Bing 的壁纸 start_date 是昨天，end_date 才是今天
-      const now = new Date();
-      const todayStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(
-        now.getDate(),
-      ).padStart(2, "0")}`;
+  const forceUpdate = useCallback(
+    async (force: boolean = false) => {
+      setLoading(true);
+      setError(null);
+      try {
+        // 计算今日日期字符串（与 end_date 格式一致：YYYYMMDD）
+        // 注意：Bing 的壁纸 start_date 是昨天，end_date 才是今天
+        const now = new Date();
+        const todayStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(
+          now.getDate(),
+        ).padStart(2, "0")}`;
 
-      // 若已是最新且不是强制更新，不再触发后端 force_update，直接更新状态
-      if (
-        !force &&
-        localWallpapers.length > 0 &&
-        localWallpapers[0].end_date === todayStr
-      ) {
+        // 若已是最新且不是强制更新，不再触发后端 force_update，直接更新状态
+        if (
+          !force &&
+          localWallpapers.length > 0 &&
+          localWallpapers[0].end_date === todayStr
+        ) {
+          await pollStatus();
+          setLoading(false);
+          return;
+        }
+
+        await invoke("force_update");
+        await fetchLocalWallpapers(true);
         await pollStatus();
+      } catch (err) {
+        setError(String(err));
+        throw err;
+      } finally {
         setLoading(false);
-        return;
       }
-
-      await invoke("force_update");
-      await fetchLocalWallpapers(true);
-      await pollStatus();
-    } catch (err) {
-      setError(String(err));
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, [localWallpapers, fetchLocalWallpapers, pollStatus]);
+    },
+    [localWallpapers, fetchLocalWallpapers, pollStatus],
+  );
 
   // 初始加载：只加载本地，并获取一次状态（初始加载显示 loading）
   useEffect(() => {
@@ -179,15 +182,15 @@ export function useBingWallpapers() {
   // 使用页面可见性 API 和焦点检测，在应用获得焦点或变为可见时才轮询
   useEffect(() => {
     let mounted = true;
-    let intervalId: NodeJS.Timeout | null = null;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
     let lastPollTime = Date.now();
 
     const pollWhenActive = () => {
       if (!mounted) return;
-      
+
       const now = Date.now();
       const timeSinceLastPoll = now - lastPollTime;
-      
+
       // 如果距离上次轮询超过 10 秒，立即轮询一次
       if (timeSinceLastPoll >= 10000) {
         pollStatus();
@@ -197,7 +200,7 @@ export function useBingWallpapers() {
 
     const handleVisibilityChange = () => {
       if (!mounted) return;
-      
+
       // 当页面变为可见时，立即轮询一次
       if (document.visibilityState === "visible") {
         pollWhenActive();

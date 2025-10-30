@@ -1,12 +1,26 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { screen, fireEvent } from "@testing-library/react";
+import { renderWithI18n } from "../test/test-utils";
 import { WallpaperCard } from "./WallpaperCard";
 import type { LocalWallpaper } from "../types";
 
 vi.mock("@tauri-apps/plugin-opener");
-vi.mock("@tauri-apps/api/core", () => ({
-  convertFileSrc: vi.fn((path: string) => `asset://localhost/${path}`),
-}));
+vi.mock("@tauri-apps/api/core", () => {
+  const globalWindow = global.window as {
+    __TAURI_INTERNALS__?: {
+      invoke: (cmd: string, args?: unknown) => Promise<unknown>;
+    };
+  };
+  return {
+    invoke: (cmd: string, args?: unknown) => {
+      if (globalWindow && globalWindow.__TAURI_INTERNALS__) {
+        return globalWindow.__TAURI_INTERNALS__.invoke(cmd, args);
+      }
+      return Promise.resolve(undefined);
+    },
+    convertFileSrc: vi.fn((path: string) => `asset://localhost/${path}`),
+  };
+});
 vi.mock("@tauri-apps/api/event", () => ({
   listen: vi.fn(() => Promise.resolve(() => {})),
 }));
@@ -30,7 +44,7 @@ describe("WallpaperCard", () => {
   });
 
   it("should render wallpaper card with title and subtitle", () => {
-    render(
+    renderWithI18n(
       <WallpaperCard
         wallpaper={mockWallpaper}
         onSetWallpaper={mockOnSetWallpaper}
@@ -42,7 +56,7 @@ describe("WallpaperCard", () => {
   });
 
   it("should render wallpaper image", () => {
-    render(
+    renderWithI18n(
       <WallpaperCard
         wallpaper={mockWallpaper}
         onSetWallpaper={mockOnSetWallpaper}
@@ -55,7 +69,7 @@ describe("WallpaperCard", () => {
   });
 
   it("should call onSetWallpaper when button is clicked", () => {
-    render(
+    renderWithI18n(
       <WallpaperCard
         wallpaper={mockWallpaper}
         onSetWallpaper={mockOnSetWallpaper}
@@ -79,7 +93,7 @@ describe("WallpaperCard", () => {
       copyright: "巴黎，法国 (摄影师名字)",
     };
 
-    render(
+    renderWithI18n(
       <WallpaperCard
         wallpaper={wallpaperWithCopyright}
         onSetWallpaper={mockOnSetWallpaper}
@@ -93,7 +107,7 @@ describe("WallpaperCard", () => {
   it("should call openUrl when image container is clicked", async () => {
     const { openUrl } = await import("@tauri-apps/plugin-opener");
 
-    render(
+    renderWithI18n(
       <WallpaperCard
         wallpaper={mockWallpaper}
         onSetWallpaper={mockOnSetWallpaper}
@@ -109,7 +123,7 @@ describe("WallpaperCard", () => {
   it("should handle click when copyright_link is empty", () => {
     const wallpaperWithoutLink = { ...mockWallpaper, copyright_link: "" };
 
-    render(
+    renderWithI18n(
       <WallpaperCard
         wallpaper={wallpaperWithoutLink}
         onSetWallpaper={mockOnSetWallpaper}

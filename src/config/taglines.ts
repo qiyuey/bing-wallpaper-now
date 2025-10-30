@@ -42,11 +42,14 @@ const TAGLINES_EN = [
  * @param {"zh-CN" | "en-US"} lang 语言代码
  * @returns {string} 标语文本
  */
-export function getCurrentTagline(hour?: number, lang?: "zh-CN" | "en-US"): string {
+export function getCurrentTagline(
+  hour?: number,
+  lang?: "zh-CN" | "en-US",
+): string {
   const currentHour = hour ?? new Date().getHours();
   const language = lang || detectSystemLanguage();
   const taglines = language === "zh-CN" ? TAGLINES_ZH : TAGLINES_EN;
-  
+
   // 根据时间段选择不同的标语策略
   if (currentHour >= 6 && currentHour < 12) {
     // 早上（6:00-12:00）：使用积极向上的文案
@@ -72,14 +75,13 @@ export function getDailyTagline(lang?: "zh-CN" | "en-US"): string {
       1000 /
       60 /
       60 /
-      24
+      24,
   );
-  
+
   const language = lang || detectSystemLanguage();
   const taglines = language === "zh-CN" ? TAGLINES_ZH : TAGLINES_EN;
-  
+
   // 使用日期作为种子，确保同一天显示相同的标语
   const seed = dayOfYear % taglines.length;
   return taglines[seed];
 }
-

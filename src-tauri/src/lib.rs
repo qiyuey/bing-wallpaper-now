@@ -9,18 +9,18 @@ mod storage;
 mod utils;
 mod wallpaper_manager;
 
-use chrono::{DateTime, Local, TimeZone, Timelike, Duration as ChronoDuration};
+use chrono::{DateTime, Duration as ChronoDuration, Local, TimeZone, Timelike};
 use log::{error, info, warn};
 
 use models::{AppSettings, LocalWallpaper};
 use std::collections::HashSet;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tauri::{
     AppHandle, Emitter, Manager,
     menu::{MenuBuilder, MenuItemBuilder},
-    tray::{TrayIconBuilder, TrayIconEvent, TrayIcon},
+    tray::{TrayIcon, TrayIconBuilder, TrayIconEvent},
 };
 use tauri_plugin_autostart::ManagerExt;
 use tokio::sync::{Mutex, watch};
@@ -216,7 +216,7 @@ async fn update_settings(
 
     // 统一归一化逻辑
     let normalized = normalize_settings(new_settings);
-    
+
     // 在更新设置之前，先保存旧的语言设置
     let old_language = settings.language.clone();
 
@@ -290,6 +290,7 @@ mod lib_tests {
             keep_image_count: 3,
             launch_at_startup: false,
             theme: "system".to_string(),
+            language: "auto".to_string(),
         };
         let n = normalize_settings(s);
         assert_eq!(n.keep_image_count, 8);
@@ -368,17 +369,18 @@ async fn run_update_cycle(app: &AppHandle) {
 }
 
 /// 应用最新壁纸（如果需要）
-async fn apply_latest_wallpaper_if_needed(
-    app: &AppHandle,
-    state: &AppState,
-    wallpaper_dir: &PathBuf,
-) {
-    let latest_wallpapers = storage::get_local_wallpapers(wallpaper_dir).await.unwrap_or_default();
+async fn apply_latest_wallpaper_if_needed(app: &AppHandle, state: &AppState, wallpaper_dir: &Path) {
+    let latest_wallpapers = storage::get_local_wallpapers(wallpaper_dir)
+        .await
+        .unwrap_or_default();
     if let Some(first) = latest_wallpapers.first() {
         let path = PathBuf::from(&first.file_path);
         // 检查当前壁纸是否已经是目标壁纸
         let current_path_guard = state.current_wallpaper_path.lock().await;
-        let needs_set = current_path_guard.as_ref().map(|p| p != &path).unwrap_or(true);
+        let needs_set = current_path_guard
+            .as_ref()
+            .map(|p| p != &path)
+            .unwrap_or(true);
         drop(current_path_guard);
 
         if needs_set {
@@ -399,7 +401,7 @@ async fn fetch_bing_images_with_retry(mkt: &str) -> Option<Vec<models::BingImage
     let mut images_opt = None;
     const MAX_RETRIES: u32 = 10;
     const MAX_BACKOFF_SECS: u64 = 60; // 最大延迟 60 秒
-    
+
     for attempt in 0..MAX_RETRIES {
         match bing_api::fetch_bing_images(8, 0, mkt).await {
             Ok(v) => {
@@ -525,7 +527,9 @@ async fn run_update_cycle_internal(app: &AppHandle, force_update: bool) {
     };
 
     // 优化：在开始时读取一次本地壁纸列表，后续复用
-    let existing_wallpapers = storage::get_local_wallpapers(&dir).await.unwrap_or_default();
+    let existing_wallpapers = storage::get_local_wallpapers(&dir)
+        .await
+        .unwrap_or_default();
     let existing_files: HashSet<String> = existing_wallpapers
         .iter()
         .map(|w| {
@@ -632,10 +636,7 @@ async fn run_update_cycle_internal(app: &AppHandle, force_update: bool) {
         .iter()
         .filter_map(|image| {
             let save_path = storage::get_wallpaper_path(&dir, &image.startdate);
-            let filename = save_path
-                .file_name()
-                .and_then(|n| n.to_str())
-                .unwrap_or("");
+            let filename = save_path.file_name().and_then(|n| n.to_str()).unwrap_or("");
             if existing_files.contains(filename) {
                 None
             } else {
@@ -650,12 +651,13 @@ async fn run_update_cycle_internal(app: &AppHandle, force_update: bool) {
     let max_concurrent = {
         let cpu_count = num_cpus::get();
         // 确保至少为 1（防止极端情况 cpu_count 为 0）
-        // 限制在 1-8 之间，避免过多并发导致资源竞争
-        std::cmp::min(8, std::cmp::max(2, std::cmp::max(1, cpu_count) * 2))
+        // 限制在 2-8 之间，避免过多并发导致资源竞争
+        (std::cmp::max(1, cpu_count) * 2).clamp(2, 8)
     };
 
     // 并发下载壁纸
-    let (_success_count, _fail_count) = download_wallpapers_concurrently(app, download_tasks, max_concurrent).await;
+    let (_success_count, _fail_count) =
+        download_wallpapers_concurrently(app, download_tasks, max_concurrent).await;
 
     // 更新所有壁纸的元数据（包括已存在的图片）
     // 这确保了语言切换时，已存在图片的标题和描述也会更新
@@ -705,10 +707,8 @@ async fn run_update_cycle_internal(app: &AppHandle, force_update: bool) {
 
     // 优化：统一在最后发送一次通知（首次启动时已在533行单独发送）
     // 避免重复通知导致前端不必要的刷新
-    if !is_first_launch {
-        if let Err(e) = app.emit("wallpaper-updated", ()) {
-            warn!(target: "update", "通知前端失败: {e}");
-        }
+    if !is_first_launch && let Err(e) = app.emit("wallpaper-updated", ()) {
+        warn!(target: "update", "通知前端失败: {e}");
     }
 
     // 末尾重置 update_in_progress
@@ -748,23 +748,29 @@ fn start_auto_update_task(app: AppHandle) {
                 // 计算距下一次本地零点（含 5 分钟缓冲）剩余时间
                 let now = Local::now();
                 // 安全处理日期计算，提供 fallback 避免 panic
-                let tomorrow = now.date_naive().succ_opt()
-                    .unwrap_or_else(|| {
-                        warn!(target: "auto_update", "日期计算失败，使用默认值（明天）");
-                        now.date_naive() + ChronoDuration::days(1)
-                    });
-                let naive_next = tomorrow.and_hms_opt(0, 5, 0)
-                    .unwrap_or_else(|| {
-                        warn!(target: "auto_update", "时间创建失败，使用默认值（00:00:00）");
-                        tomorrow.and_hms_opt(0, 0, 0).expect("无法创建默认时间")
-                    });
-                let next_midnight = Local.from_local_datetime(&naive_next)
+                let tomorrow = now.date_naive().succ_opt().unwrap_or_else(|| {
+                    warn!(target: "auto_update", "日期计算失败，使用默认值（明天）");
+                    now.date_naive() + ChronoDuration::days(1)
+                });
+                let naive_next = tomorrow.and_hms_opt(0, 5, 0).unwrap_or_else(|| {
+                    warn!(target: "auto_update", "时间创建失败，使用默认值（00:00:00）");
+                    tomorrow.and_hms_opt(0, 0, 0).unwrap_or_else(|| {
+                        warn!(target: "auto_update", "无法创建默认时间，使用当前日期时间");
+                        now.naive_local()
+                    })
+                });
+                let next_midnight = Local
+                    .from_local_datetime(&naive_next)
                     .single()
                     .unwrap_or_else(|| {
                         warn!(target: "auto_update", "时区转换失败，使用首个匹配时间");
-                        Local.from_local_datetime(&naive_next)
+                        Local
+                            .from_local_datetime(&naive_next)
                             .earliest()
-                            .expect("无法创建本地时间")
+                            .unwrap_or_else(|| {
+                                warn!(target: "auto_update", "无法创建本地时间，使用当前时间 + 1小时");
+                                now + ChronoDuration::hours(1)
+                            })
                     });
                 let until_midnight = next_midnight - now;
 
@@ -913,14 +919,14 @@ fn get_tray_menu_texts(language: &str) -> (&str, &str, &str, &str, &str, &str) {
 /// 更新托盘菜单（仅更新菜单，不重新创建托盘图标）
 async fn update_tray_menu(app: &tauri::AppHandle) -> tauri::Result<()> {
     info!(target: "tray", "开始更新托盘菜单");
-    
+
     // 获取当前托盘图标
     let tray_icon_opt = {
         let state = app.state::<AppState>();
         let tray_icon_guard = state.tray_icon.lock().await;
         tray_icon_guard.clone()
     };
-    
+
     if let Some(tray) = tray_icon_opt {
         // 获取当前语言设置
         let language = {
@@ -928,15 +934,16 @@ async fn update_tray_menu(app: &tauri::AppHandle) -> tauri::Result<()> {
             let settings = state.settings.lock().await;
             settings.language.clone()
         };
-        
+
         info!(target: "tray", "更新托盘菜单，使用语言: {}", language);
-        
+
         let (show_text, refresh_text, open_folder_text, settings_text, about_text, quit_text) =
             get_tray_menu_texts(&language);
-        
+
         let show_item = MenuItemBuilder::with_id("show", show_text).build(app)?;
         let refresh_item = MenuItemBuilder::with_id("refresh", refresh_text).build(app)?;
-        let open_folder_item = MenuItemBuilder::with_id("open_folder", open_folder_text).build(app)?;
+        let open_folder_item =
+            MenuItemBuilder::with_id("open_folder", open_folder_text).build(app)?;
         let settings_item = MenuItemBuilder::with_id("settings", settings_text).build(app)?;
         let about_item = MenuItemBuilder::with_id("about", about_text).build(app)?;
         let quit_item = MenuItemBuilder::with_id("quit", quit_text).build(app)?;
@@ -967,7 +974,7 @@ async fn update_tray_menu(app: &tauri::AppHandle) -> tauri::Result<()> {
 /// 设置系统托盘（初始创建）
 fn setup_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
     info!(target: "tray", "开始设置托盘菜单");
-    
+
     // 获取当前语言设置（同步方式，仅在初始化时使用）
     let language = {
         // 尝试从 AppState 获取，如果失败则使用默认值
@@ -982,12 +989,12 @@ fn setup_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
             "auto".to_string()
         }
     };
-    
+
     info!(target: "tray", "使用语言: {}", language);
-    
+
     let (show_text, refresh_text, open_folder_text, settings_text, about_text, quit_text) =
         get_tray_menu_texts(&language);
-    
+
     let show_item = MenuItemBuilder::with_id("show", show_text).build(app)?;
     let refresh_item = MenuItemBuilder::with_id("refresh", refresh_text).build(app)?;
     let open_folder_item = MenuItemBuilder::with_id("open_folder", open_folder_text).build(app)?;
@@ -1035,11 +1042,12 @@ fn setup_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
 
     // Linux 和其他平台使用默认图标
     #[cfg(not(any(target_os = "windows", target_os = "macos")))]
-    let icon = app.default_window_icon()
+    let icon = app
+        .default_window_icon()
         .ok_or_else(|| {
             tauri::Error::InvalidIcon(std::io::Error::new(
                 std::io::ErrorKind::NotFound,
-                "Default window icon not found"
+                "Default window icon not found",
             ))
         })?
         .clone();
@@ -1056,7 +1064,7 @@ fn setup_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
                 let app = tray.app_handle();
                 if let Some(state) = app.try_state::<AppState>() {
                     let now = Instant::now();
-                    
+
                     // 使用 try_lock 避免阻塞，如果失败则跳过防抖检查
                     if let Ok(mut last_click) = state.last_tray_click.try_lock() {
                         if let Some(last) = *last_click

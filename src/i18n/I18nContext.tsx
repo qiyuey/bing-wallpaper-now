@@ -1,5 +1,16 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { Language, TranslationKey, translations, getActualLanguage } from "./translations";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
+import {
+  Language,
+  TranslationKey,
+  translations,
+  getActualLanguage,
+} from "./translations";
 import { invoke } from "@tauri-apps/api/core";
 import { AppSettings } from "../types";
 
@@ -43,9 +54,8 @@ export function I18nProvider({ children }: I18nProviderProps) {
   };
 
   const setLanguage = async (lang: Language) => {
-    setLanguageState(lang);
+    // 先保存设置，成功后再更新状态，避免竞态条件
     try {
-      // 获取当前设置并更新语言
       const currentSettings = await invoke<AppSettings>("get_settings");
       await invoke("update_settings", {
         newSettings: {
@@ -53,8 +63,11 @@ export function I18nProvider({ children }: I18nProviderProps) {
           language: lang,
         },
       });
+      // 保存成功后再更新状态
+      setLanguageState(lang);
     } catch (err) {
       console.error("Failed to save language setting:", err);
+      // 保存失败时不更新状态，保持当前语言设置
     }
   };
 
@@ -65,7 +78,8 @@ export function I18nProvider({ children }: I18nProviderProps) {
         value={{
           language: "auto",
           actualLanguage: getActualLanguage("auto"),
-          t: (key: TranslationKey) => translations[getActualLanguage("auto")][key] || key,
+          t: (key: TranslationKey) =>
+            translations[getActualLanguage("auto")][key] || key,
           setLanguage,
         }}
       >
@@ -88,4 +102,3 @@ export function useI18n() {
   }
   return context;
 }
-

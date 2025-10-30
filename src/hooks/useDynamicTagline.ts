@@ -20,21 +20,31 @@ export type TaglineMode = "time-based" | "daily" | "random";
 export function useDynamicTagline(
   mode: TaglineMode = "time-based",
   updateInterval: number = 60000,
-  lang?: "zh-CN" | "en-US"
+  lang?: "zh-CN" | "en-US",
 ): string {
   const currentLang = lang || detectSystemLanguage();
-  
+
   const [tagline, setTagline] = useState<string>(() => {
     switch (mode) {
       case "time-based":
         return getCurrentTagline(undefined, currentLang);
       case "daily":
         return getDailyTagline(currentLang);
-      case "random":
-        const taglines = currentLang === "zh-CN" 
-          ? ["世界之美 · 每日相遇", "探索世界的每一个角落", "让每一天都有新的开始"]
-          : ["Beauty of the World · Daily Encounter", "Explore Every Corner of the World", "A New Beginning Every Day"];
+      case "random": {
+        const taglines =
+          currentLang === "zh-CN"
+            ? [
+                "世界之美 · 每日相遇",
+                "探索世界的每一个角落",
+                "让每一天都有新的开始",
+              ]
+            : [
+                "Beauty of the World · Daily Encounter",
+                "Explore Every Corner of the World",
+                "A New Beginning Every Day",
+              ];
         return taglines[Math.floor(Math.random() * taglines.length)];
+      }
       default:
         return getCurrentTagline(undefined, currentLang);
     }
@@ -49,12 +59,22 @@ export function useDynamicTagline(
       case "daily":
         setTagline(getDailyTagline(currentLang));
         break;
-      case "random":
-        const taglines = currentLang === "zh-CN" 
-          ? ["世界之美 · 每日相遇", "探索世界的每一个角落", "让每一天都有新的开始"]
-          : ["Beauty of the World · Daily Encounter", "Explore Every Corner of the World", "A New Beginning Every Day"];
+      case "random": {
+        const taglines =
+          currentLang === "zh-CN"
+            ? [
+                "世界之美 · 每日相遇",
+                "探索世界的每一个角落",
+                "让每一天都有新的开始",
+              ]
+            : [
+                "Beauty of the World · Daily Encounter",
+                "Explore Every Corner of the World",
+                "A New Beginning Every Day",
+              ];
         setTagline(taglines[Math.floor(Math.random() * taglines.length)]);
         break;
+      }
     }
   }, [mode, currentLang]);
 
@@ -63,19 +83,29 @@ export function useDynamicTagline(
     if (mode === "daily") {
       return;
     }
-    
+
     // 设置定时器更新标语
     const intervalId = setInterval(() => {
       switch (mode) {
         case "time-based":
           setTagline(getCurrentTagline(undefined, currentLang));
           break;
-        case "random":
-          const taglines = currentLang === "zh-CN" 
-            ? ["世界之美 · 每日相遇", "探索世界的每一个角落", "让每一天都有新的开始"]
-            : ["Beauty of the World · Daily Encounter", "Explore Every Corner of the World", "A New Beginning Every Day"];
+        case "random": {
+          const taglines =
+            currentLang === "zh-CN"
+              ? [
+                  "世界之美 · 每日相遇",
+                  "探索世界的每一个角落",
+                  "让每一天都有新的开始",
+                ]
+              : [
+                  "Beauty of the World · Daily Encounter",
+                  "Explore Every Corner of the World",
+                  "A New Beginning Every Day",
+                ];
           setTagline(taglines[Math.floor(Math.random() * taglines.length)]);
           break;
+        }
       }
     }, updateInterval);
 
@@ -86,4 +116,3 @@ export function useDynamicTagline(
 
   return tagline;
 }
-

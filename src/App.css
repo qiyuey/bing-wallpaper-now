@@ -365,7 +365,8 @@ body {
   background: rgba(129, 140, 248, 0.3);
 }
 
-:root[data-theme="dark"] .wallpaper-virtual-list::-webkit-scrollbar-thumb:hover {
+:root[data-theme="dark"]
+  .wallpaper-virtual-list::-webkit-scrollbar-thumb:hover {
   background: rgba(129, 140, 248, 0.5);
 }
 
@@ -378,14 +379,18 @@ body {
   background: rgba(99, 102, 241, 0.4);
 }
 
-:root[data-theme="light"] .wallpaper-virtual-list::-webkit-scrollbar-thumb:hover {
+:root[data-theme="light"]
+  .wallpaper-virtual-list::-webkit-scrollbar-thumb:hover {
   background: rgba(99, 102, 241, 0.6);
 }
 
 /* Virtual List Row - react-window 的 List 组件会自己处理滚动 */
 .wallpaper-row {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(var(--card-min-width-desktop), 1fr));
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(var(--card-min-width-desktop), 1fr)
+  );
   gap: var(--card-gap-desktop);
   padding: 0 var(--grid-padding-x-desktop);
   align-items: start;
@@ -443,7 +448,10 @@ body {
 
 @media (min-width: 751px) and (max-width: 1024px) {
   .wallpaper-row {
-    grid-template-columns: repeat(auto-fill, minmax(var(--card-min-width-narrow), 1fr));
+    grid-template-columns: repeat(
+      auto-fill,
+      minmax(var(--card-min-width-narrow), 1fr)
+    );
     gap: var(--card-gap-narrow);
     padding: 0 var(--grid-padding-x-tablet);
   }
@@ -451,7 +459,10 @@ body {
 
 @media (min-width: 1920px) {
   .wallpaper-row {
-    grid-template-columns: repeat(auto-fill, minmax(var(--card-min-width-4k), 1fr));
+    grid-template-columns: repeat(
+      auto-fill,
+      minmax(var(--card-min-width-4k), 1fr)
+    );
   }
 }
 

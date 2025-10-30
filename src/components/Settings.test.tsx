@@ -1,7 +1,8 @@
 /* eslint-env browser */
 import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { screen, fireEvent, waitFor } from "@testing-library/react";
+import { renderWithI18n } from "../test/test-utils";
 import { Settings } from "./Settings";
 import { ThemeProvider } from "../contexts/ThemeContext";
 import * as dialog from "@tauri-apps/plugin-dialog";
@@ -11,9 +12,9 @@ import { invoke } from "@tauri-apps/api/core";
 vi.mock("@tauri-apps/api/core");
 vi.mock("@tauri-apps/plugin-dialog");
 
-// Helper to render with ThemeProvider
+// Helper to render with ThemeProvider and I18nProvider
 const renderWithTheme = (component: React.ReactElement) => {
-  return render(<ThemeProvider>{component}</ThemeProvider>);
+  return renderWithI18n(<ThemeProvider>{component}</ThemeProvider>);
 };
 
 describe("Settings", () => {

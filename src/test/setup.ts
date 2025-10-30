@@ -21,6 +21,7 @@ Object.defineProperty(window, "__TAURI_INTERNALS__", {
           save_directory: null,
           keep_image_count: 30,
           launch_at_startup: false,
+          language: "zh-CN", // Default to Chinese for tests
         });
       }
       if (cmd === "update_settings") {

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
+import { renderWithI18n } from "../test/test-utils";
 import { WallpaperGrid } from "./WallpaperGrid";
 import { LocalWallpaper } from "../types";
 
@@ -52,7 +53,7 @@ describe("WallpaperGrid", () => {
   const mockOnSetWallpaper = vi.fn();
 
   it("should render loading state when loading is true", () => {
-    const { container } = render(
+    const { container } = renderWithI18n(
       <WallpaperGrid
         wallpapers={[]}
         onSetWallpaper={mockOnSetWallpaper}
@@ -67,7 +68,7 @@ describe("WallpaperGrid", () => {
   });
 
   it("should render empty state when no wallpapers are provided", () => {
-    render(
+    renderWithI18n(
       <WallpaperGrid
         wallpapers={[]}
         onSetWallpaper={mockOnSetWallpaper}
@@ -82,7 +83,7 @@ describe("WallpaperGrid", () => {
   });
 
   it("should render wallpapers when provided", async () => {
-    render(
+    renderWithI18n(
       <WallpaperGrid
         wallpapers={mockWallpapers}
         onSetWallpaper={mockOnSetWallpaper}
@@ -97,7 +98,7 @@ describe("WallpaperGrid", () => {
   });
 
   it("should render correct number of wallpaper cards", async () => {
-    const { container } = render(
+    const { container } = renderWithI18n(
       <WallpaperGrid
         wallpapers={mockWallpapers}
         onSetWallpaper={mockOnSetWallpaper}
@@ -112,7 +113,7 @@ describe("WallpaperGrid", () => {
   });
 
   it("should render virtual list container", () => {
-    const { container } = render(
+    const { container } = renderWithI18n(
       <WallpaperGrid
         wallpapers={mockWallpapers}
         onSetWallpaper={mockOnSetWallpaper}
@@ -125,7 +126,7 @@ describe("WallpaperGrid", () => {
   });
 
   it("should default loading to false when not provided", () => {
-    render(
+    renderWithI18n(
       <WallpaperGrid wallpapers={[]} onSetWallpaper={mockOnSetWallpaper} />,
     );
 
@@ -139,7 +140,7 @@ describe("WallpaperGrid", () => {
   it("should render wallpaper grid with single wallpaper", async () => {
     const singleWallpaper = [mockWallpapers[0]];
 
-    render(
+    renderWithI18n(
       <WallpaperGrid
         wallpapers={singleWallpaper}
         onSetWallpaper={mockOnSetWallpaper}

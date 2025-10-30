@@ -1,24 +1,19 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import {
-  render,
-  screen,
-  fireEvent,
-  waitFor,
-  cleanup,
-} from "@testing-library/react";
+import { screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import React from "react";
 import App from "./App";
 import { invoke } from "@tauri-apps/api/core";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { listen, type Event } from "@tauri-apps/api/event";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { renderWithI18n } from "./test/test-utils";
 
 vi.mock("@tauri-apps/api/core");
 vi.mock("@tauri-apps/plugin-opener");
 vi.mock("@tauri-apps/api/event");
 
 const renderWithTheme = (component: React.ReactElement) => {
-  return render(<ThemeProvider>{component}</ThemeProvider>);
+  return renderWithI18n(<ThemeProvider>{component}</ThemeProvider>);
 };
 
 describe("App", () => {
@@ -68,6 +63,7 @@ describe("App", () => {
           save_directory: null,
           keep_image_count: 8,
           launch_at_startup: false,
+          language: "zh-CN",
         });
       }
       if (cmd === "get_last_update_time") {
@@ -99,7 +95,7 @@ describe("App", () => {
     await waitFor(() => {
       expect(screen.getByTitle("更新")).toBeInTheDocument();
     });
-    expect(screen.getByTitle("打开下载目录")).toBeInTheDocument();
+    expect(screen.getByTitle("打开目录")).toBeInTheDocument();
     expect(screen.getByTitle("设置")).toBeInTheDocument();
   });
 
@@ -153,6 +149,7 @@ describe("App", () => {
           save_directory: null,
           keep_image_count: 8,
           launch_at_startup: false,
+          language: "zh-CN",
         });
       }
       return Promise.resolve(null);
@@ -161,10 +158,10 @@ describe("App", () => {
     renderWithTheme(<App />);
 
     await waitFor(() => {
-      expect(screen.getByTitle("打开下载目录")).toBeInTheDocument();
+      expect(screen.getByTitle("打开目录")).toBeInTheDocument();
     });
 
-    const folderButton = screen.getByTitle("打开下载目录");
+    const folderButton = screen.getByTitle("打开目录");
     fireEvent.click(folderButton);
 
     await waitFor(() => {
@@ -186,6 +183,7 @@ describe("App", () => {
           save_directory: null,
           keep_image_count: 8,
           launch_at_startup: false,
+          language: "zh-CN",
         });
       }
       return Promise.resolve(null);
@@ -225,6 +223,7 @@ describe("App", () => {
           save_directory: null,
           keep_image_count: 8,
           launch_at_startup: false,
+          language: "zh-CN",
         });
       }
       return Promise.resolve(null);
@@ -252,6 +251,7 @@ describe("App", () => {
           save_directory: null,
           keep_image_count: 8,
           launch_at_startup: false,
+          language: "zh-CN",
         });
       }
       return Promise.resolve(null);
@@ -330,6 +330,7 @@ describe("App", () => {
           save_directory: null,
           keep_image_count: 8,
           launch_at_startup: false,
+          language: "zh-CN",
         });
       }
       if (cmd === "get_last_update_time") {
@@ -368,6 +369,7 @@ describe("App", () => {
           save_directory: null,
           keep_image_count: 8,
           launch_at_startup: false,
+          language: "zh-CN",
         });
       }
       return Promise.resolve(null);
@@ -431,6 +433,7 @@ describe("App", () => {
           save_directory: null,
           keep_image_count: 8,
           launch_at_startup: false,
+          language: "zh-CN",
         });
       }
       if (cmd === "get_last_update_time") {
@@ -469,6 +472,7 @@ describe("App", () => {
           save_directory: null,
           keep_image_count: 8,
           launch_at_startup: false,
+          language: "zh-CN",
         });
       }
       return Promise.resolve(null);
@@ -511,6 +515,7 @@ describe("App", () => {
           save_directory: null,
           keep_image_count: 8,
           launch_at_startup: false,
+          language: "zh-CN",
         });
       }
       if (cmd === "get_last_update_time") {
@@ -523,10 +528,10 @@ describe("App", () => {
 
     // Wait for component to be ready
     await waitFor(() => {
-      expect(screen.getByTitle("打开下载目录")).toBeInTheDocument();
+      expect(screen.getByTitle("打开目录")).toBeInTheDocument();
     });
 
-    const folderButton = screen.getByTitle("打开下载目录");
+    const folderButton = screen.getByTitle("打开目录");
     fireEvent.click(folderButton);
 
     await waitFor(
@@ -587,6 +592,7 @@ describe("App", () => {
           save_directory: null,
           keep_image_count: 8,
           launch_at_startup: false,
+          language: "zh-CN",
         });
       }
       if (cmd === "get_last_update_time") {
@@ -599,10 +605,10 @@ describe("App", () => {
 
     // Wait for component to be ready
     await waitFor(() => {
-      expect(screen.getByTitle("打开下载目录")).toBeInTheDocument();
+      expect(screen.getByTitle("打开目录")).toBeInTheDocument();
     });
 
-    const folderButton = screen.getByTitle("打开下载目录");
+    const folderButton = screen.getByTitle("打开目录");
     fireEvent.click(folderButton);
 
     await waitFor(

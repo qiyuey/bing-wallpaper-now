@@ -52,4 +52,3 @@ export const EVENTS = {
   /** 打开文件夹 */
   OPEN_FOLDER: "open-folder",
 } as const;
-

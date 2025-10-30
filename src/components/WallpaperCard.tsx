@@ -129,9 +129,7 @@ export const WallpaperCard = memo(function WallpaperCard({
           // 图片加载失败 - 仅显示错误状态，重试按钮在底部
           <div className="wallpaper-image-placeholder">
             <p className="placeholder-error-text">{t("imageLoadError")}</p>
-            <p className="placeholder-hint-text">
-              {t("imageLoadErrorHint")}
-            </p>
+            <p className="placeholder-hint-text">{t("imageLoadErrorHint")}</p>
           </div>
         ) : (
           <>
@@ -170,7 +168,11 @@ export const WallpaperCard = memo(function WallpaperCard({
                 : t("setWallpaper")
           }
         >
-          {imageLoading ? t("loading") : imageError ? t("retry") : t("setWallpaper")}
+          {imageLoading
+            ? t("loading")
+            : imageError
+              ? t("retry")
+              : t("setWallpaper")}
         </button>
       </div>
     </div>
