@@ -314,4 +314,130 @@ describe("Settings", () => {
       );
     });
   });
+
+  it("should toggle theme selection", async () => {
+    renderWithTheme(<Settings onClose={mockOnClose} />);
+
+    // Wait for component to render
+    await screen.findByText(/选择文件夹/i, {}, { timeout: 3000 });
+
+    // Find and click light theme radio
+    const lightThemeRadio = screen.getByLabelText(/浅色/i) as HTMLInputElement; // eslint-disable-line no-undef
+    fireEvent.click(lightThemeRadio);
+
+    await waitFor(() => {
+      expect(mockUpdateSettings).toHaveBeenCalledWith(
+        expect.objectContaining({
+          theme: "light",
+        }),
+      );
+    });
+  });
+
+  it("should toggle language selection", async () => {
+    const mockSetLanguage = vi.fn();
+    const mockOnLanguageChange = vi.fn();
+
+    // Mock useI18n hook
+    vi.doMock("../i18n/I18nContext", () => ({
+      useI18n: () => ({
+        t: (key: string) => key,
+        setLanguage: mockSetLanguage,
+      }),
+    }));
+
+    renderWithTheme(
+      <Settings
+        onClose={mockOnClose}
+        onLanguageChange={mockOnLanguageChange}
+      />,
+    );
+
+    // Wait for component to render
+    await screen.findByText(/选择文件夹/i, {}, { timeout: 3000 });
+
+    // Find and click English language radio
+    const enRadio = screen.getByLabelText(/English/i) as HTMLInputElement; // eslint-disable-line no-undef
+    fireEvent.click(enRadio);
+
+    await waitFor(() => {
+      expect(mockUpdateSettings).toHaveBeenCalledWith(
+        expect.objectContaining({
+          language: "en-US",
+        }),
+      );
+    });
+  });
+
+  it("should handle settings update error", async () => {
+    const consoleErrorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
+
+    mockUpdateSettings.mockRejectedValueOnce(new Error("Update failed"));
+
+    renderWithTheme(<Settings onClose={mockOnClose} />);
+
+    const checkbox = (await screen.findByLabelText(
+      /自动更新/i,
+      {},
+      { timeout: 3000 },
+    )) as HTMLInputElement; // eslint-disable-line no-undef
+
+    fireEvent.click(checkbox);
+
+    // Wait for the update to be attempted
+    await waitFor(
+      () => {
+        expect(mockUpdateSettings).toHaveBeenCalled();
+      },
+      { timeout: 1000 },
+    );
+
+    // Wait for error handling
+    await waitFor(
+      () => {
+        expect(consoleErrorSpy).toHaveBeenCalled();
+      },
+      { timeout: 1000 },
+    );
+
+    consoleErrorSpy.mockRestore();
+    alertSpy.mockRestore();
+  });
+
+  it("should handle getDefaultDirectory error", async () => {
+    const consoleErrorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+
+    mockGetDefaultDirectory.mockRejectedValueOnce(
+      new Error("Failed to get default directory"),
+    );
+
+    renderWithTheme(<Settings onClose={mockOnClose} />);
+
+    // Component should still render even if getDefaultDirectory fails
+    await screen.findByText(/选择文件夹/i, {}, { timeout: 3000 });
+
+    expect(screen.getByText(/设置|加载设置中.../i)).toBeInTheDocument();
+
+    consoleErrorSpy.mockRestore();
+  });
+
+  it("should show loading state when settings are loading", () => {
+    vi.spyOn(useSettingsModule, "useSettings").mockReturnValue({
+      settings: null,
+      loading: true,
+      error: null,
+      fetchSettings: vi.fn(),
+      updateSettings: mockUpdateSettings,
+      getDefaultDirectory: mockGetDefaultDirectory,
+    });
+
+    renderWithTheme(<Settings onClose={mockOnClose} />);
+
+    expect(screen.getByText(/加载设置中.../i)).toBeInTheDocument();
+  });
 });

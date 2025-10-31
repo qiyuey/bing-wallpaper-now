@@ -24,9 +24,14 @@ export function Settings({
   const [defaultDir, setDefaultDir] = useState<string>("");
 
   useEffect(() => {
-    getDefaultDirectory().then((dir) => {
-      if (dir) setDefaultDir(dir);
-    });
+    getDefaultDirectory()
+      .then((dir) => {
+        if (dir) setDefaultDir(dir);
+      })
+      .catch((err) => {
+        // 静默处理错误，不影响组件渲染
+        console.error("Failed to get default directory:", err);
+      });
   }, [getDefaultDirectory]);
 
   const handleChange = async (

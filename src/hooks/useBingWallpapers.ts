@@ -29,11 +29,24 @@ export function useBingWallpapers() {
     try {
       const wallpapers = await invoke<LocalWallpaper[]>("get_local_wallpapers");
       // 只有数据真正变化时才更新状态，避免不必要的重渲染
+      // 注意：使用深度比较确保 title 和 copyright 变化时也能检测到
       setLocalWallpapers((prev) => {
-        if (JSON.stringify(prev) === JSON.stringify(wallpapers)) {
-          return prev;
+        // 先比较数组长度
+        if (prev.length !== wallpapers.length) {
+          return wallpapers;
         }
-        return wallpapers;
+        // 比较每个 wallpaper 的关键字段（title 和 copyright 可能因语言变化而变化）
+        const hasChanges = prev.some((p, i) => {
+          const w = wallpapers[i];
+          return (
+            p.id !== w.id ||
+            p.start_date !== w.start_date ||
+            p.title !== w.title ||
+            p.copyright !== w.copyright ||
+            p.file_path !== w.file_path
+          );
+        });
+        return hasChanges ? wallpapers : prev;
       });
     } catch (err) {
       setError(String(err));

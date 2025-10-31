@@ -112,12 +112,11 @@ function App() {
 
   // 语言切换时的刷新（强制更新）
   const handleLanguageChangeRefresh = async () => {
-    // 立即刷新列表，以便显示新语言的标题和描述
-    await fetchLocalWallpapers(true);
     try {
+      // forceUpdate 内部已经调用了 fetchLocalWallpapers(true)，无需重复调用
       await forceUpdate(true);
     } catch (err) {
-      console.warn("Force update failed:", err);
+      console.warn("Language change refresh failed:", err);
     }
   };
 

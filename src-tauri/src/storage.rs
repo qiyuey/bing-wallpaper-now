@@ -92,6 +92,40 @@ pub async fn get_local_wallpapers(directory: &Path, language: &str) -> Result<Ve
     manager.get_all_wallpapers(language).await
 }
 
+/// 验证壁纸数据的语言是否匹配
+///
+/// 检查 urlbase 字段中的语言代码是否与期望的语言匹配。
+/// urlbase 格式通常为：/th?id=OHR.xxx_ZH-CN1234567890 或 /th?id=OHR.xxx_EN-US1234567890
+///
+/// # Arguments
+/// * `wallpaper` - 要验证的壁纸数据
+/// * `expected_language` - 期望的语言代码（如 "zh-CN", "en-US"）
+///
+/// # Returns
+/// `true` 表示通过验证，`false` 表示语言不匹配
+fn validate_wallpaper_language(wallpaper: &LocalWallpaper, expected_language: &str) -> bool {
+    let expected_lang_in_url = match expected_language {
+        "zh-CN" => "_ZH-CN",
+        "en-US" => "_EN-US",
+        _ => return true, // 其他语言不验证，直接通过
+    };
+
+    // 如果 urlbase 为空，不进行验证（向后兼容）
+    if wallpaper.urlbase.is_empty() {
+        return true;
+    }
+
+    // 检查是否包含其他语言的代码
+    let contains_other_lang = match expected_language {
+        "zh-CN" => wallpaper.urlbase.contains("_EN-US"),
+        "en-US" => wallpaper.urlbase.contains("_ZH-CN"),
+        _ => false,
+    };
+
+    // 如果包含其他语言代码，且不包含预期语言代码，则验证失败
+    !contains_other_lang || wallpaper.urlbase.contains(expected_lang_in_url)
+}
+
 /// 批量保存壁纸元数据（性能优化）
 ///
 /// 一次性保存多个壁纸，比多次调用 `save_wallpaper_metadata` 效率高得多。
@@ -105,8 +139,37 @@ pub async fn save_wallpapers_metadata(
     directory: &Path,
     language: &str,
 ) -> Result<()> {
+    // 验证数据语言匹配：过滤掉语言不匹配的条目
+    let mut validated_wallpapers = Vec::new();
+    let mut filtered_count = 0;
+
+    for wallpaper in wallpapers {
+        if !validate_wallpaper_language(&wallpaper, language) {
+            // 检测到语言不匹配，记录警告并跳过
+            log::warn!(
+                "跳过语言不匹配的壁纸: start_date={}, urlbase={}, 期望语言={}",
+                wallpaper.start_date,
+                wallpaper.urlbase,
+                language
+            );
+            filtered_count += 1;
+            continue;
+        }
+        validated_wallpapers.push(wallpaper);
+    }
+
+    if filtered_count > 0 {
+        log::warn!(
+            "过滤了 {} 条语言不匹配的壁纸数据（期望语言: {}）",
+            filtered_count,
+            language
+        );
+    }
+
     let manager = get_index_manager(directory);
-    manager.upsert_wallpapers(wallpapers, language).await
+    manager
+        .upsert_wallpapers(validated_wallpapers, language)
+        .await
 }
 
 /// 删除旧的壁纸，只保留指定数量（使用索引）
@@ -192,6 +255,100 @@ mod tests {
     use chrono::Utc;
     use std::time::SystemTime;
     use tokio::fs;
+
+    #[test]
+    fn test_validate_wallpaper_language_zh_cn() {
+        // 测试中文壁纸验证
+        let wallpaper_zh = LocalWallpaper {
+            id: "test1".to_string(),
+            title: "测试".to_string(),
+            copyright: "测试版权".to_string(),
+            copyright_link: "https://example.com".to_string(),
+            start_date: "20250101".to_string(),
+            end_date: "20250102".to_string(),
+            file_path: "/path/to/file.jpg".to_string(),
+            download_time: Utc::now(),
+            urlbase: "/th?id=OHR.Test_ZH-CN1234567890".to_string(),
+        };
+
+        assert!(validate_wallpaper_language(&wallpaper_zh, "zh-CN"));
+        assert!(!validate_wallpaper_language(&wallpaper_zh, "en-US"));
+    }
+
+    #[test]
+    fn test_validate_wallpaper_language_en_us() {
+        // 测试英文壁纸验证
+        let wallpaper_en = LocalWallpaper {
+            id: "test2".to_string(),
+            title: "Test".to_string(),
+            copyright: "Test Copyright".to_string(),
+            copyright_link: "https://example.com".to_string(),
+            start_date: "20250101".to_string(),
+            end_date: "20250102".to_string(),
+            file_path: "/path/to/file.jpg".to_string(),
+            download_time: Utc::now(),
+            urlbase: "/th?id=OHR.Test_EN-US1234567890".to_string(),
+        };
+
+        assert!(validate_wallpaper_language(&wallpaper_en, "en-US"));
+        assert!(!validate_wallpaper_language(&wallpaper_en, "zh-CN"));
+    }
+
+    #[test]
+    fn test_validate_wallpaper_language_empty_urlbase() {
+        // 测试空 urlbase（向后兼容）
+        let wallpaper_empty = LocalWallpaper {
+            id: "test3".to_string(),
+            title: "Test".to_string(),
+            copyright: "Test Copyright".to_string(),
+            copyright_link: "https://example.com".to_string(),
+            start_date: "20250101".to_string(),
+            end_date: "20250102".to_string(),
+            file_path: "/path/to/file.jpg".to_string(),
+            download_time: Utc::now(),
+            urlbase: "".to_string(),
+        };
+
+        assert!(validate_wallpaper_language(&wallpaper_empty, "zh-CN"));
+        assert!(validate_wallpaper_language(&wallpaper_empty, "en-US"));
+    }
+
+    #[test]
+    fn test_validate_wallpaper_language_no_lang_marker() {
+        // 测试不包含语言标记的 urlbase
+        let wallpaper_no_marker = LocalWallpaper {
+            id: "test4".to_string(),
+            title: "Test".to_string(),
+            copyright: "Test Copyright".to_string(),
+            copyright_link: "https://example.com".to_string(),
+            start_date: "20250101".to_string(),
+            end_date: "20250102".to_string(),
+            file_path: "/path/to/file.jpg".to_string(),
+            download_time: Utc::now(),
+            urlbase: "/th?id=OHR.Test1234567890".to_string(),
+        };
+
+        assert!(validate_wallpaper_language(&wallpaper_no_marker, "zh-CN"));
+        assert!(validate_wallpaper_language(&wallpaper_no_marker, "en-US"));
+    }
+
+    #[test]
+    fn test_validate_wallpaper_language_unknown_language() {
+        // 测试未知语言（应该始终通过验证）
+        let wallpaper = LocalWallpaper {
+            id: "test5".to_string(),
+            title: "Test".to_string(),
+            copyright: "Test Copyright".to_string(),
+            copyright_link: "https://example.com".to_string(),
+            start_date: "20250101".to_string(),
+            end_date: "20250102".to_string(),
+            file_path: "/path/to/file.jpg".to_string(),
+            download_time: Utc::now(),
+            urlbase: "/th?id=OHR.Test_ZH-CN1234567890".to_string(),
+        };
+
+        assert!(validate_wallpaper_language(&wallpaper, "unknown"));
+    }
 
     #[test]
     fn test_get_default_wallpaper_directory() {

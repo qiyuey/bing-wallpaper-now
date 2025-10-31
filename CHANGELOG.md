@@ -2,6 +2,41 @@
 
 All notable changes to Bing Wallpaper Now will be documented in this file.
 
+## 0.3.8
+
+### Added
+
+- 🔍 **壁纸语言验证功能**
+  - 新增 `validate_wallpaper_language` 函数，验证壁纸数据的语言是否匹配
+  - 保存壁纸元数据时自动过滤语言不匹配的条目，防止数据混乱
+  - 根据 `urlbase` 字段中的语言代码（如 `_ZH-CN`、`_EN-US`）进行验证
+  - 自动记录警告日志，便于排查问题
+
+- 🧪 **测试覆盖率提升**
+  - 新增 `useDynamicTagline` hook 的完整测试用例（14 个测试）
+  - 新增 `WallpaperCard` 组件的扩展测试用例（18 个测试）
+  - 新增 `Settings` 组件的测试用例
+  - 修复测试中的文本匹配问题，提高测试稳定性
+
+### Changed
+
+- 🔧 **语言切换逻辑优化**
+  - 优化语言切换时的刷新逻辑，避免重复调用 `fetchLocalWallpapers`
+  - `forceUpdate` 内部已包含刷新逻辑，简化调用流程
+  - 改进错误处理，使用更明确的错误消息
+
+- 🛠️ **代码质量改进**
+  - 重构 `WallpaperCard` 组件，优化图片加载状态管理
+  - 改进错误状态处理和重试逻辑
+  - 优化组件渲染性能，使用 `memo` 和 `useMemo` 减少不必要的重渲染
+
+### Fixed
+
+- 🐛 **修复测试用例中的文本匹配问题**
+  - 修复测试期望文本与实际显示文本不匹配的问题
+  - 更新测试用例以匹配实际的国际化文本（"加载失败"、"重新加载"等）
+  - 修复多个元素匹配导致的测试失败问题
+
 ## 0.3.7
 
 ### Added
