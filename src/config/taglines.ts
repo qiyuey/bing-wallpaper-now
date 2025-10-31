@@ -8,32 +8,32 @@ import { detectSystemLanguage } from "../i18n/translations";
  * 标语文案集合（中文）
  */
 const TAGLINES_ZH = [
-  "世界之美 · 每日相遇",
-  "探索世界的每一个角落",
-  "让每一天都有新的开始",
-  "发现生活中的美好瞬间",
-  "每一张壁纸，都是一个新的故事",
-  "用美丽的画面开启新的一天",
-  "让灵感从桌面开始",
-  "世界那么大，每天看一看",
-  "收藏世界的每一处风景",
-  "用色彩装点你的每一天",
+  "哪怕前路渺茫，也要让心中有光。",
+  "世界以痛吻我，要我报之以歌。",
+  "不要因为走得太远，而忘了当初为什么出发。",
+  "生活不止眼前的苟且，还有诗和远方。",
+  "即使被世界辜负，也不要辜负自己的热爱。",
+  "黑夜给了我黑色的眼睛，我却用它寻找光明。",
+  "凡心所向，素履以往。生如逆旅，一苇以航。",
+  "我不能选择怎么生，怎么死，但我能决定怎么爱，怎么活。",
+  "生活不能等待别人来安排，要自己去争取和奋斗。",
+  "山川是不卷收的文章，日月为你掌灯伴读。",
 ] as const;
 
 /**
  * 标语文案集合（英文）
  */
 const TAGLINES_EN = [
-  "Beauty of the World · Daily Encounter",
-  "Explore Every Corner of the World",
-  "A New Beginning Every Day",
-  "Discover Beautiful Moments in Life",
-  "Every Wallpaper Tells a New Story",
-  "Start Each Day with Beautiful Images",
-  "Let Inspiration Begin from Your Desktop",
-  "The World is Big, See It Every Day",
-  "Collect Every Scenic View of the World",
-  "Color Your Every Day",
+  "Not all those who wander are lost.",
+  "We are all in the gutter, but some of us are looking at the stars.",
+  "Stay hungry, stay foolish.",
+  "To strive, to seek, to find, and not to yield.",
+  "The only journey is the one within.",
+  "Do not go gentle into that good night.",
+  "The future belongs to those who believe in the beauty of their dreams.",
+  "Perhaps all the dragons in our lives are princesses who are only waiting to see us act, just once, with beauty and courage.",
+  "And the end of all our exploring will be to arrive where we started and to know the place for the first time.",
+  "Not I, nor anyone else can travel that road for you. You must travel it by yourself.",
 ] as const;
 
 /**
@@ -84,4 +84,14 @@ export function getDailyTagline(lang?: "zh-CN" | "en-US"): string {
   // 使用日期作为种子，确保同一天显示相同的标语
   const seed = dayOfYear % taglines.length;
   return taglines[seed];
+}
+
+/**
+ * 获取所有标语数组
+ * @param {"zh-CN" | "en-US"} lang 语言代码
+ * @returns {readonly string[]} 标语数组
+ */
+export function getAllTaglines(lang?: "zh-CN" | "en-US"): readonly string[] {
+  const language = lang || detectSystemLanguage();
+  return language === "zh-CN" ? TAGLINES_ZH : TAGLINES_EN;
 }

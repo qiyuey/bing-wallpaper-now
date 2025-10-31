@@ -22,6 +22,36 @@ describe("useDynamicTagline", () => {
       "测试标语 - 每日",
     );
 
+    // Mock getAllTaglines
+    vi.mocked(taglinesModule.getAllTaglines).mockImplementation((lang) => {
+      if (lang === "en-US") {
+        return [
+          "Not all those who wander are lost.",
+          "We are all in the gutter, but some of us are looking at the stars.",
+          "Stay hungry, stay foolish.",
+          "To strive, to seek, to find, and not to yield.",
+          "The only journey is the one within.",
+          "Do not go gentle into that good night.",
+          "The future belongs to those who believe in the beauty of their dreams.",
+          "Perhaps all the dragons in our lives are princesses who are only waiting to see us act, just once, with beauty and courage.",
+          "And the end of all our exploring will be to arrive where we started and to know the place for the first time.",
+          "Not I, nor anyone else can travel that road for you. You must travel it by yourself.",
+        ];
+      }
+      return [
+        "哪怕前路渺茫，也要让心中有光。",
+        "世界以痛吻我，要我报之以歌。",
+        "不要因为走得太远，而忘了当初为什么出发。",
+        "生活不止眼前的苟且，还有诗和远方。",
+        "即使被世界辜负，也不要辜负自己的热爱。",
+        "黑夜给了我黑色的眼睛，我却用它寻找光明。",
+        "凡心所向，素履以往。生如逆旅，一苇以航。",
+        "我不能选择怎么生，怎么死，但我能决定怎么爱，怎么活。",
+        "生活不能等待别人来安排，要自己去争取和奋斗。",
+        "山川是不卷收的文章，日月为你掌灯伴读。",
+      ];
+    });
+
     // Mock detectSystemLanguage
     vi.mocked(translationsModule.detectSystemLanguage).mockReturnValue("zh-CN");
   });
@@ -61,11 +91,7 @@ describe("useDynamicTagline", () => {
     const { result } = renderHook(() => useDynamicTagline("random", 60000));
 
     // Random mode should return one of the predefined taglines
-    const possibleTaglines = [
-      "世界之美 · 每日相遇",
-      "探索世界的每一个角落",
-      "让每一天都有新的开始",
-    ];
+    const possibleTaglines = vi.mocked(taglinesModule.getAllTaglines)("zh-CN");
     expect(possibleTaglines).toContain(result.current);
   });
 
@@ -134,11 +160,7 @@ describe("useDynamicTagline", () => {
     vi.advanceTimersByTime(1000);
 
     // Tagline may change (random) or stay the same, but should still be valid
-    const possibleTaglines = [
-      "世界之美 · 每日相遇",
-      "探索世界的每一个角落",
-      "让每一天都有新的开始",
-    ];
+    const possibleTaglines = vi.mocked(taglinesModule.getAllTaglines)("zh-CN");
     expect(possibleTaglines).toContain(result.current);
   });
 
@@ -167,11 +189,7 @@ describe("useDynamicTagline", () => {
       useDynamicTagline("random", 60000, "en-US"),
     );
 
-    const possibleTaglines = [
-      "Beauty of the World · Daily Encounter",
-      "Explore Every Corner of the World",
-      "A New Beginning Every Day",
-    ];
+    const possibleTaglines = vi.mocked(taglinesModule.getAllTaglines)("en-US");
     expect(possibleTaglines).toContain(result.current);
   });
 

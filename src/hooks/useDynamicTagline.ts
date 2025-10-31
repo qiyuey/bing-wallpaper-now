@@ -1,5 +1,9 @@
 ﻿import { useState, useEffect } from "react";
-import { getCurrentTagline, getDailyTagline } from "../config/taglines";
+import {
+  getCurrentTagline,
+  getDailyTagline,
+  getAllTaglines,
+} from "../config/taglines";
 import { detectSystemLanguage } from "../i18n/translations";
 
 /**
@@ -31,18 +35,7 @@ export function useDynamicTagline(
       case "daily":
         return getDailyTagline(currentLang);
       case "random": {
-        const taglines =
-          currentLang === "zh-CN"
-            ? [
-                "世界之美 · 每日相遇",
-                "探索世界的每一个角落",
-                "让每一天都有新的开始",
-              ]
-            : [
-                "Beauty of the World · Daily Encounter",
-                "Explore Every Corner of the World",
-                "A New Beginning Every Day",
-              ];
+        const taglines = getAllTaglines(currentLang);
         return taglines[Math.floor(Math.random() * taglines.length)];
       }
       default:
@@ -60,18 +53,7 @@ export function useDynamicTagline(
         setTagline(getDailyTagline(currentLang));
         break;
       case "random": {
-        const taglines =
-          currentLang === "zh-CN"
-            ? [
-                "世界之美 · 每日相遇",
-                "探索世界的每一个角落",
-                "让每一天都有新的开始",
-              ]
-            : [
-                "Beauty of the World · Daily Encounter",
-                "Explore Every Corner of the World",
-                "A New Beginning Every Day",
-              ];
+        const taglines = getAllTaglines(currentLang);
         setTagline(taglines[Math.floor(Math.random() * taglines.length)]);
         break;
       }
@@ -91,18 +73,7 @@ export function useDynamicTagline(
           setTagline(getCurrentTagline(undefined, currentLang));
           break;
         case "random": {
-          const taglines =
-            currentLang === "zh-CN"
-              ? [
-                  "世界之美 · 每日相遇",
-                  "探索世界的每一个角落",
-                  "让每一天都有新的开始",
-                ]
-              : [
-                  "Beauty of the World · Daily Encounter",
-                  "Explore Every Corner of the World",
-                  "A New Beginning Every Day",
-                ];
+          const taglines = getAllTaglines(currentLang);
           setTagline(taglines[Math.floor(Math.random() * taglines.length)]);
           break;
         }

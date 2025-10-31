@@ -10,7 +10,7 @@ export const translations = {
     // App
     appTitle: "Bing Wallpaper",
     appSubtitle: "Now",
-    appTagline: "世界之美 · 每日相遇",
+    appTagline: "哪怕前路渺茫，也要让心中有光。",
 
     // 通用
     loading: "加载中...",
@@ -83,7 +83,7 @@ export const translations = {
     // App
     appTitle: "Bing Wallpaper",
     appSubtitle: "Now",
-    appTagline: "Beauty of the World · Daily Encounter",
+    appTagline: "Not all those who wander are lost.",
 
     // 通用
     loading: "Loading...",

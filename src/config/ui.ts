@@ -28,7 +28,7 @@ export const TEXT = {
   /** 应用副标题 */
   APP_SUBTITLE: "Now",
   /** 应用标语 */
-  APP_TAGLINE: "世界之美 · 每日相遇",
+  APP_TAGLINE: "哪怕前路渺茫，也要让心中有光。",
   /** 无壁纸提示 */
   NO_WALLPAPERS: "暂无壁纸",
   /** 无壁纸提示副文本 */
