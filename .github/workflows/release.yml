@@ -233,7 +233,7 @@ jobs:
           restore-keys: |
             pnpm-store-${{ runner.os }}-${{ runner.arch }}-
 
-      - name: Install dependencies (no rebuild)
+      - name: Install dependencies
         run: pnpm install --frozen-lockfile --prefer-offline
 
       - name: Setup Rust
@@ -260,15 +260,12 @@ jobs:
       - name: Patch tauri.conf.json (skip beforeBuildCommand)
         shell: bash
         run: |
-          # Temporarily clear beforeBuildCommand to skip frontend rebuild
           if command -v jq &> /dev/null; then
             jq '.build.beforeBuildCommand = ""' src-tauri/tauri.conf.json > src-tauri/tauri.conf.json.tmp
             mv src-tauri/tauri.conf.json.tmp src-tauri/tauri.conf.json
           else
-            # Fallback: use sed if jq not available
             sed -i.bak 's/"beforeBuildCommand"[[:space:]]*:[[:space:]]*"[^"]*"/"beforeBuildCommand": ""/' src-tauri/tauri.conf.json
           fi
-          echo "Patched tauri.conf.json"
 
       - name: Build Tauri app (skip frontend build)
         id: tauri-build
@@ -277,40 +274,23 @@ jobs:
         with:
           projectPath: src-tauri
           # Omit tagName/releaseName/releaseId to build only without uploading
-          # The action will build bundles but not upload them
+          # The action will automatically execute build command
           tauriScript: pnpm tauri
 
       - name: Verify build output
         shell: bash
         run: |
-          echo "Checking build output..."
-          echo "Current working directory: $(pwd)"
-          echo ""
-          echo "Checking if dist directory exists:"
-          ls -la dist/ 2>/dev/null | head -5 || echo "dist directory not found"
-          echo ""
-          echo "Listing src-tauri/target/release directory:"
-          ls -la src-tauri/target/release/ 2>/dev/null || echo "release directory not found"
-          echo ""
-          echo "Listing src-tauri/target/release/bundle directory:"
-          if [ -d "src-tauri/target/release/bundle" ]; then
-            echo "Bundle directory exists. Contents:"
-            find src-tauri/target/release/bundle -type f -o -type d | head -30
-          else
-            echo "bundle directory does not exist"
-            echo "Checking if target/release exists:"
-            ls -la src-tauri/target/release/ 2>/dev/null || echo "target/release not found"
-            echo ""
-            echo "Checking if target directory exists:"
-            ls -la src-tauri/target/ 2>/dev/null || echo "target directory not found"
+          if [ ! -d "src-tauri/target/release/bundle" ]; then
+            echo "Error: Bundle directory not found"
+            ls -la src-tauri/target/release/ 2>/dev/null || echo "Release directory not found"
+            exit 1
           fi
+          echo "Build successful. Bundle files:"
+          find src-tauri/target/release/bundle -type f | head -10
 
       - name: Upload bundle to Release
         shell: bash
         run: |
-          echo "Platform: ${{ runner.os }}"
-          echo "Checking bundle directory structure..."
-          
           # Determine file patterns based on OS
           if [ "${{ runner.os }}" == "Windows" ]; then
             PATTERNS=(
@@ -333,29 +313,19 @@ jobs:
           FILES=()
           shopt -s nullglob
           for pattern in "${PATTERNS[@]}"; do
-            echo "Checking pattern: $pattern"
             for file in $pattern; do
-              if [ -f "$file" ]; then
-                echo "Found: $file"
-                FILES+=("$file")
-              fi
+              [ -f "$file" ] && FILES+=("$file")
             done
           done
           shopt -u nullglob
           
-          # List bundle directory for debugging
           if [ ${#FILES[@]} -eq 0 ]; then
-            echo "No files found with patterns. Listing bundle directory:"
+            echo "Error: No bundle files found for this platform"
             find src-tauri/target/release/bundle -type f 2>/dev/null || echo "Bundle directory not found"
-          fi
-          
-          # Upload files if any exist
-          if [ ${#FILES[@]} -gt 0 ]; then
-            echo "Uploading ${#FILES[@]} file(s) to release..."
-            gh release upload "${{ github.ref_name }}" "${FILES[@]}" --clobber
-          else
-            echo "Warning: No bundle files found for this platform"
             exit 1
           fi
+          
+          echo "Uploading ${#FILES[@]} file(s)..."
+          gh release upload "${{ github.ref_name }}" "${FILES[@]}" --clobber
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
