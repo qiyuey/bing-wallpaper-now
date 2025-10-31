@@ -53,7 +53,7 @@ Follow these steps to release a new version:
     - Add a new section: `## x.y.z` (use the version number from package.json)
     - Write user-facing Chinese content describing the changes
     - Follow the format of previous entries (Added, Changed, Fixed, etc.)
-    - Avoid pure "Technical" sections with only implementation details
+    - Avoid pure technical optimizations that are meaningless to end users
     - Focus on user-visible changes: new features, bug fixes, improvements, and removed features
 
 11. **Commit CHANGELOG**: `git add CHANGELOG.md && git commit -m "docs: update changelog for x.y.z"`
