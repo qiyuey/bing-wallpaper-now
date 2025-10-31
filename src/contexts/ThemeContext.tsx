@@ -42,7 +42,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
           theme: string;
           auto_update: boolean;
           save_directory: string | null;
-          keep_image_count: number;
           launch_at_startup: boolean;
         }>("get_settings");
 
@@ -108,7 +107,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         theme: string;
         auto_update: boolean;
         save_directory: string | null;
-        keep_image_count: number;
         launch_at_startup: boolean;
       }>("get_settings");
 
@@ -117,7 +115,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         newSettings: {
           auto_update: settings.auto_update,
           save_directory: settings.save_directory,
-          keep_image_count: settings.keep_image_count,
           launch_at_startup: settings.launch_at_startup,
           theme: newTheme,
         },

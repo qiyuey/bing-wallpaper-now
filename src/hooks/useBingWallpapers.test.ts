@@ -26,11 +26,11 @@ describe("useBingWallpapers", () => {
   it("should fetch local wallpapers on mount", async () => {
     const mockWallpapers = [
       {
-        start_date: "20240101",
+        end_date: "20240102",
         title: "Test Wallpaper",
         copyright: "Test Copyright",
-        file_path: "/path/to/wallpaper.jpg",
-        url: "https://example.com/wallpaper.jpg",
+        copyright_link: "https://example.com/link",
+        urlbase: "/th?id=OHR.Test",
       },
     ];
 
@@ -76,13 +76,6 @@ describe("useBingWallpapers", () => {
     expect(typeof result.current.forceUpdate).toBe("function");
   });
 
-  it("should expose cleanupWallpapers function", async () => {
-    const { result } = renderHook(() => useBingWallpapers());
-
-    await waitFor(() => expect(result.current.loading).toBe(false));
-
-    expect(typeof result.current.cleanupWallpapers).toBe("function");
-  });
 
   it("should expose fetchLocalWallpapers function", async () => {
     const { result } = renderHook(() => useBingWallpapers());
@@ -119,74 +112,15 @@ describe("useBingWallpapers", () => {
     });
   });
 
-  it("should call cleanupWallpapers and return deleted count", async () => {
-    const deletedCount = 5;
-    vi.mocked(invoke).mockImplementation((cmd: string) => {
-      if (cmd === "cleanup_wallpapers") {
-        return Promise.resolve(deletedCount);
-      }
-      if (cmd === "get_local_wallpapers") {
-        return Promise.resolve([]);
-      }
-      if (cmd === "get_last_update_time") {
-        return Promise.resolve(null);
-      }
-      return Promise.resolve(undefined);
-    });
-
-    const { result } = renderHook(() => useBingWallpapers());
-
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
-    });
-
-    let count: number;
-    await act(async () => {
-      count = await result.current.cleanupWallpapers();
-    });
-
-    expect(invoke).toHaveBeenCalledWith("cleanup_wallpapers");
-    expect(count!).toBe(deletedCount);
-  });
-
-  it("should handle cleanupWallpapers errors", async () => {
-    const errorMessage = "Cleanup failed";
-    vi.mocked(invoke).mockImplementation((cmd: string) => {
-      if (cmd === "cleanup_wallpapers") {
-        return Promise.reject(new Error(errorMessage));
-      }
-      if (cmd === "get_local_wallpapers") {
-        return Promise.resolve([]);
-      }
-      if (cmd === "get_last_update_time") {
-        return Promise.resolve(null);
-      }
-      return Promise.resolve(undefined);
-    });
-
-    const { result } = renderHook(() => useBingWallpapers());
-
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
-    });
-
-    await act(async () => {
-      await expect(result.current.cleanupWallpapers()).rejects.toThrow();
-    });
-
-    await waitFor(() => {
-      expect(result.current.error).toContain(errorMessage);
-    });
-  });
 
   it("should call forceUpdate and refresh wallpapers", async () => {
     const mockWallpapers = [
       {
-        start_date: "20240101",
+        end_date: "20240102",
         title: "Test Wallpaper",
         copyright: "Test Copyright",
-        file_path: "/path/to/wallpaper.jpg",
-        url: "https://example.com/wallpaper.jpg",
+        copyright_link: "https://example.com/link",
+        urlbase: "/th?id=OHR.Test",
       },
     ];
 
@@ -230,11 +164,12 @@ describe("useBingWallpapers", () => {
   it("should handle fetchLocalWallpapers with showLoading parameter", async () => {
     const mockWallpapers = [
       {
-        start_date: "20240101",
+        id: "20240101",
+        end_date: "20240102",
         title: "Test",
         copyright: "Test",
-        file_path: "/path/to/test.jpg",
-        url: "https://example.com/test.jpg",
+        copyright_link: "https://example.com/link",
+        urlbase: "/th?id=OHR.Test",
       },
     ];
 
@@ -256,11 +191,12 @@ describe("useBingWallpapers", () => {
   it("should not update state if wallpapers data hasn't changed", async () => {
     const mockWallpapers = [
       {
-        start_date: "20240101",
+        id: "20240101",
+        end_date: "20240102",
         title: "Test",
         copyright: "Test",
-        file_path: "/path/to/test.jpg",
-        url: "https://example.com/test.jpg",
+        copyright_link: "https://example.com/link",
+        urlbase: "/th?id=OHR.Test",
       },
     ];
 

@@ -5,7 +5,7 @@ import { WallpaperGrid } from "./components/WallpaperGrid";
 import { Settings } from "./components/Settings";
 import { About } from "./components/About";
 
-import { LocalWallpaper } from "./types";
+import { LocalWallpaper, getWallpaperFilePath } from "./types";
 import { invoke } from "@tauri-apps/api/core";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { listen } from "@tauri-apps/api/event";
@@ -32,6 +32,14 @@ function App() {
 
   const [showSettings, setShowSettings] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
+  const [wallpaperDirectory, setWallpaperDirectory] = useState<string>("");
+
+  // 获取壁纸目录
+  useEffect(() => {
+    invoke<string>("get_wallpaper_directory")
+      .then(setWallpaperDirectory)
+      .catch((err) => console.error("Failed to get wallpaper directory:", err));
+  }, []);
 
   // 监听托盘发出的 open-settings 事件，触发前端设置面板显示
   useEffect(() => {
@@ -92,8 +100,10 @@ function App() {
   // 处理设置壁纸
   const handleSetWallpaper = async (wallpaper: LocalWallpaper) => {
     try {
+      // 动态生成 file_path
+      const filePath = getWallpaperFilePath(wallpaperDirectory, wallpaper.end_date);
       // 异步设置，不阻塞 UI
-      await setDesktopWallpaper(wallpaper.file_path);
+      await setDesktopWallpaper(filePath);
     } catch (err) {
       console.error("Failed to set wallpaper:", err);
       alert(`${t("wallpaperError")}: ${String(err)}`);
@@ -267,6 +277,7 @@ function App() {
           wallpapers={localWallpapers}
           onSetWallpaper={handleSetWallpaper}
           loading={loading}
+          wallpaperDirectory={wallpaperDirectory}
         />
       </main>
 

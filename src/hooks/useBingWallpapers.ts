@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { LocalWallpaper } from "../types";
+import { LocalWallpaper, LocalWallpaperRaw, normalizeWallpapers } from "../types";
 import { createSafeUnlisten } from "../utils/eventListener";
 
 /**
@@ -27,7 +27,9 @@ export function useBingWallpapers() {
     }
     setError(null);
     try {
-      const wallpapers = await invoke<LocalWallpaper[]>("get_local_wallpapers");
+      const wallpapersRaw = await invoke<LocalWallpaperRaw[]>("get_local_wallpapers");
+      // 转换短字段名为完整字段名
+      const wallpapers = normalizeWallpapers(wallpapersRaw);
       // 只有数据真正变化时才更新状态，避免不必要的重渲染
       // 注意：使用深度比较确保 title 和 copyright 变化时也能检测到
       setLocalWallpapers((prev) => {
@@ -39,11 +41,9 @@ export function useBingWallpapers() {
         const hasChanges = prev.some((p, i) => {
           const w = wallpapers[i];
           return (
-            p.id !== w.id ||
-            p.start_date !== w.start_date ||
+            p.end_date !== w.end_date ||
             p.title !== w.title ||
-            p.copyright !== w.copyright ||
-            p.file_path !== w.file_path
+            p.copyright !== w.copyright
           );
         });
         return hasChanges ? wallpapers : prev;
@@ -75,24 +75,6 @@ export function useBingWallpapers() {
   const setDesktopWallpaper = useCallback(async (filePath: string) => {
     await invoke("set_desktop_wallpaper", { filePath });
   }, []);
-
-  /**
-   * 清理旧壁纸
-   */
-  const cleanupWallpapers = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const deletedCount = await invoke<number>("cleanup_wallpapers");
-      await fetchLocalWallpapers(true);
-      return deletedCount;
-    } catch (err) {
-      setError(String(err));
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchLocalWallpapers]);
 
   /**
    * 手动触发后台更新一次（force_update 已在后端执行拉取、下载、清理、自动应用）
@@ -238,7 +220,6 @@ export function useBingWallpapers() {
     lastUpdateTime,
     fetchLocalWallpapers,
     setDesktopWallpaper,
-    cleanupWallpapers,
     forceUpdate,
   };
 }

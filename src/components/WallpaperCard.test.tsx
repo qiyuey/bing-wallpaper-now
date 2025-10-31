@@ -25,17 +25,15 @@ vi.mock("@tauri-apps/api/core", () => {
 
 describe("WallpaperCard", () => {
   const mockWallpaper: LocalWallpaper = {
-    id: "20240101",
-    start_date: "20240101",
     end_date: "20240102",
     title: "测试壁纸",
     copyright: "测试地点 (测试作者)",
     copyright_link: "https://example.com/details",
-    file_path: "/path/to/wallpaper.jpg",
-    download_time: "2024-01-01T00:00:00Z",
+    urlbase: "/th?id=OHR.Test",
   };
 
   const mockOnSetWallpaper = vi.fn();
+  const mockWallpaperDirectory = "/path/to/wallpapers";
   let mockUnlisten: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
@@ -51,6 +49,7 @@ describe("WallpaperCard", () => {
       <WallpaperCard
         wallpaper={mockWallpaper}
         onSetWallpaper={mockOnSetWallpaper}
+        wallpaperDirectory={mockWallpaperDirectory}
       />,
     );
 
@@ -63,6 +62,7 @@ describe("WallpaperCard", () => {
       <WallpaperCard
         wallpaper={mockWallpaper}
         onSetWallpaper={mockOnSetWallpaper}
+        wallpaperDirectory={mockWallpaperDirectory}
       />,
     );
 
@@ -76,6 +76,7 @@ describe("WallpaperCard", () => {
       <WallpaperCard
         wallpaper={mockWallpaper}
         onSetWallpaper={mockOnSetWallpaper}
+        wallpaperDirectory={mockWallpaperDirectory}
       />,
     );
 
@@ -100,6 +101,7 @@ describe("WallpaperCard", () => {
       <WallpaperCard
         wallpaper={wallpaperWithCopyright}
         onSetWallpaper={mockOnSetWallpaper}
+        wallpaperDirectory={mockWallpaperDirectory}
       />,
     );
 
@@ -114,6 +116,7 @@ describe("WallpaperCard", () => {
       <WallpaperCard
         wallpaper={mockWallpaper}
         onSetWallpaper={mockOnSetWallpaper}
+        wallpaperDirectory={mockWallpaperDirectory}
       />,
     );
 
@@ -130,6 +133,7 @@ describe("WallpaperCard", () => {
       <WallpaperCard
         wallpaper={wallpaperWithoutLink}
         onSetWallpaper={mockOnSetWallpaper}
+        wallpaperDirectory={mockWallpaperDirectory}
       />,
     );
 
@@ -141,16 +145,17 @@ describe("WallpaperCard", () => {
   });
 
   it("should show loading state initially", () => {
-    // 使用唯一的文件路径，确保不会被缓存
+    // 使用唯一的 end_date，确保不会被缓存
     const uniqueWallpaper = {
       ...mockWallpaper,
-      file_path: `/path/to/test-wallpaper-${Date.now()}.jpg`,
+      end_date: `20240102${Date.now()}`,
     };
 
     const { container } = renderWithI18n(
       <WallpaperCard
         wallpaper={uniqueWallpaper}
         onSetWallpaper={mockOnSetWallpaper}
+        wallpaperDirectory={mockWallpaperDirectory}
       />,
     );
 
@@ -169,6 +174,7 @@ describe("WallpaperCard", () => {
       <WallpaperCard
         wallpaper={mockWallpaper}
         onSetWallpaper={mockOnSetWallpaper}
+        wallpaperDirectory={mockWallpaperDirectory}
       />,
     );
 
@@ -189,6 +195,7 @@ describe("WallpaperCard", () => {
       <WallpaperCard
         wallpaper={mockWallpaper}
         onSetWallpaper={mockOnSetWallpaper}
+        wallpaperDirectory={mockWallpaperDirectory}
       />,
     );
 
@@ -210,6 +217,7 @@ describe("WallpaperCard", () => {
       <WallpaperCard
         wallpaper={mockWallpaper}
         onSetWallpaper={mockOnSetWallpaper}
+        wallpaperDirectory={mockWallpaperDirectory}
       />,
     );
 
@@ -255,13 +263,14 @@ describe("WallpaperCard", () => {
       <WallpaperCard
         wallpaper={mockWallpaper}
         onSetWallpaper={mockOnSetWallpaper}
+        wallpaperDirectory={mockWallpaperDirectory}
       />,
     );
 
     // Simulate image download event
     if (eventCallback !== null) {
       const callback: (event: { payload: string }) => void = eventCallback;
-      callback({ payload: "20240101" });
+      callback({ payload: mockWallpaper.end_date });
     }
 
     await waitFor(() => {
@@ -285,6 +294,7 @@ describe("WallpaperCard", () => {
       <WallpaperCard
         wallpaper={mockWallpaper}
         onSetWallpaper={mockOnSetWallpaper}
+        wallpaperDirectory={mockWallpaperDirectory}
       />,
     );
 
@@ -305,6 +315,7 @@ describe("WallpaperCard", () => {
       <WallpaperCard
         wallpaper={mockWallpaper}
         onSetWallpaper={mockOnSetWallpaper}
+        wallpaperDirectory={mockWallpaperDirectory}
       />,
     );
 
@@ -330,6 +341,7 @@ describe("WallpaperCard", () => {
       <WallpaperCard
         wallpaper={mockWallpaper}
         onSetWallpaper={mockOnSetWallpaper}
+        wallpaperDirectory={mockWallpaperDirectory}
       />,
     );
 
@@ -352,6 +364,7 @@ describe("WallpaperCard", () => {
       <WallpaperCard
         wallpaper={wallpaperSimple}
         onSetWallpaper={mockOnSetWallpaper}
+        wallpaperDirectory={mockWallpaperDirectory}
       />,
     );
 
@@ -370,6 +383,7 @@ describe("WallpaperCard", () => {
       <WallpaperCard
         wallpaper={mockWallpaper}
         onSetWallpaper={mockOnSetWallpaper}
+        wallpaperDirectory={mockWallpaperDirectory}
       />,
     );
 
@@ -384,10 +398,11 @@ describe("WallpaperCard", () => {
   });
 
   it("should update when wallpaper title changes", () => {
-    const { rerender } = renderWithI18n(
+    const { rerender } =     renderWithI18n(
       <WallpaperCard
         wallpaper={mockWallpaper}
         onSetWallpaper={mockOnSetWallpaper}
+        wallpaperDirectory={mockWallpaperDirectory}
       />,
     );
 
@@ -398,6 +413,7 @@ describe("WallpaperCard", () => {
       <WallpaperCard
         wallpaper={updatedWallpaper}
         onSetWallpaper={mockOnSetWallpaper}
+        wallpaperDirectory={mockWallpaperDirectory}
       />,
     );
 
@@ -405,10 +421,11 @@ describe("WallpaperCard", () => {
   });
 
   it("should update when wallpaper copyright changes", () => {
-    const { rerender } = renderWithI18n(
+    const { rerender } =     renderWithI18n(
       <WallpaperCard
         wallpaper={mockWallpaper}
         onSetWallpaper={mockOnSetWallpaper}
+        wallpaperDirectory={mockWallpaperDirectory}
       />,
     );
 
@@ -419,6 +436,7 @@ describe("WallpaperCard", () => {
       <WallpaperCard
         wallpaper={updatedWallpaper}
         onSetWallpaper={mockOnSetWallpaper}
+        wallpaperDirectory={mockWallpaperDirectory}
       />,
     );
 

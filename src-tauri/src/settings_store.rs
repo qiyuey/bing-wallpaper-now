@@ -66,6 +66,5 @@ mod tests {
         let deserialized: AppSettings = serde_json::from_value(value).unwrap();
 
         assert_eq!(deserialized.auto_update, settings.auto_update);
-        assert_eq!(deserialized.keep_image_count, settings.keep_image_count);
     }
 }

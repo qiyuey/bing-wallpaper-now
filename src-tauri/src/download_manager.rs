@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
-use futures::stream::{self, StreamExt};
+use futures::stream::StreamExt;
 use reqwest::Client;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::LazyLock;
 use std::time::Duration;
 use tokio::fs;
@@ -139,57 +139,10 @@ async fn download_image_internal(url: &str, save_path: &Path) -> Result<()> {
     Ok(())
 }
 
-/// 并发下载多张壁纸
-///
-/// # Arguments
-/// * `download_tasks` - 下载任务列表 [(url, save_path)]
-/// * `max_concurrent` - 最大并发数（默认 4）
-///
-/// # Returns
-/// 返回所有下载结果，成功返回路径，失败返回错误
-///
-/// 注意：当前使用顺序下载以保证顺序一致性，此函数保留以备将来需要
-#[allow(dead_code)]
-pub async fn download_images_concurrent(
-    download_tasks: Vec<(String, PathBuf)>,
-    max_concurrent: usize,
-) -> Vec<Result<PathBuf>> {
-    log::info!(
-        "Starting concurrent download of {} images (max_concurrent={})",
-        download_tasks.len(),
-        max_concurrent
-    );
-
-    let start = std::time::Instant::now();
-
-    let results = stream::iter(download_tasks)
-        .map(|(url, save_path)| async move {
-            let result = download_image(&url, &save_path).await;
-            match &result {
-                Ok(_) => log::debug!("Successfully downloaded: {:?}", save_path),
-                Err(e) => log::error!("Failed to download {:?}: {}", save_path, e),
-            }
-            result.map(|_| save_path)
-        })
-        .buffer_unordered(max_concurrent) // 并发执行
-        .collect::<Vec<_>>()
-        .await;
-
-    let elapsed = start.elapsed();
-    let success_count = results.iter().filter(|r| r.is_ok()).count();
-    log::info!(
-        "Concurrent download completed: {}/{} successful in {:?}",
-        success_count,
-        results.len(),
-        elapsed
-    );
-
-    results
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::PathBuf;
     use std::time::SystemTime;
 
     /// 用于测试的下载函数，使用更短的超时时间（1秒）
@@ -303,15 +256,6 @@ mod tests {
 
         let result = download_image_fast_timeout(url, &invalid_path).await;
         assert!(result.is_err());
-    }
-
-    #[tokio::test]
-    async fn test_concurrent_download_empty_list() {
-        // 测试空任务列表
-        let tasks: Vec<(String, PathBuf)> = vec![];
-        let results = download_images_concurrent(tasks, 4).await;
-
-        assert_eq!(results.len(), 0);
     }
 
     #[tokio::test]

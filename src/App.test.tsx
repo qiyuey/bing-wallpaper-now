@@ -19,14 +19,11 @@ const renderWithTheme = (component: React.ReactElement) => {
 describe("App", () => {
   const mockWallpapers = [
     {
-      id: "20240101",
-      start_date: "20240101",
       end_date: "20240102",
       title: "Test Wallpaper",
       copyright: "Test Copyright",
       copyright_link: "https://example.com/link",
-      file_path: "/path/to/wallpaper.jpg",
-      download_time: "2024-01-01T00:00:00Z",
+      urlbase: "/th?id=OHR.Test",
     },
   ];
 
@@ -54,6 +51,9 @@ describe("App", () => {
 
     // Mock different invoke calls
     vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "get_wallpaper_directory") {
+        return Promise.resolve("/path/to/wallpapers");
+      }
       if (cmd === "get_local_wallpapers") {
         return Promise.resolve(mockWallpapers);
       }
@@ -140,6 +140,9 @@ describe("App", () => {
       if (cmd === "ensure_wallpaper_directory_exists") {
         return Promise.resolve();
       }
+      if (cmd === "get_wallpaper_directory") {
+        return Promise.resolve("/path/to/wallpapers");
+      }
       if (cmd === "get_local_wallpapers") {
         return Promise.resolve(mockWallpapers);
       }
@@ -201,6 +204,9 @@ describe("App", () => {
     vi.mocked(invoke).mockImplementation((cmd: string) => {
       if (cmd === "get_last_update_time") {
         return Promise.resolve(mockTime);
+      }
+      if (cmd === "get_wallpaper_directory") {
+        return Promise.resolve("/path/to/wallpapers");
       }
       if (cmd === "get_local_wallpapers") {
         return Promise.resolve(mockWallpapers);
@@ -281,6 +287,9 @@ describe("App", () => {
       if (cmd === "ensure_wallpaper_directory_exists") {
         return Promise.resolve();
       }
+      if (cmd === "get_wallpaper_directory") {
+        return Promise.resolve("/path/to/wallpapers");
+      }
       if (cmd === "get_local_wallpapers") {
         return Promise.resolve(mockWallpapers);
       }
@@ -320,6 +329,9 @@ describe("App", () => {
 
   it("should pass wallpapers to WallpaperGrid", async () => {
     vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "get_wallpaper_directory") {
+        return Promise.resolve("/path/to/wallpapers");
+      }
       if (cmd === "get_local_wallpapers") {
         return Promise.resolve(mockWallpapers);
       }
@@ -384,6 +396,9 @@ describe("App", () => {
       if (cmd === "set_desktop_wallpaper") {
         return Promise.reject(new Error("Failed to set wallpaper"));
       }
+      if (cmd === "get_wallpaper_directory") {
+        return Promise.resolve("/path/to/wallpapers");
+      }
       if (cmd === "get_local_wallpapers") {
         return Promise.resolve(mockWallpapers);
       }
@@ -422,6 +437,9 @@ describe("App", () => {
     vi.mocked(invoke).mockImplementation((cmd: string) => {
       if (cmd === "force_update") {
         return Promise.reject(new Error("Update failed"));
+      }
+      if (cmd === "get_wallpaper_directory") {
+        return Promise.resolve("/path/to/wallpapers");
       }
       if (cmd === "get_local_wallpapers") {
         return Promise.resolve(mockWallpapers);
@@ -465,6 +483,9 @@ describe("App", () => {
     vi.mocked(invoke).mockImplementation((cmd: string) => {
       if (cmd === "get_wallpaper_directory") {
         return Promise.reject(new Error("Directory not found"));
+      }
+      if (cmd === "get_wallpaper_directory") {
+        return Promise.resolve("/path/to/wallpapers");
       }
       if (cmd === "get_local_wallpapers") {
         return Promise.resolve(mockWallpapers);
@@ -542,6 +563,9 @@ describe("App", () => {
       }
       if (cmd === "ensure_wallpaper_directory_exists") {
         return Promise.reject(new Error("Cannot create directory"));
+      }
+      if (cmd === "get_wallpaper_directory") {
+        return Promise.resolve("/path/to/wallpapers");
       }
       if (cmd === "get_local_wallpapers") {
         return Promise.resolve(mockWallpapers);

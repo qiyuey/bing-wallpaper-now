@@ -14,6 +14,7 @@ interface WallpaperGridProps {
   wallpapers: LocalWallpaper[];
   onSetWallpaper: (wallpaper: LocalWallpaper) => void;
   loading?: boolean;
+  wallpaperDirectory: string;
 }
 
 // 使用配置计算行高
@@ -36,12 +37,14 @@ interface RowData {
   wallpapers: LocalWallpaper[];
   cardsPerRow: number;
   onSetWallpaper: (wallpaper: LocalWallpaper) => void;
+  wallpaperDirectory: string;
 }
 
 export const WallpaperGrid = memo(function WallpaperGrid({
   wallpapers,
   onSetWallpaper,
   loading = false,
+  wallpaperDirectory,
 }: WallpaperGridProps) {
   const { t } = useI18n();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -99,6 +102,7 @@ export const WallpaperGrid = memo(function WallpaperGrid({
     wallpapers,
     cardsPerRow,
     onSetWallpaper,
+    wallpaperDirectory,
   }: RowComponentProps<RowData>) => {
     const startIndex = index * cardsPerRow;
     const rowWallpapers = wallpapers.slice(
@@ -109,10 +113,11 @@ export const WallpaperGrid = memo(function WallpaperGrid({
     return (
       <div style={style} className="wallpaper-row">
         {rowWallpapers.map((wallpaper: LocalWallpaper) => (
-          <div key={wallpaper.id} className="wallpaper-row-item">
+          <div key={`${wallpaper.end_date}-${index}`} className="wallpaper-row-item">
             <WallpaperCard
               wallpaper={wallpaper}
               onSetWallpaper={onSetWallpaper}
+              wallpaperDirectory={wallpaperDirectory}
             />
           </div>
         ))}
@@ -157,6 +162,7 @@ export const WallpaperGrid = memo(function WallpaperGrid({
             wallpapers,
             cardsPerRow,
             onSetWallpaper: handleSetWallpaper,
+            wallpaperDirectory,
           }}
         />
       )}

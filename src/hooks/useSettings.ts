@@ -38,7 +38,6 @@ export function useSettings() {
         newSettings: {
           auto_update: newSettings.auto_update,
           save_directory: newSettings.save_directory,
-          keep_image_count: newSettings.keep_image_count,
           launch_at_startup: newSettings.launch_at_startup,
           theme: newSettings.theme,
           language: newSettings.language || "auto",

@@ -50,8 +50,6 @@ export const translations = {
     languageAuto: "自动",
     languageZhCN: "中文",
     languageEnUS: "English",
-    keepCount: "保留壁纸数量",
-    keepCountHint: "（0 表示不限制，至少保留 8 张）",
     saveDirectory: "保存目录",
     settingsLoading: "加载设置中...",
     settingsSaveError: "保存设置失败",

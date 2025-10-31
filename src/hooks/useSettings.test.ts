@@ -10,7 +10,6 @@ describe("useSettings", () => {
   const mockSettings: AppSettings = {
     auto_update: true,
     save_directory: "C:\\Users\\Test\\Wallpapers",
-    keep_image_count: 30,
     launch_at_startup: false,
     theme: "system",
     language: "auto",
@@ -81,7 +80,6 @@ describe("useSettings", () => {
     const updatedSettings: AppSettings = {
       ...mockSettings,
       auto_update: false,
-      keep_image_count: 50,
     };
 
     // For update call, we only need it to resolve
@@ -104,7 +102,6 @@ describe("useSettings", () => {
       newSettings: {
         auto_update: updatedSettings.auto_update,
         save_directory: updatedSettings.save_directory,
-        keep_image_count: updatedSettings.keep_image_count,
         launch_at_startup: updatedSettings.launch_at_startup,
         theme: updatedSettings.theme,
         language: updatedSettings.language,

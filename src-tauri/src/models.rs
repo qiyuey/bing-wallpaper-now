@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use indexmap::IndexMap;
 
 /// Bing API 返回的图片条目
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -22,31 +22,34 @@ pub struct BingImageArchive {
 }
 
 /// 本地壁纸信息
+/// 
+/// 使用短字段名以节省存储空间：
+/// - title -> t
+/// - copyright -> c
+/// - copyright_link -> l
+/// - end_date -> d (保留，因为代码中广泛使用)
+/// - urlbase -> u
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LocalWallpaper {
-    pub id: String,
+    #[serde(rename = "t")]
     pub title: String,
+    #[serde(rename = "c")]
     pub copyright: String,
+    #[serde(rename = "l")]
     pub copyright_link: String,
-    pub start_date: String,
+    #[serde(rename = "d")]
     pub end_date: String,
-    pub file_path: String,
-    pub download_time: DateTime<Utc>,
-    #[serde(default)] // 为了兼容旧数据
+    #[serde(rename = "u", default)] // 为了兼容旧数据
     pub urlbase: String,
 }
 
 impl From<BingImageEntry> for LocalWallpaper {
     fn from(entry: BingImageEntry) -> Self {
         Self {
-            id: entry.hsh.clone(),
             title: entry.title.clone(),
             copyright: entry.copyright.clone(),
             copyright_link: entry.copyrightlink.clone(),
-            start_date: entry.startdate.clone(),
             end_date: entry.enddate.clone(),
-            file_path: String::new(), // 将在下载后设置
-            download_time: Utc::now(),
             urlbase: entry.urlbase.clone(),
         }
     }
@@ -55,7 +58,7 @@ impl From<BingImageEntry> for LocalWallpaper {
 /// 壁纸元数据索引（单一文件存储）
 ///
 /// 索引版本号说明：
-/// - v3: 支持多语言存储（按语言分组），内层 key 使用 end_date，与文件名保持一致
+/// - v4: 优化数据结构，使用短字段名和紧凑格式以节省存储空间
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WallpaperIndex {
     /// 版本号（用于兼容性检查）
@@ -65,7 +68,8 @@ pub struct WallpaperIndex {
     /// 按语言分组的壁纸列表
     /// 外层 key = 语言代码（如 "zh-CN", "en-US"），内层 key = end_date
     /// 使用 end_date 作为 key，因为文件名也使用 end_date（Bing 的 startdate 是昨天，enddate 才是今天）
-    pub wallpapers_by_language: HashMap<String, HashMap<String, LocalWallpaper>>,
+    /// 使用 IndexMap 以保持插入顺序，确保 JSON 序列化时按日期排序
+    pub wallpapers_by_language: IndexMap<String, IndexMap<String, LocalWallpaper>>,
 }
 
 impl Default for WallpaperIndex {
@@ -76,21 +80,17 @@ impl Default for WallpaperIndex {
 
 impl WallpaperIndex {
     /// 索引版本常量
-    pub const VERSION: u32 = 3;
+    /// 
+    /// v4: 优化数据结构，使用短字段名和紧凑格式
+    pub const VERSION: u32 = 4;
 
     /// 创建新索引
     pub fn new() -> Self {
         Self {
             version: Self::VERSION,
             last_updated: Utc::now(),
-            wallpapers_by_language: HashMap::new(),
+            wallpapers_by_language: IndexMap::new(),
         }
-    }
-
-    /// 判断是否为空
-    #[allow(dead_code)]
-    pub fn is_empty(&self) -> bool {
-        self.wallpapers_by_language.is_empty()
     }
 
     /// 获取指定语言的壁纸列表
@@ -105,17 +105,8 @@ impl WallpaperIndex {
             .unwrap_or_default()
     }
 
-    /// 添加或更新指定语言的壁纸
-    #[allow(dead_code)]
-    pub fn upsert_wallpaper_for_language(&mut self, language: &str, wallpaper: LocalWallpaper) {
-        self.wallpapers_by_language
-            .entry(language.to_string())
-            .or_default()
-            .insert(wallpaper.end_date.clone(), wallpaper);
-        self.last_updated = Utc::now();
-    }
-
     /// 批量添加或更新指定语言的壁纸
+    /// 插入时会按日期降序排序，确保 JSON 序列化时保持顺序
     pub fn upsert_wallpapers_for_language(
         &mut self,
         language: &str,
@@ -128,10 +119,30 @@ impl WallpaperIndex {
             .wallpapers_by_language
             .entry(language.to_string())
             .or_default();
+        
+        // 先插入所有壁纸
         for wallpaper in wallpapers {
             lang_map.insert(wallpaper.end_date.clone(), wallpaper);
         }
+        
+        // 按日期降序排序（最新的在前）
+        lang_map.sort_by(|k1, _, k2, _| k2.cmp(k1));
+        
+        // 对外层（语言）也按字典序排序，确保 JSON 中的语言顺序一致
+        self.wallpapers_by_language.sort_keys();
+        
         self.last_updated = Utc::now();
+    }
+
+    /// 对所有语言和日期进行排序，确保 JSON 序列化时保持顺序
+    /// 在加载索引后调用此方法可以修复乱序的旧数据
+    pub fn sort_all(&mut self) {
+        // 对每个语言的壁纸按日期降序排序
+        for lang_wallpapers in self.wallpapers_by_language.values_mut() {
+            lang_wallpapers.sort_by(|k1, _, k2, _| k2.cmp(k1));
+        }
+        // 对外层（语言）按字典序排序
+        self.wallpapers_by_language.sort_keys();
     }
 
     /// 获取所有语言的壁纸（用于清理操作）
@@ -158,6 +169,50 @@ impl WallpaperIndex {
         result.sort_by(|a, b| b.end_date.cmp(&a.end_date));
         result
     }
+
+    /// 限制索引大小，保留最新的条目
+    ///
+    /// 如果索引总数超过 `max_count`，会删除最旧的条目。
+    /// 优先保留最新的条目，按 end_date 降序排序。
+    ///
+    /// # Arguments
+    /// * `max_count` - 最大索引数量
+    pub fn limit_index_size(&mut self, max_count: usize) {
+        // 获取所有唯一的 end_date，按降序排序（最新的在前）
+        let all_unique = self.get_all_wallpapers_unique();
+        
+        // 如果总数不超过限制，不需要清理
+        if all_unique.len() <= max_count {
+            return;
+        }
+
+        // 需要删除的 end_date 列表（最旧的）
+        let to_remove: Vec<String> = all_unique
+            .iter()
+            .skip(max_count)
+            .map(|w| w.end_date.clone())
+            .collect();
+
+        log::info!(
+            "索引数据超过限制 ({} > {})，删除 {} 条最旧的索引条目",
+            all_unique.len(),
+            max_count,
+            to_remove.len()
+        );
+
+        // 从所有语言中删除这些 end_date
+        for lang_wallpapers in self.wallpapers_by_language.values_mut() {
+            for end_date in &to_remove {
+                lang_wallpapers.shift_remove(end_date);
+            }
+        }
+
+        // 移除空的语言分组
+        self.wallpapers_by_language
+            .retain(|_, lang_wallpapers| !lang_wallpapers.is_empty());
+
+        self.last_updated = Utc::now();
+    }
 }
 
 /// 应用设置
@@ -165,7 +220,6 @@ impl WallpaperIndex {
 pub struct AppSettings {
     pub auto_update: bool,
     pub save_directory: Option<String>,
-    pub keep_image_count: u32,
     pub launch_at_startup: bool,
     #[serde(default = "default_theme")]
     pub theme: String,
@@ -191,7 +245,6 @@ impl Default for AppSettings {
         Self {
             auto_update: true,
             save_directory: None,
-            keep_image_count: 0,
             launch_at_startup: false,
             theme: default_theme(),
             language: default_language(),
@@ -217,7 +270,6 @@ mod tests {
         let settings = AppSettings::default();
         assert!(settings.auto_update);
         assert_eq!(settings.save_directory, None);
-        assert_eq!(settings.keep_image_count, 0);
         assert!(!settings.launch_at_startup);
     }
 
@@ -226,7 +278,6 @@ mod tests {
         let settings = AppSettings {
             auto_update: false,
             save_directory: Some("/custom/path".to_string()),
-            keep_image_count: 20,
             launch_at_startup: true,
             theme: "dark".to_string(),
             language: "auto".to_string(),
@@ -237,7 +288,6 @@ mod tests {
 
         assert_eq!(deserialized.auto_update, settings.auto_update);
         assert_eq!(deserialized.save_directory, settings.save_directory);
-        assert_eq!(deserialized.keep_image_count, settings.keep_image_count);
         assert_eq!(deserialized.launch_at_startup, settings.launch_at_startup);
         assert_eq!(deserialized.theme, settings.theme);
     }
@@ -257,51 +307,42 @@ mod tests {
 
         let wallpaper = LocalWallpaper::from(entry.clone());
 
-        assert_eq!(wallpaper.id, entry.hsh);
         assert_eq!(wallpaper.title, entry.title);
         assert_eq!(wallpaper.copyright, entry.copyright);
         assert_eq!(wallpaper.copyright_link, entry.copyrightlink);
-        assert_eq!(wallpaper.start_date, entry.startdate);
         assert_eq!(wallpaper.end_date, entry.enddate);
-        assert_eq!(wallpaper.file_path, ""); // Initially empty
     }
 
     #[test]
     fn test_local_wallpaper_serialization() {
-        let now = Utc::now();
         let wallpaper = LocalWallpaper {
-            id: "test_id".to_string(),
             title: "Test Title".to_string(),
             copyright: "Test Copyright".to_string(),
             copyright_link: "https://example.com".to_string(),
-            start_date: "20240101".to_string(),
             end_date: "20240102".to_string(),
-            file_path: "/path/to/wallpaper.jpg".to_string(),
-            download_time: now,
             urlbase: "/th?id=OHR.Test_EN-US1234567890".to_string(),
         };
 
         let json = serde_json::to_string(&wallpaper).unwrap();
         let deserialized: LocalWallpaper = serde_json::from_str(&json).unwrap();
 
-        assert_eq!(deserialized.id, wallpaper.id);
         assert_eq!(deserialized.title, wallpaper.title);
-        assert_eq!(deserialized.file_path, wallpaper.file_path);
+        assert_eq!(deserialized.end_date, wallpaper.end_date);
     }
 
     #[test]
     fn test_app_settings_legacy_field_ignored() {
-        // Simulate old JSON with removed field auto_apply_latest
+        // Simulate old JSON with removed field keep_image_count
         let json = r#"{
             "auto_update": true,
             "save_directory": null,
-            "keep_image_count": 10000,
             "launch_at_startup": false,
-            "auto_apply_latest": true
+            "theme": "system",
+            "language": "auto"
         }"#;
 
         let settings: AppSettings = serde_json::from_str(json).unwrap();
         assert!(settings.auto_update);
-        assert_eq!(settings.keep_image_count, 10000);
+        assert_eq!(settings.theme, "system");
     }
 }

@@ -29,28 +29,23 @@ beforeEach(() => {
 describe("WallpaperGrid", () => {
   const mockWallpapers: LocalWallpaper[] = [
     {
-      id: "20240101",
-      start_date: "20240101",
       end_date: "20240102",
       title: "Test Wallpaper 1",
       copyright: "Test Copyright 1",
       copyright_link: "https://example.com/link1",
-      file_path: "/path/to/wallpaper1.jpg",
-      download_time: "2024-01-01T00:00:00Z",
+      urlbase: "/th?id=OHR.Test1",
     },
     {
-      id: "20240102",
-      start_date: "20240102",
       end_date: "20240103",
       title: "Test Wallpaper 2",
       copyright: "Test Copyright 2",
       copyright_link: "https://example.com/link2",
-      file_path: "/path/to/wallpaper2.jpg",
-      download_time: "2024-01-02T00:00:00Z",
+      urlbase: "/th?id=OHR.Test2",
     },
   ];
 
   const mockOnSetWallpaper = vi.fn();
+  const mockWallpaperDirectory = "/path/to/wallpapers";
 
   it("should render loading state when loading is true", () => {
     const { container } = renderWithI18n(
@@ -58,6 +53,7 @@ describe("WallpaperGrid", () => {
         wallpapers={[]}
         onSetWallpaper={mockOnSetWallpaper}
         loading={true}
+        wallpaperDirectory={mockWallpaperDirectory}
       />,
     );
 
@@ -73,6 +69,7 @@ describe("WallpaperGrid", () => {
         wallpapers={[]}
         onSetWallpaper={mockOnSetWallpaper}
         loading={false}
+        wallpaperDirectory={mockWallpaperDirectory}
       />,
     );
 
@@ -88,6 +85,7 @@ describe("WallpaperGrid", () => {
         wallpapers={mockWallpapers}
         onSetWallpaper={mockOnSetWallpaper}
         loading={false}
+        wallpaperDirectory={mockWallpaperDirectory}
       />,
     );
 
@@ -103,6 +101,7 @@ describe("WallpaperGrid", () => {
         wallpapers={mockWallpapers}
         onSetWallpaper={mockOnSetWallpaper}
         loading={false}
+        wallpaperDirectory={mockWallpaperDirectory}
       />,
     );
 
@@ -118,6 +117,7 @@ describe("WallpaperGrid", () => {
         wallpapers={mockWallpapers}
         onSetWallpaper={mockOnSetWallpaper}
         loading={false}
+        wallpaperDirectory={mockWallpaperDirectory}
       />,
     );
 
@@ -127,7 +127,7 @@ describe("WallpaperGrid", () => {
 
   it("should default loading to false when not provided", () => {
     renderWithI18n(
-      <WallpaperGrid wallpapers={[]} onSetWallpaper={mockOnSetWallpaper} />,
+      <WallpaperGrid wallpapers={[]} onSetWallpaper={mockOnSetWallpaper} wallpaperDirectory={mockWallpaperDirectory} />,
     );
 
     // 当 loading 默认为 false 且没有壁纸时，应该显示空状态
@@ -145,6 +145,7 @@ describe("WallpaperGrid", () => {
         wallpapers={singleWallpaper}
         onSetWallpaper={mockOnSetWallpaper}
         loading={false}
+        wallpaperDirectory={mockWallpaperDirectory}
       />,
     );
 

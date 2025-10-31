@@ -13,7 +13,6 @@ use chrono::{DateTime, Duration as ChronoDuration, Local, TimeZone, Timelike};
 use log::{error, info, warn};
 
 use models::{AppSettings, LocalWallpaper};
-use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -307,9 +306,9 @@ async fn get_local_wallpapers(
     // 检查文件是否存在，收集需要重新下载的壁纸
     let mut missing_wallpapers = Vec::new();
     for wallpaper in &wallpapers {
-        let path = std::path::Path::new(&wallpaper.file_path);
+        let path = storage::get_wallpaper_path(&wallpaper_dir, &wallpaper.end_date);
         if !path.exists() {
-            warn!(target: "commands", "壁纸文件不存在，将触发重新下载: {}", wallpaper.file_path);
+            warn!(target: "commands", "壁纸文件不存在，将触发重新下载: {}", path.display());
             missing_wallpapers.push(wallpaper.clone());
         }
     }
@@ -372,17 +371,6 @@ async fn get_settings(
     Ok(settings)
 }
 
-/// 设置归一化（内部函数）
-/// 0 表示不限制，必须保留 8 张以上（0 时不受限制）
-fn normalize_settings(mut s: AppSettings) -> AppSettings {
-    // 0 表示不限制，跳过检查
-    // 如果设置了数量但小于 8，则强制设为 8
-    if s.keep_image_count != 0 && s.keep_image_count < 8 {
-        s.keep_image_count = 8;
-    }
-    s
-}
-
 #[tauri::command]
 async fn update_settings(
     new_settings: AppSettings,
@@ -391,9 +379,6 @@ async fn update_settings(
 ) -> Result<(), String> {
     let mut settings = state.settings.lock().await;
 
-    // 统一归一化逻辑
-    let normalized = normalize_settings(new_settings);
-
     // 在更新设置之前，先保存旧的语言设置
     let old_language = settings.language.clone();
 
@@ -401,8 +386,8 @@ async fn update_settings(
     let autostart_manager = app.autolaunch();
     let current_autostart_enabled = autostart_manager.is_enabled().unwrap_or(false);
 
-    if normalized.launch_at_startup != current_autostart_enabled {
-        if normalized.launch_at_startup {
+    if new_settings.launch_at_startup != current_autostart_enabled {
+        if new_settings.launch_at_startup {
             autostart_manager
                 .enable()
                 .map_err(|e| format!("启用开机自启动失败: {}", e))?;
@@ -413,13 +398,13 @@ async fn update_settings(
         }
     }
 
-    *settings = normalized.clone();
+    *settings = new_settings.clone();
     drop(settings);
 
     // 更新壁纸目录
     {
         let mut wallpaper_dir = state.wallpaper_directory.lock().await;
-        if let Some(ref new_dir) = normalized.save_directory {
+        if let Some(ref new_dir) = new_settings.save_directory {
             *wallpaper_dir = PathBuf::from(new_dir);
         } else {
             *wallpaper_dir =
@@ -428,18 +413,18 @@ async fn update_settings(
     }
 
     // 保存设置到 store
-    settings_store::save_settings(&app, &normalized)
+    settings_store::save_settings(&app, &new_settings)
         .map_err(|e| format!("保存设置到 store 失败: {}", e))?;
 
     // 广播设置变化
     state
         .settings_tx
-        .send(normalized.clone())
+        .send(new_settings.clone())
         .map_err(|e| format!("广播设置失败: {e}"))?;
 
     // 如果语言设置改变，更新托盘菜单
-    if normalized.language != old_language {
-        info!(target: "settings", "语言从 {} 切换到 {}，更新托盘菜单", old_language, normalized.language);
+    if new_settings.language != old_language {
+        info!(target: "settings", "语言从 {} 切换到 {}，更新托盘菜单", old_language, new_settings.language);
         // 使用异步方式更新菜单，避免阻塞和 panic
         let app_clone = app.clone();
         tauri::async_runtime::spawn(async move {
@@ -456,47 +441,7 @@ async fn update_settings(
 }
 
 #[cfg(test)]
-mod lib_tests {
-    use super::*;
-
-    #[test]
-    fn test_normalize_settings_minimums() {
-        let s = AppSettings {
-            auto_update: true,
-            save_directory: None,
-            keep_image_count: 3,
-            launch_at_startup: false,
-            theme: "system".to_string(),
-            language: "auto".to_string(),
-        };
-        let n = normalize_settings(s);
-        assert_eq!(n.keep_image_count, 8);
-
-        // 测试 0 表示不限制
-        let s_unlimited = AppSettings {
-            auto_update: true,
-            save_directory: None,
-            keep_image_count: 0,
-            launch_at_startup: false,
-            theme: "system".to_string(),
-            language: "auto".to_string(),
-        };
-        let n_unlimited = normalize_settings(s_unlimited);
-        assert_eq!(n_unlimited.keep_image_count, 0);
-    }
-}
-
-/// 清理旧壁纸
-#[tauri::command]
-async fn cleanup_wallpapers(state: tauri::State<'_, AppState>) -> Result<usize, String> {
-    let wallpaper_dir = state.wallpaper_directory.lock().await;
-    let settings = state.settings.lock().await;
-
-    storage::cleanup_old_wallpapers(&wallpaper_dir, settings.keep_image_count as usize)
-        .await
-        .map_err(|e| e.to_string())
-}
-
+mod lib_tests {}
 // 获取当前桌面壁纸路径
 // (removed obsolete get_current_wallpaper command)
 /// 获取默认壁纸目录
@@ -690,7 +635,7 @@ async fn apply_latest_wallpaper_if_needed(app: &AppHandle, state: &AppState, wal
         .await
         .unwrap_or_default();
     if let Some(first) = latest_wallpapers.first() {
-        let path = PathBuf::from(&first.file_path);
+        let path = storage::get_wallpaper_path(wallpaper_dir, &first.end_date);
         // 检查当前壁纸是否已经是目标壁纸
         let current_path_guard = state.current_wallpaper_path.lock().await;
         let needs_set = current_path_guard
@@ -775,93 +720,6 @@ async fn fetch_bing_images_with_retry(mkt: &str) -> Option<Vec<models::BingImage
     }
 
     images_opt
-}
-
-/// 并发下载多张壁纸
-///
-/// 已废弃：采用按需下载策略，不再批量下载
-/// 保留此函数以备将来可能需要批量下载的场景
-#[allow(dead_code)]
-async fn download_wallpapers_concurrently(
-    app: &AppHandle,
-    download_tasks: Vec<(String, PathBuf, models::BingImageEntry)>,
-    max_concurrent: usize,
-) -> (u32, u32) {
-    if download_tasks.is_empty() {
-        return (0, 0);
-    }
-
-    info!(target: "update", "开始并发下载 {} 张图片（并发数：{}）", download_tasks.len(), max_concurrent);
-
-    use futures::stream::{self, StreamExt};
-    let app_for_tasks = app.clone();
-
-    let results: Vec<_> = stream::iter(download_tasks)
-        .map(|(url, save_path, image)| {
-            let app_clone = app_for_tasks.clone();
-            async move {
-                let startdate = image.startdate.clone();
-                match download_manager::download_image(&url, &save_path).await {
-                    Ok(_) => {
-                        info!(target: "update", "图片下载成功: {}", startdate);
-                        // 通知前端单张图片下载完成
-                        if let Err(e) = app_clone.emit("image-downloaded", startdate.clone()) {
-                            warn!(target: "update", "通知前端图片下载完成失败: {e}");
-                        }
-                        Ok(startdate)
-                    }
-                    Err(e) => {
-                        warn!(target: "update", "图片下载失败 {}: {}", startdate, e);
-                        Err((startdate, e))
-                    }
-                }
-            }
-        })
-        .buffer_unordered(max_concurrent)
-        .collect()
-        .await;
-
-    let mut success_count = 0;
-    let mut fail_count = 0;
-    for result in results {
-        match result {
-            Ok(_) => success_count += 1,
-            Err(_) => fail_count += 1,
-        }
-    }
-
-    if success_count > 0 || fail_count > 0 {
-        if fail_count > 0 {
-            warn!(target: "update", "下载完成: 成功 {}, 失败 {}", success_count, fail_count);
-        } else {
-            info!(target: "update", "全部 {} 张图片下载成功", success_count);
-        }
-    }
-
-    (success_count, fail_count)
-}
-
-/// 从壁纸列表中提取实际存在的文件名集合
-///
-/// 已废弃：采用按需下载策略，不再需要批量检查文件
-/// 保留此函数以备将来可能需要批量检查的场景
-#[allow(dead_code)]
-async fn get_existing_file_names(wallpapers: &[LocalWallpaper]) -> HashSet<String> {
-    wallpapers
-        .iter()
-        .filter_map(|w| {
-            let path = PathBuf::from(&w.file_path);
-            // 只保留实际存在的文件
-            if path.exists() {
-                path.file_name()
-                    .and_then(|n| n.to_str())
-                    .map(|s| s.to_string())
-            } else {
-                warn!(target: "update", "index 中的文件不存在，将被忽略: {}", w.file_path);
-                None
-            }
-        })
-        .collect()
 }
 
 /// 内部更新循环实现
@@ -973,14 +831,10 @@ async fn run_update_cycle_internal(app: &AppHandle, force_update: bool) {
     // 首次启动和非首次启动都统一在这里批量保存元数据
     // 注意：保存所有 API 返回的图片的元数据，不管文件是否存在（支持按需下载）
     // 使用 end_date 作为文件名，因为 Bing 的 startdate 是昨天，enddate 才是今天
+    // file_path 不再存储，而是根据 end_date 和目录动态生成
     let metadata_list: Vec<LocalWallpaper> = images
         .iter()
-        .map(|image| {
-            let save_path = storage::get_wallpaper_path(&dir, &image.enddate);
-            let mut w = LocalWallpaper::from(image.clone());
-            w.file_path = save_path.to_string_lossy().to_string();
-            w
-        })
+        .map(|image| LocalWallpaper::from(image.clone()))
         .collect();
 
     let is_first_launch = existing_wallpapers.is_empty();
@@ -1009,12 +863,6 @@ async fn run_update_cycle_internal(app: &AppHandle, force_update: bool) {
         }
     }
 
-    // 清理旧文件
-    if let Err(e) =
-        storage::cleanup_old_wallpapers(&dir, settings_snapshot.keep_image_count as usize).await
-    {
-        warn!(target: "update", "清理旧壁纸失败: {e}");
-    }
 
     // 自动应用最新壁纸：检查是否需要设置
     // 优化：重新读取壁纸列表（下载完成后列表可能已更新），但仅在需要设置时检查
@@ -1535,7 +1383,6 @@ pub fn run() {
             get_local_wallpapers,
             get_settings,
             update_settings,
-            cleanup_wallpapers,
             get_wallpaper_directory,
             get_default_wallpaper_directory,
             get_last_update_time,
