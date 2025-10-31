@@ -2,6 +2,7 @@
 // 检查并清除可能被 shim 的钩子，让 React Refresh 能够正确初始化
 if (import.meta.env.DEV) {
   const hookKey = "__REACT_DEVTOOLS_GLOBAL_HOOK__";
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const existingHook = (window as any)[hookKey];
 
   if (existingHook && typeof existingHook === "object") {
@@ -12,7 +13,7 @@ if (import.meta.env.DEV) {
       if (descriptor && (descriptor.get || descriptor.set)) {
         isProxy = true;
       }
-    } catch (e) {
+    } catch {
       // 忽略错误
     }
 
@@ -37,8 +38,9 @@ if (import.meta.env.DEV) {
             value: undefined,
           });
         }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         delete (window as any)[hookKey];
-      } catch (e) {
+      } catch {
         // 忽略错误，继续执行
       }
     }
