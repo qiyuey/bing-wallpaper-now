@@ -39,22 +39,44 @@ impl IndexManager {
     /// 如果缓存中有数据，直接返回缓存；否则从磁盘加载。
     /// 如果磁盘上没有索引文件，返回空索引。
     pub async fn load_index(&self) -> Result<WallpaperIndex> {
+        let index_path = self.index_path();
+        
         // 检查缓存
         {
             let cache = self.cache.lock().await;
             if let Some(index) = cache.as_ref() {
+                log::debug!(
+                    "使用缓存的索引，包含 {} 种语言，路径: {}",
+                    index.wallpapers_by_language.len(),
+                    index_path.display()
+                );
                 return Ok(index.clone());
             }
         }
 
         // 从磁盘加载
-        let index = self.load_from_disk().await.unwrap_or_else(|e| {
-            log::info!(
-                "Index file not found or corrupted ({}), will rebuild if needed",
-                e
-            );
-            WallpaperIndex::default()
-        });
+        log::debug!("从磁盘加载索引，路径: {}", index_path.display());
+        let index = match self.load_from_disk().await {
+            Ok(index) => {
+                let lang_count = index.wallpapers_by_language.len();
+                let total_wallpapers: usize = index.wallpapers_by_language.values().map(|m| m.len()).sum();
+                log::info!(
+                    "成功加载索引文件，包含 {} 种语言，共 {} 张壁纸，路径: {}",
+                    lang_count,
+                    total_wallpapers,
+                    index_path.display()
+                );
+                index
+            }
+            Err(e) => {
+                log::warn!(
+                    "索引文件加载失败 ({}), 将使用空索引，路径: {}",
+                    e,
+                    index_path.display()
+                );
+                WallpaperIndex::default()
+            }
+        };
 
         // 更新缓存
         {
@@ -69,22 +91,26 @@ impl IndexManager {
     async fn load_from_disk(&self) -> Result<WallpaperIndex> {
         let path = self.index_path();
         if !path.exists() {
+            log::debug!("索引文件不存在，返回空索引，路径: {}", path.display());
             return Ok(WallpaperIndex::default());
         }
 
+        log::debug!("读取索引文件，路径: {}", path.display());
         let contents = fs::read_to_string(&path)
             .await
-            .context("Failed to read index file")?;
+            .with_context(|| format!("Failed to read index file: {}", path.display()))?;
 
+        log::debug!("解析索引文件内容，大小: {} bytes", contents.len());
         let index: WallpaperIndex =
-            serde_json::from_str(&contents).context("Failed to deserialize index")?;
+            serde_json::from_str(&contents).with_context(|| format!("Failed to deserialize index file: {}", path.display()))?;
 
         // 版本检查
         if index.version != WallpaperIndex::VERSION {
             log::error!(
-                "索引版本不匹配 (期望: {}, 实际: {}), 数据将被重置",
+                "索引版本不匹配 (期望: {}, 实际: {}), 数据将被重置，路径: {}",
                 WallpaperIndex::VERSION,
-                index.version
+                index.version,
+                path.display()
             );
             // 考虑保存旧索引备份（可选）
             let backup_path = self.index_path().with_extension("backup");
@@ -96,6 +122,7 @@ impl IndexManager {
             return Ok(WallpaperIndex::default());
         }
 
+        log::debug!("索引文件版本检查通过，版本: {}", index.version);
         Ok(index)
     }
 
@@ -182,7 +209,17 @@ impl IndexManager {
     /// * `language` - 语言代码（如 "zh-CN", "en-US"）
     pub async fn get_all_wallpapers(&self, language: &str) -> Result<Vec<LocalWallpaper>> {
         let index = self.load_index().await?;
-        Ok(index.get_wallpapers_for_language(language))
+        let available_languages: Vec<String> = index.wallpapers_by_language.keys().cloned().collect();
+        let wallpapers = index.get_wallpapers_for_language(language);
+        
+        log::debug!(
+            "获取壁纸列表，语言: {}, 找到 {} 张壁纸，可用语言: {:?}",
+            language,
+            wallpapers.len(),
+            available_languages
+        );
+        
+        Ok(wallpapers)
     }
 
     /// 获取所有语言的唯一壁纸（用于清理操作）

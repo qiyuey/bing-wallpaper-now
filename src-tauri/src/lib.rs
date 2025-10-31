@@ -133,14 +133,37 @@ async fn get_local_wallpapers(
 
     // 获取当前语言的市场代码
     let language = utils::get_bing_market_code(&settings.language);
+    
+    info!(
+        target: "commands",
+        "获取本地壁纸列表，语言设置: {} -> {}, 目录: {}",
+        settings.language,
+        language,
+        wallpaper_dir.display()
+    );
 
     let wallpapers = storage::get_local_wallpapers(&wallpaper_dir, language)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            error!(target: "commands", "获取本地壁纸列表失败: {}", e);
+            e.to_string()
+        })?;
+
+    info!(
+        target: "commands",
+        "成功获取 {} 张本地壁纸（语言: {}）",
+        wallpapers.len(),
+        language
+    );
 
     // 如果当前语言的索引为空，触发一次更新（异步，不阻塞返回）
     // 但只有在没有更新正在进行时才触发，避免重复更新
     if wallpapers.is_empty() {
+        warn!(
+            target: "commands",
+            "当前语言 ({}) 的壁纸列表为空，将触发异步更新",
+            language
+        );
         let app_clone = app.clone();
         let language_str = language.to_string();
         tauri::async_runtime::spawn(async move {
@@ -160,6 +183,11 @@ async fn get_local_wallpapers(
 
     // 如果有缺失的文件，异步触发重新下载
     if !missing_wallpapers.is_empty() {
+        warn!(
+            target: "commands",
+            "发现 {} 个缺失的壁纸文件，将触发重新下载",
+            missing_wallpapers.len()
+        );
         let wallpaper_dir_clone = wallpaper_dir.clone();
         let app_clone = app.clone();
         tauri::async_runtime::spawn(async move {
@@ -167,7 +195,6 @@ async fn get_local_wallpapers(
         });
     }
 
-    info!(target: "commands", "成功获取 {} 张本地壁纸", wallpapers.len());
     Ok(wallpapers)
 }
 
