@@ -202,7 +202,6 @@ export function Settings({
             </div>
           </div>
 
-
           <div className="settings-section">
             <div className="settings-label">{t("saveDirectory")}:</div>
             <div className="settings-dir-row">

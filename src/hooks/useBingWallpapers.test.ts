@@ -86,7 +86,6 @@ describe("useBingWallpapers", () => {
     expect(typeof result.current.forceUpdate).toBe("function");
   });
 
-
   it("should expose fetchLocalWallpapers function", async () => {
     const { result } = renderHook(() => useBingWallpapers());
 
@@ -121,7 +120,6 @@ describe("useBingWallpapers", () => {
       filePath: "/path/to/wallpaper.jpg",
     });
   });
-
 
   it("should call forceUpdate and refresh wallpapers", async () => {
     const mockWallpapersRaw: LocalWallpaperRaw[] = [

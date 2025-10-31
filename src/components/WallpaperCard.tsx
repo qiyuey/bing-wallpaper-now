@@ -17,15 +17,19 @@ const loadedImagesCache = new Set<string>();
 // 使用 memo 优化，只在 props 变化时重新渲染
 // 自定义比较函数，确保 wallpaper.title 和 wallpaper.copyright 变化时也会重新渲染
 export const WallpaperCard = memo(
-  function WallpaperCard({ wallpaper, onSetWallpaper, wallpaperDirectory }: WallpaperCardProps) {
+  function WallpaperCard({
+    wallpaper,
+    onSetWallpaper,
+    wallpaperDirectory,
+  }: WallpaperCardProps) {
     const { t } = useI18n();
-    
+
     // 动态生成 file_path
     const filePath = useMemo(
       () => getWallpaperFilePath(wallpaperDirectory, wallpaper.end_date),
-      [wallpaperDirectory, wallpaper.end_date]
+      [wallpaperDirectory, wallpaper.end_date],
     );
-    
+
     // 检查图片是否已加载过
     const isImageCached = loadedImagesCache.has(filePath);
 
@@ -121,6 +125,11 @@ export const WallpaperCard = memo(
     // 将本地文件路径转换为前端可访问的 URL（使用 useMemo 缓存）
     // 注意：包含 retryCount 作为查询参数，强制浏览器在重试时重新加载图片
     const imageUrl = useMemo(() => {
+      // 如果路径为空，返回空字符串（不渲染图片）
+      if (!filePath || filePath.trim() === "") {
+        return "";
+      }
+
       // 确保路径格式正确（Windows 路径需要转换为正斜杠）
       const normalizedPath = filePath.replace(/\\/g, "/");
       const baseUrl = convertFileSrc(normalizedPath);
@@ -151,15 +160,17 @@ export const WallpaperCard = memo(
                   <p className="placeholder-loading-text">{t("loading")}</p>
                 </div>
               )}
-              <img
-                key={`${filePath}-${retryCount}`}
-                src={imageUrl}
-                alt={title}
-                className="wallpaper-image"
-                onLoad={handleImageLoad}
-                onError={handleImageError}
-                style={{ display: imageLoading ? "none" : "block" }}
-              />
+              {imageUrl && (
+                <img
+                  key={`${filePath}-${retryCount}`}
+                  src={imageUrl}
+                  alt={title}
+                  className="wallpaper-image"
+                  onLoad={handleImageLoad}
+                  onError={handleImageError}
+                  style={{ display: imageLoading ? "none" : "block" }}
+                />
+              )}
             </>
           )}
         </div>

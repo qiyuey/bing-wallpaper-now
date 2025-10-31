@@ -36,7 +36,9 @@ export function normalizeWallpaper(raw: LocalWallpaperRaw): LocalWallpaper {
 /**
  * 批量转换壁纸数据格式
  */
-export function normalizeWallpapers(raws: LocalWallpaperRaw[]): LocalWallpaper[] {
+export function normalizeWallpapers(
+  raws: LocalWallpaperRaw[],
+): LocalWallpaper[] {
   return raws.map(normalizeWallpaper);
 }
 
@@ -48,17 +50,28 @@ export function normalizeWallpapers(raws: LocalWallpaperRaw[]): LocalWallpaper[]
  */
 export function getWallpaperFilePath(
   wallpaperDirectory: string,
-  endDate: string
+  endDate: string,
 ): string {
+  // 如果目录为空，返回空字符串（让调用方处理）
+  if (!wallpaperDirectory || wallpaperDirectory.trim() === "") {
+    return "";
+  }
+
+  // 验证 endDate 格式（必须是 YYYYMMDD 格式的 8 位数字）
+  if (!/^\d{8}$/.test(endDate)) {
+    console.warn(`Invalid endDate format: ${endDate}, expected YYYYMMDD`);
+    return "";
+  }
+
   // 将反斜杠转换为正斜杠，确保跨平台兼容性
   // convertFileSrc 需要统一使用正斜杠，并且路径必须是绝对路径
   const normalizedDir = wallpaperDirectory.replace(/\\/g, "/");
-  
+
   // 确保路径末尾没有多余的斜杠
-  const cleanDir = normalizedDir.endsWith("/") 
-    ? normalizedDir.slice(0, -1) 
+  const cleanDir = normalizedDir.endsWith("/")
+    ? normalizedDir.slice(0, -1)
     : normalizedDir;
-    
+
   return `${cleanDir}/${endDate}.jpg`;
 }
 

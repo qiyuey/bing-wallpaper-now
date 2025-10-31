@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { LocalWallpaper, LocalWallpaperRaw, normalizeWallpapers } from "../types";
+import {
+  LocalWallpaper,
+  LocalWallpaperRaw,
+  normalizeWallpapers,
+} from "../types";
 import { createSafeUnlisten } from "../utils/eventListener";
 
 /**
@@ -27,7 +31,9 @@ export function useBingWallpapers() {
     }
     setError(null);
     try {
-      const wallpapersRaw = await invoke<LocalWallpaperRaw[]>("get_local_wallpapers");
+      const wallpapersRaw = await invoke<LocalWallpaperRaw[]>(
+        "get_local_wallpapers",
+      );
       // 转换短字段名为完整字段名
       const wallpapers = normalizeWallpapers(wallpapersRaw);
       // 只有数据真正变化时才更新状态，避免不必要的重渲染

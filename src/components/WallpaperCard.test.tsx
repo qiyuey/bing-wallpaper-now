@@ -398,7 +398,7 @@ describe("WallpaperCard", () => {
   });
 
   it("should update when wallpaper title changes", () => {
-    const { rerender } =     renderWithI18n(
+    const { rerender } = renderWithI18n(
       <WallpaperCard
         wallpaper={mockWallpaper}
         onSetWallpaper={mockOnSetWallpaper}
@@ -421,7 +421,7 @@ describe("WallpaperCard", () => {
   });
 
   it("should update when wallpaper copyright changes", () => {
-    const { rerender } =     renderWithI18n(
+    const { rerender } = renderWithI18n(
       <WallpaperCard
         wallpaper={mockWallpaper}
         onSetWallpaper={mockOnSetWallpaper}

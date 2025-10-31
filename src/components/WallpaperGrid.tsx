@@ -113,7 +113,10 @@ export const WallpaperGrid = memo(function WallpaperGrid({
     return (
       <div style={style} className="wallpaper-row">
         {rowWallpapers.map((wallpaper: LocalWallpaper) => (
-          <div key={`${wallpaper.end_date}-${index}`} className="wallpaper-row-item">
+          <div
+            key={`${wallpaper.end_date}-${index}`}
+            className="wallpaper-row-item"
+          >
             <WallpaperCard
               wallpaper={wallpaper}
               onSetWallpaper={onSetWallpaper}

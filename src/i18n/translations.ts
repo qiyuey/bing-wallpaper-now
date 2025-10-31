@@ -32,6 +32,7 @@ export const translations = {
 
     // 文件夹相关
     folderError: "打开文件夹失败",
+    wallpaperDirectoryError: "无法获取壁纸目录",
     openFolder: "打开目录",
     selectFolder: "选择文件夹",
     restoreDefault: "恢复默认目录",
@@ -41,7 +42,9 @@ export const translations = {
     settings: "设置",
     settingsTitle: "设置",
     launchAtStartup: "开机自启动",
-    autoUpdate: "自动更新壁纸",
+    autoUpdate: "自动应用新壁纸",
+    autoUpdateHint:
+      "开启时：自动获取新壁纸，并在检测到更新的壁纸时自动应用该壁纸\n关闭时：只有手动点击设置壁纸才会设置，但是仍然会自动获取新壁纸",
     theme: "主题",
     themeSystem: "跟随系统",
     themeLight: "浅色",
@@ -104,6 +107,7 @@ export const translations = {
 
     // 文件夹相关
     folderError: "Failed to open folder",
+    wallpaperDirectoryError: "Failed to get wallpaper directory",
     openFolder: "Open Folder",
     selectFolder: "Select Folder",
     restoreDefault: "Restore Default",
@@ -113,7 +117,9 @@ export const translations = {
     settings: "Settings",
     settingsTitle: "Settings",
     launchAtStartup: "Launch at Startup",
-    autoUpdate: "Auto Update Wallpaper",
+    autoUpdate: "Auto Apply New Wallpaper",
+    autoUpdateHint:
+      "When enabled: Automatically fetch new wallpapers and apply them when detected\nWhen disabled: Only set wallpaper when manually clicked, but still automatically fetch new wallpapers",
     theme: "Theme",
     themeSystem: "System",
     themeLight: "Light",

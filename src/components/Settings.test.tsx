@@ -61,7 +61,10 @@ describe("Settings", () => {
 
     // Should show either the settings content or loading state
     await waitFor(() => {
-      expect(screen.getByText(/设置|加载设置中.../i)).toBeInTheDocument();
+      // Check for settings title or loading state
+      const title = screen.queryByRole("heading", { name: /设置/i });
+      const loading = screen.queryByText(/加载设置中.../i);
+      expect(title || loading).toBeInTheDocument();
     });
   });
 
@@ -78,7 +81,7 @@ describe("Settings", () => {
     renderWithTheme(<Settings onClose={mockOnClose} />);
 
     const checkbox = await screen.findByLabelText(
-      /自动更新/i,
+      /自动应用新壁纸/i,
       {},
       { timeout: 3000 },
     );
@@ -90,7 +93,7 @@ describe("Settings", () => {
     renderWithTheme(<Settings onClose={mockOnClose} />);
 
     const checkbox = (await screen.findByLabelText(
-      /自动更新/i,
+      /自动应用新壁纸/i,
       {},
       { timeout: 3000 },
     )) as HTMLInputElement; // eslint-disable-line no-undef
@@ -338,7 +341,7 @@ describe("Settings", () => {
     renderWithTheme(<Settings onClose={mockOnClose} />);
 
     const checkbox = (await screen.findByLabelText(
-      /自动更新/i,
+      /自动应用新壁纸/i,
       {},
       { timeout: 3000 },
     )) as HTMLInputElement; // eslint-disable-line no-undef
@@ -379,7 +382,10 @@ describe("Settings", () => {
     // Component should still render even if getDefaultDirectory fails
     await screen.findByText(/选择文件夹/i, {}, { timeout: 3000 });
 
-    expect(screen.getByText(/设置|加载设置中.../i)).toBeInTheDocument();
+    // Check for settings title or loading state
+    const title = screen.queryByRole("heading", { name: /设置/i });
+    const loading = screen.queryByText(/加载设置中.../i);
+    expect(title || loading).toBeInTheDocument();
 
     consoleErrorSpy.mockRestore();
   });

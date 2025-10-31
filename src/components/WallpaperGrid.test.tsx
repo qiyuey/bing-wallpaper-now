@@ -127,7 +127,11 @@ describe("WallpaperGrid", () => {
 
   it("should default loading to false when not provided", () => {
     renderWithI18n(
-      <WallpaperGrid wallpapers={[]} onSetWallpaper={mockOnSetWallpaper} wallpaperDirectory={mockWallpaperDirectory} />,
+      <WallpaperGrid
+        wallpapers={[]}
+        onSetWallpaper={mockOnSetWallpaper}
+        wallpaperDirectory={mockWallpaperDirectory}
+      />,
     );
 
     // 当 loading 默认为 false 且没有壁纸时，应该显示空状态

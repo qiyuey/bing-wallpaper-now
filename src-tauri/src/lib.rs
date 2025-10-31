@@ -624,12 +624,21 @@ async fn check_and_trigger_update_if_needed(app: &AppHandle) -> bool {
 }
 
 /// 应用最新壁纸（如果需要）
+/// 只有在 auto_update 设置开启时才会自动应用
 async fn apply_latest_wallpaper_if_needed(app: &AppHandle, state: &AppState, wallpaper_dir: &Path) {
-    // 获取当前语言设置
-    let language = {
+    // 一次性获取所有需要的设置，减少锁获取次数
+    let (should_apply, language) = {
         let settings = state.settings.lock().await;
-        utils::get_bing_market_code(&settings.language).to_string()
+        (
+            settings.auto_update,
+            utils::get_bing_market_code(&settings.language).to_string(),
+        )
     };
+    
+    if !should_apply {
+        // 未开启自动应用，跳过
+        return;
+    }
 
     let latest_wallpapers = storage::get_local_wallpapers(wallpaper_dir, &language)
         .await
@@ -743,13 +752,8 @@ async fn run_update_cycle_internal(app: &AppHandle, force_update: bool) {
         s.clone()
     };
 
-    // 强制更新时忽略 auto_update 设置，手动刷新总是应该执行
-    if !force_update && !settings_snapshot.auto_update {
-        // 未开启自动更新，重置标志后返回
-        let mut flag = state.update_in_progress.lock().await;
-        *flag = false;
-        return;
-    }
+    // 注意：即使 auto_update 关闭，也要获取新壁纸（只获取不自动应用）
+    // 自动应用由 apply_latest_wallpaper_if_needed 函数根据 auto_update 设置决定
 
     let dir = {
         let d = state.wallpaper_directory.lock().await;
@@ -1026,12 +1030,12 @@ fn start_auto_update_task(app: AppHandle) {
 
                         let latest = rx.borrow().clone();
                         if !latest.auto_update {
-                            info!(target: "update", "自动更新已关闭，等待重新开启...");
+                            info!(target: "update", "自动应用已关闭（仍会获取新壁纸），等待重新开启...");
                             loop {
                                 if rx.changed().await.is_err() { break; }
                                 let s = rx.borrow().clone();
                                 if s.auto_update {
-                                    info!(target: "update", "自动更新重新开启，立即执行一次");
+                                    info!(target: "update", "自动应用重新开启，立即执行一次");
                                     run_update_cycle(&app_clone).await;
                                     break;
                                 }

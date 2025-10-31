@@ -101,7 +101,21 @@ function App() {
   const handleSetWallpaper = async (wallpaper: LocalWallpaper) => {
     try {
       // 动态生成 file_path
-      const filePath = getWallpaperFilePath(wallpaperDirectory, wallpaper.end_date);
+      let filePath = getWallpaperFilePath(
+        wallpaperDirectory,
+        wallpaper.end_date,
+      );
+
+      // 如果路径为空，说明目录还未加载完成，重新获取目录
+      if (!filePath || filePath.trim() === "") {
+        const dir = await invoke<string>("get_wallpaper_directory");
+        setWallpaperDirectory(dir);
+        filePath = getWallpaperFilePath(dir, wallpaper.end_date);
+        if (!filePath || filePath.trim() === "") {
+          throw new Error(t("wallpaperDirectoryError"));
+        }
+      }
+
       // 异步设置，不阻塞 UI
       await setDesktopWallpaper(filePath);
     } catch (err) {
