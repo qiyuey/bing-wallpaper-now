@@ -25,7 +25,6 @@ describe("Settings", () => {
   const mockSettings = {
     auto_update: true,
     save_directory: null,
-    keep_image_count: 30,
     launch_at_startup: false,
     theme: "system" as const,
     language: "auto" as const,
@@ -124,47 +123,6 @@ describe("Settings", () => {
       expect(mockUpdateSettings).toHaveBeenCalledWith(
         expect.objectContaining({
           launch_at_startup: !initialValue,
-        }),
-      );
-    });
-  });
-
-  it("should update keep image count", async () => {
-    renderWithTheme(<Settings onClose={mockOnClose} />);
-
-    const input = (await screen.findByLabelText(
-      /保留壁纸数量/i,
-      {},
-      { timeout: 3000 },
-    )) as HTMLInputElement; // eslint-disable-line no-undef
-
-    fireEvent.change(input, { target: { value: "20" } });
-
-    await waitFor(() => {
-      expect(mockUpdateSettings).toHaveBeenCalledWith(
-        expect.objectContaining({
-          keep_image_count: 20,
-        }),
-      );
-    });
-  });
-
-  it("should normalize keep image count below 8 to 8", async () => {
-    renderWithTheme(<Settings onClose={mockOnClose} />);
-
-    const input = (await screen.findByLabelText(
-      /保留壁纸数量/i,
-      {},
-      { timeout: 3000 },
-    )) as HTMLInputElement; // eslint-disable-line no-undef
-
-    // Try to set below minimum - the component will normalize to 8
-    fireEvent.change(input, { target: { value: "5" } });
-
-    await waitFor(() => {
-      expect(mockUpdateSettings).toHaveBeenCalledWith(
-        expect.objectContaining({
-          keep_image_count: 8, // 1-7 会被规范化为 8
         }),
       );
     });

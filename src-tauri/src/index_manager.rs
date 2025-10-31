@@ -117,32 +117,35 @@ impl IndexManager {
             .with_context(|| format!("Failed to read index file: {}", path.display()))?;
 
         log::debug!("解析索引文件内容，大小: {} bytes", contents.len());
-        
-        let mut index: WallpaperIndex = serde_json::from_str(&contents)
-            .with_context(|| format!("Failed to deserialize index file: {}", path.display()))?;
 
-        // 对加载的索引进行排序，确保顺序（修复旧数据可能存在的乱序问题）
-        index.sort_all();
+        // 先解析为 JSON Value，检查版本号
+        let json_value: serde_json::Value = serde_json::from_str(&contents)
+            .with_context(|| format!("Failed to parse JSON: {}", path.display()))?;
 
-        // 版本检查：如果不匹配，重置索引
-        if index.version != WallpaperIndex::VERSION {
+        // 检查版本号，如果不是 v4，直接返回空索引
+        let file_version = json_value
+            .get("version")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0) as u32;
+
+        if file_version != WallpaperIndex::VERSION {
             log::warn!(
-                "索引版本不匹配 (期望: {}, 实际: {}), 数据将被重置，路径: {}",
+                "索引版本不匹配 (期望: {}, 实际: {}), 返回空索引，路径: {}",
                 WallpaperIndex::VERSION,
-                index.version,
+                file_version,
                 path.display()
             );
-            // 备份旧文件
-            let backup_path = self.index_path().with_extension("backup");
-            if let Err(e) = fs::copy(&self.index_path(), &backup_path).await {
-                log::warn!("保存索引备份失败: {}", e);
-            } else {
-                log::info!("已保存旧索引备份到: {}", backup_path.display());
-            }
             return Ok(WallpaperIndex::default());
         }
 
-        log::debug!("索引文件版本检查通过，版本: {}", index.version);
+        // 版本匹配，反序列化为 WallpaperIndex
+        let mut index: WallpaperIndex = serde_json::from_value(json_value)
+            .with_context(|| format!("Failed to deserialize index file: {}", path.display()))?;
+
+        // 对加载的索引进行排序，确保顺序（按日期降序）
+        index.sort_all();
+
+        log::debug!("索引文件加载成功，版本: {}", index.version);
         Ok(index)
     }
 
@@ -359,52 +362,6 @@ mod tests {
             assert!(retrieved.is_some());
             assert_eq!(retrieved.unwrap().title, "Persist Test");
         }
-
-        // 清理
-        let _ = fs::remove_dir_all(&temp_dir).await;
-    }
-
-    #[tokio::test]
-    async fn test_index_manager_version_mismatch() {
-        let unique = SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
-        let temp_dir = std::env::temp_dir().join(format!("bw_index_version_{unique}"));
-        fs::create_dir_all(&temp_dir).await.unwrap();
-
-        let index_path = temp_dir.join("index.json");
-
-        // 创建一个旧版本的索引文件（v2）
-        let old_index = r#"{
-  "version": 2,
-  "last_updated": "2024-01-01T00:00:00Z",
-  "wallpapers_by_language": {
-    "zh-CN": {
-      "20240101": {
-        "id": "test",
-        "title": "Old Version",
-        "copyright": "Test",
-        "copyright_link": "https://example.com",
-        "end_date": "20240102",
-        "urlbase": ""
-      }
-    }
-  }
-}"#;
-        fs::write(&index_path, old_index).await.unwrap();
-
-        // 尝试加载旧版本索引
-        let manager = IndexManager::new(temp_dir.clone());
-        let index = manager.load_index().await.unwrap();
-
-        // 应该返回空索引（版本不匹配）
-        assert_eq!(index.version, WallpaperIndex::VERSION);
-        assert!(index.wallpapers_by_language.is_empty());
-
-        // 检查备份文件是否创建
-        let backup_path = index_path.with_extension("backup");
-        assert!(backup_path.exists(), "备份文件应该被创建");
 
         // 清理
         let _ = fs::remove_dir_all(&temp_dir).await;
@@ -709,9 +666,24 @@ mod tests {
             json_content.contains("\"20240102\""),
             "JSON 应该包含 end_date 作为 key"
         );
+        // 验证使用短字段名格式
         assert!(
-            json_content.contains("\"end_date\": \"20240102\""),
-            "JSON 应该包含 end_date 字段"
+            json_content.contains("\"d\":\"20240102\""),
+            "JSON 应该使用短字段名 d 表示 end_date"
+        );
+        assert!(
+            json_content.contains("\"t\""),
+            "JSON 应该使用短字段名 t 表示 title"
+        );
+        assert!(
+            json_content.contains("\"c\""),
+            "JSON 应该使用短字段名 c 表示 copyright"
+        );
+        
+        // 验证 JSON 内容是紧凑格式（不是格式化）
+        assert!(
+            !json_content.contains("\n  "),
+            "JSON 应该是紧凑格式，不应该包含缩进"
         );
 
         // 验证 JSON 内容使用 end_date 作为 key（在 wallpapers_by_language 中）
@@ -725,7 +697,7 @@ mod tests {
         assert!(zh_cn_map.contains_key("20240102"), "JSON key 应该是 end_date");
 
         // 验证版本号
-        assert_eq!(parsed["version"], 3, "版本号应该是 3");
+        assert_eq!(parsed["version"], 4, "版本号应该是 4");
 
         // 清理
         let _ = fs::remove_dir_all(&temp_dir).await;

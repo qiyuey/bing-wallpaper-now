@@ -117,7 +117,7 @@ async fn download_wallpaper_if_needed(
         .find(|w| w.end_date == end_date)
         .ok_or_else(|| format!("未找到 end_date 为 {} 的壁纸元数据", end_date))?;
 
-    // 检查是否有 urlbase（旧数据可能没有）
+        // 检查是否有 urlbase（可选字段）
     if wallpaper.urlbase.is_empty() {
         // 如果没有 urlbase，尝试从 Bing API 获取最新数据
         info!(
@@ -228,7 +228,7 @@ async fn redownload_missing_wallpapers(
     info!(target: "commands", "开始重新下载 {} 张缺失的壁纸", missing_wallpapers.len());
 
     for wallpaper in missing_wallpapers {
-        // 如果 urlbase 为空（旧数据），无法重新下载
+        // 如果 urlbase 为空，无法重新下载
         if wallpaper.urlbase.is_empty() {
             warn!(target: "commands", "壁纸缺少 urlbase 信息，无法重新下载: {}", wallpaper.end_date);
             continue;

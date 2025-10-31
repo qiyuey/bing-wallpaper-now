@@ -7,6 +7,7 @@ import { openPath } from "@tauri-apps/plugin-opener";
 import { listen, type Event } from "@tauri-apps/api/event";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { renderWithI18n } from "./test/test-utils";
+import { LocalWallpaperRaw } from "./types";
 
 vi.mock("@tauri-apps/api/core");
 vi.mock("@tauri-apps/plugin-opener");
@@ -17,13 +18,13 @@ const renderWithTheme = (component: React.ReactElement) => {
 };
 
 describe("App", () => {
-  const mockWallpapers = [
+  const mockWallpapersRaw: LocalWallpaperRaw[] = [
     {
-      end_date: "20240102",
-      title: "Test Wallpaper",
-      copyright: "Test Copyright",
-      copyright_link: "https://example.com/link",
-      urlbase: "/th?id=OHR.Test",
+      t: "Test Wallpaper",
+      c: "Test Copyright",
+      l: "https://example.com/link",
+      d: "20240102",
+      u: "/th?id=OHR.Test",
     },
   ];
 
@@ -55,13 +56,12 @@ describe("App", () => {
         return Promise.resolve("/path/to/wallpapers");
       }
       if (cmd === "get_local_wallpapers") {
-        return Promise.resolve(mockWallpapers);
+        return Promise.resolve(mockWallpapersRaw);
       }
       if (cmd === "get_settings") {
         return Promise.resolve({
           auto_update: true,
           save_directory: null,
-          keep_image_count: 8,
           launch_at_startup: false,
           language: "zh-CN",
         });
@@ -144,13 +144,12 @@ describe("App", () => {
         return Promise.resolve("/path/to/wallpapers");
       }
       if (cmd === "get_local_wallpapers") {
-        return Promise.resolve(mockWallpapers);
+        return Promise.resolve(mockWallpapersRaw);
       }
       if (cmd === "get_settings") {
         return Promise.resolve({
           auto_update: true,
           save_directory: null,
-          keep_image_count: 8,
           launch_at_startup: false,
           language: "zh-CN",
         });
@@ -184,7 +183,6 @@ describe("App", () => {
         return Promise.resolve({
           auto_update: true,
           save_directory: null,
-          keep_image_count: 8,
           launch_at_startup: false,
           language: "zh-CN",
         });
@@ -209,13 +207,12 @@ describe("App", () => {
         return Promise.resolve("/path/to/wallpapers");
       }
       if (cmd === "get_local_wallpapers") {
-        return Promise.resolve(mockWallpapers);
+        return Promise.resolve(mockWallpapersRaw);
       }
       if (cmd === "get_settings") {
         return Promise.resolve({
           auto_update: true,
           save_directory: null,
-          keep_image_count: 8,
           launch_at_startup: false,
           language: "zh-CN",
         });
@@ -291,13 +288,12 @@ describe("App", () => {
         return Promise.resolve("/path/to/wallpapers");
       }
       if (cmd === "get_local_wallpapers") {
-        return Promise.resolve(mockWallpapers);
+        return Promise.resolve(mockWallpapersRaw);
       }
       if (cmd === "get_settings") {
         return Promise.resolve({
           auto_update: true,
           save_directory: null,
-          keep_image_count: 8,
           launch_at_startup: false,
           language: "zh-CN",
         });
@@ -333,13 +329,12 @@ describe("App", () => {
         return Promise.resolve("/path/to/wallpapers");
       }
       if (cmd === "get_local_wallpapers") {
-        return Promise.resolve(mockWallpapers);
+        return Promise.resolve(mockWallpapersRaw);
       }
       if (cmd === "get_settings") {
         return Promise.resolve({
           auto_update: true,
           save_directory: null,
-          keep_image_count: 8,
           launch_at_startup: false,
           language: "zh-CN",
         });
@@ -400,13 +395,12 @@ describe("App", () => {
         return Promise.resolve("/path/to/wallpapers");
       }
       if (cmd === "get_local_wallpapers") {
-        return Promise.resolve(mockWallpapers);
+        return Promise.resolve(mockWallpapersRaw);
       }
       if (cmd === "get_settings") {
         return Promise.resolve({
           auto_update: true,
           save_directory: null,
-          keep_image_count: 8,
           launch_at_startup: false,
           language: "zh-CN",
         });
@@ -442,13 +436,12 @@ describe("App", () => {
         return Promise.resolve("/path/to/wallpapers");
       }
       if (cmd === "get_local_wallpapers") {
-        return Promise.resolve(mockWallpapers);
+        return Promise.resolve(mockWallpapersRaw);
       }
       if (cmd === "get_settings") {
         return Promise.resolve({
           auto_update: true,
           save_directory: null,
-          keep_image_count: 8,
           launch_at_startup: false,
           language: "zh-CN",
         });
@@ -488,13 +481,12 @@ describe("App", () => {
         return Promise.resolve("/path/to/wallpapers");
       }
       if (cmd === "get_local_wallpapers") {
-        return Promise.resolve(mockWallpapers);
+        return Promise.resolve(mockWallpapersRaw);
       }
       if (cmd === "get_settings") {
         return Promise.resolve({
           auto_update: true,
           save_directory: null,
-          keep_image_count: 8,
           launch_at_startup: false,
           language: "zh-CN",
         });
@@ -568,13 +560,12 @@ describe("App", () => {
         return Promise.resolve("/path/to/wallpapers");
       }
       if (cmd === "get_local_wallpapers") {
-        return Promise.resolve(mockWallpapers);
+        return Promise.resolve(mockWallpapersRaw);
       }
       if (cmd === "get_settings") {
         return Promise.resolve({
           auto_update: true,
           save_directory: null,
-          keep_image_count: 8,
           launch_at_startup: false,
           language: "zh-CN",
         });

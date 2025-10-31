@@ -39,7 +39,7 @@ pub struct LocalWallpaper {
     pub copyright_link: String,
     #[serde(rename = "d")]
     pub end_date: String,
-    #[serde(rename = "u", default)] // 为了兼容旧数据
+    #[serde(rename = "u", default)]
     pub urlbase: String,
 }
 
@@ -58,7 +58,7 @@ impl From<BingImageEntry> for LocalWallpaper {
 /// 壁纸元数据索引（单一文件存储）
 ///
 /// 索引版本号说明：
-/// - v4: 优化数据结构，使用短字段名和紧凑格式以节省存储空间
+/// - v4: 使用短字段名和紧凑格式以节省存储空间
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WallpaperIndex {
     /// 版本号（用于兼容性检查）
@@ -81,7 +81,7 @@ impl Default for WallpaperIndex {
 impl WallpaperIndex {
     /// 索引版本常量
     /// 
-    /// v4: 优化数据结构，使用短字段名和紧凑格式
+    /// v4: 使用短字段名和紧凑格式
     pub const VERSION: u32 = 4;
 
     /// 创建新索引
@@ -135,7 +135,6 @@ impl WallpaperIndex {
     }
 
     /// 对所有语言和日期进行排序，确保 JSON 序列化时保持顺序
-    /// 在加载索引后调用此方法可以修复乱序的旧数据
     pub fn sort_all(&mut self) {
         // 对每个语言的壁纸按日期降序排序
         for lang_wallpapers in self.wallpapers_by_language.values_mut() {

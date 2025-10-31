@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { renderHook, waitFor, act } from "@testing-library/react";
 import { invoke } from "@tauri-apps/api/core";
 import { useBingWallpapers } from "./useBingWallpapers";
+import { LocalWallpaperRaw } from "../types";
 
 // Mock Tauri invoke
 vi.mock("@tauri-apps/api/core");
@@ -24,17 +25,17 @@ describe("useBingWallpapers", () => {
   });
 
   it("should fetch local wallpapers on mount", async () => {
-    const mockWallpapers = [
+    const mockWallpapersRaw: LocalWallpaperRaw[] = [
       {
-        end_date: "20240102",
-        title: "Test Wallpaper",
-        copyright: "Test Copyright",
-        copyright_link: "https://example.com/link",
-        urlbase: "/th?id=OHR.Test",
+        t: "Test Wallpaper",
+        c: "Test Copyright",
+        l: "https://example.com/link",
+        d: "20240102",
+        u: "/th?id=OHR.Test",
       },
     ];
 
-    vi.mocked(invoke).mockResolvedValue(mockWallpapers);
+    vi.mocked(invoke).mockResolvedValue(mockWallpapersRaw);
 
     const { result } = renderHook(() => useBingWallpapers());
 
@@ -42,7 +43,16 @@ describe("useBingWallpapers", () => {
       expect(result.current.loading).toBe(false);
     });
 
-    expect(result.current.localWallpapers).toEqual(mockWallpapers);
+    // 验证转换后的数据
+    expect(result.current.localWallpapers).toEqual([
+      {
+        title: "Test Wallpaper",
+        copyright: "Test Copyright",
+        copyright_link: "https://example.com/link",
+        end_date: "20240102",
+        urlbase: "/th?id=OHR.Test",
+      },
+    ]);
     expect(result.current.error).toBeNull();
   });
 
@@ -114,13 +124,13 @@ describe("useBingWallpapers", () => {
 
 
   it("should call forceUpdate and refresh wallpapers", async () => {
-    const mockWallpapers = [
+    const mockWallpapersRaw: LocalWallpaperRaw[] = [
       {
-        end_date: "20240102",
-        title: "Test Wallpaper",
-        copyright: "Test Copyright",
-        copyright_link: "https://example.com/link",
-        urlbase: "/th?id=OHR.Test",
+        t: "Test Wallpaper",
+        c: "Test Copyright",
+        l: "https://example.com/link",
+        d: "20240102",
+        u: "/th?id=OHR.Test",
       },
     ];
 
@@ -128,7 +138,7 @@ describe("useBingWallpapers", () => {
       if (cmd === "force_update") {
         return Promise.resolve(undefined);
       }
-      return Promise.resolve(mockWallpapers);
+      return Promise.resolve(mockWallpapersRaw);
     });
 
     const { result } = renderHook(() => useBingWallpapers());
@@ -162,18 +172,17 @@ describe("useBingWallpapers", () => {
   });
 
   it("should handle fetchLocalWallpapers with showLoading parameter", async () => {
-    const mockWallpapers = [
+    const mockWallpapersRaw: LocalWallpaperRaw[] = [
       {
-        id: "20240101",
-        end_date: "20240102",
-        title: "Test",
-        copyright: "Test",
-        copyright_link: "https://example.com/link",
-        urlbase: "/th?id=OHR.Test",
+        t: "Test",
+        c: "Test",
+        l: "https://example.com/link",
+        d: "20240102",
+        u: "/th?id=OHR.Test",
       },
     ];
 
-    vi.mocked(invoke).mockResolvedValue(mockWallpapers);
+    vi.mocked(invoke).mockResolvedValue(mockWallpapersRaw);
 
     const { result } = renderHook(() => useBingWallpapers());
 
@@ -185,22 +194,29 @@ describe("useBingWallpapers", () => {
       await result.current.fetchLocalWallpapers(true);
     });
 
-    expect(result.current.localWallpapers).toEqual(mockWallpapers);
-  });
-
-  it("should not update state if wallpapers data hasn't changed", async () => {
-    const mockWallpapers = [
+    expect(result.current.localWallpapers).toEqual([
       {
-        id: "20240101",
-        end_date: "20240102",
         title: "Test",
         copyright: "Test",
         copyright_link: "https://example.com/link",
+        end_date: "20240102",
         urlbase: "/th?id=OHR.Test",
+      },
+    ]);
+  });
+
+  it("should not update state if wallpapers data hasn't changed", async () => {
+    const mockWallpapersRaw: LocalWallpaperRaw[] = [
+      {
+        t: "Test",
+        c: "Test",
+        l: "https://example.com/link",
+        d: "20240102",
+        u: "/th?id=OHR.Test",
       },
     ];
 
-    vi.mocked(invoke).mockResolvedValue(mockWallpapers);
+    vi.mocked(invoke).mockResolvedValue(mockWallpapersRaw);
 
     const { result, rerender } = renderHook(() => useBingWallpapers());
 

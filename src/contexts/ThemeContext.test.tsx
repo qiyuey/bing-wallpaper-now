@@ -11,7 +11,6 @@ describe("ThemeContext", () => {
     theme: "system",
     auto_update: true,
     save_directory: null,
-    keep_image_count: 8,
     launch_at_startup: false,
   };
 
@@ -175,7 +174,6 @@ describe("ThemeContext", () => {
       newSettings: {
         auto_update: mockSettings.auto_update,
         save_directory: mockSettings.save_directory,
-        keep_image_count: mockSettings.keep_image_count,
         launch_at_startup: mockSettings.launch_at_startup,
         theme: "dark",
       },
