@@ -2,6 +2,23 @@
 
 All notable changes to Bing Wallpaper Now will be documented in this file.
 
+## 0.3.11
+
+### Changed
+
+- 🔧 **索引格式升级**
+  - 索引版本从 v2 升级到 v3
+  - 索引内层 key 从 `start_date` 改为 `end_date`，与文件名保持一致
+  - 文件名生成使用 `end_date` 而不是 `start_date`（Bing 的 startdate 是昨天，enddate 才是今天）
+  - 优化索引查找逻辑，使用 `end_date` 进行匹配，提高准确性
+
+### Fixed
+
+- 🐛 **修复索引 key 与文件名不一致的问题**
+  - 修复 JPG 文件名使用 `end_date`（如 20251031.jpg），但 JSON 索引却错误使用 `start_date`（如 20251030）作为 key 的问题
+  - 现在文件名和索引 key 都统一使用 `end_date`，确保数据一致性
+  - 修复按需下载时查找壁纸元数据的逻辑，使用正确的 `end_date` 进行匹配
+
 ## 0.3.10
 
 ### Added
