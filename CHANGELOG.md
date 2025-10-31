@@ -2,6 +2,28 @@
 
 All notable changes to Bing Wallpaper Now will be documented in this file.
 
+## 0.3.9
+
+### Fixed
+
+- 🐛 **修复索引为空时的加载问题**
+  - 修复首次启动时（auto 模式）索引为空导致列表无法加载的问题
+  - 修复语言切换时索引为空导致列表无法加载的问题
+  - 当索引为空时，自动触发更新以确保列表能正确加载
+
+### Changed
+
+- 🔧 **更新逻辑优化**
+  - 重构索引检查逻辑，提取为独立函数 `try_trigger_update_if_empty` 和 `check_and_trigger_update_if_needed`
+  - 改进启动时的更新逻辑，确保首次启动时能正确检测并触发更新
+  - 优化并发保护机制，避免竞态条件
+  - 消除代码重复，提高代码可维护性
+
+- 🛠️ **代码质量改进**
+  - 修复 High 优先级问题：改进 `update_in_progress` 标志的检查逻辑，避免竞态条件
+  - 修复 Medium 优先级问题：消除 `start_auto_update_task` 和 `get_local_wallpapers` 中的代码重复
+  - 优化锁的使用，先检查索引（快速路径），避免不必要的锁竞争
+
 ## 0.3.8
 
 ### Added
