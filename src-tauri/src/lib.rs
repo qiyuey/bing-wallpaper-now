@@ -129,8 +129,12 @@ async fn get_local_wallpapers(
     app: tauri::AppHandle,
 ) -> Result<Vec<LocalWallpaper>, String> {
     let wallpaper_dir = state.wallpaper_directory.lock().await;
+    let settings = state.settings.lock().await;
 
-    let wallpapers = storage::get_local_wallpapers(&wallpaper_dir)
+    // 获取当前语言的市场代码
+    let language = utils::get_bing_market_code(&settings.language);
+
+    let wallpapers = storage::get_local_wallpapers(&wallpaper_dir, language)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -407,7 +411,13 @@ async fn run_update_cycle(app: &AppHandle) {
 
 /// 应用最新壁纸（如果需要）
 async fn apply_latest_wallpaper_if_needed(app: &AppHandle, state: &AppState, wallpaper_dir: &Path) {
-    let latest_wallpapers = storage::get_local_wallpapers(wallpaper_dir)
+    // 获取当前语言设置
+    let language = {
+        let settings = state.settings.lock().await;
+        utils::get_bing_market_code(&settings.language).to_string()
+    };
+
+    let latest_wallpapers = storage::get_local_wallpapers(wallpaper_dir, &language)
         .await
         .unwrap_or_default();
     if let Some(first) = latest_wallpapers.first() {
@@ -601,9 +611,12 @@ async fn run_update_cycle_internal(app: &AppHandle, force_update: bool) {
         d.clone()
     };
 
+    // 获取语言设置，用于 Bing API 请求和索引存储
+    let mkt = utils::get_bing_market_code(&settings_snapshot.language);
+
     // 优化：在开始时读取一次本地壁纸列表，后续复用
     // 重要：只保留实际存在的文件，避免 index 和实际文件不同步
-    let existing_wallpapers = storage::get_local_wallpapers(&dir)
+    let existing_wallpapers = storage::get_local_wallpapers(&dir, mkt)
         .await
         .unwrap_or_default();
     let existing_files = get_existing_file_names(&existing_wallpapers).await;
@@ -614,7 +627,7 @@ async fn run_update_cycle_internal(app: &AppHandle, force_update: bool) {
         let runtime_state = runtime_state::load_runtime_state(app).unwrap_or_default();
 
         // 优化：API 请求缓存 - 如果距离上次 API 请求不足 5 分钟，且本地有今日壁纸，跳过 API 请求
-        if runtime_state::can_skip_api_request(&runtime_state, &dir).await {
+        if runtime_state::can_skip_api_request(&runtime_state, &dir, mkt).await {
             info!(target: "update", "使用缓存策略跳过 API 请求，直接使用本地壁纸");
             apply_latest_wallpaper_if_needed(app, &state, &dir).await;
             // 重置标志并返回
@@ -626,7 +639,7 @@ async fn run_update_cycle_internal(app: &AppHandle, force_update: bool) {
         // 检查是否需要更新
         if !runtime_state::should_update_today(&runtime_state) {
             // 今天已经更新过，再检查本地是否真的有今日壁纸
-            if runtime_state::has_today_wallpaper(&dir).await {
+            if runtime_state::has_today_wallpaper(&dir, mkt).await {
                 info!(target: "update", "跳过更新：今天已更新且本地有今日壁纸");
                 apply_latest_wallpaper_if_needed(app, &state, &dir).await;
                 // 启动时跳过更新，不需要通知前端（前端会自己初始化加载）
@@ -652,9 +665,6 @@ async fn run_update_cycle_internal(app: &AppHandle, force_update: bool) {
         *flag = false;
         return;
     }
-
-    // 获取语言设置，用于 Bing API 请求
-    let mkt = utils::get_bing_market_code(&settings_snapshot.language);
 
     // 带重试的 Bing 图片获取
     let images = match fetch_bing_images_with_retry(mkt).await {
@@ -684,8 +694,8 @@ async fn run_update_cycle_internal(app: &AppHandle, force_update: bool) {
             })
             .collect();
 
-        // 批量保存元数据
-        if let Err(e) = storage::save_wallpapers_metadata(metadata_list, &dir).await {
+        // 批量保存元数据（使用当前语言）
+        if let Err(e) = storage::save_wallpapers_metadata(metadata_list, &dir, mkt).await {
             error!(target: "update", "保存元数据失败: {e}");
         } else {
             // 立即通知前端刷新列表
@@ -742,7 +752,7 @@ async fn run_update_cycle_internal(app: &AppHandle, force_update: bool) {
 
     if !metadata_list.is_empty() {
         let count = metadata_list.len();
-        if let Err(e) = storage::save_wallpapers_metadata(metadata_list, &dir).await {
+        if let Err(e) = storage::save_wallpapers_metadata(metadata_list, &dir, mkt).await {
             warn!(target: "update", "更新元数据失败: {e}");
         } else {
             info!(target: "update", "已更新所有壁纸元数据（{} 条）", count);

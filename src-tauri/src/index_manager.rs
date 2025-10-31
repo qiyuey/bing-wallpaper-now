@@ -1,6 +1,5 @@
 use crate::models::{LocalWallpaper, WallpaperIndex};
 use anyhow::{Context, Result};
-use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::fs;
@@ -8,17 +7,6 @@ use tokio::sync::Mutex;
 
 /// 索引文件名
 const INDEX_FILE: &str = "index.json";
-
-/// JSON 序列化/反序列化用的排序索引结构
-///
-/// 用于在磁盘上以数组形式存储壁纸（按 end_date 降序排序），
-/// 便于阅读和调试。
-#[derive(Serialize, Deserialize)]
-struct SortedIndex {
-    version: u32,
-    last_updated: chrono::DateTime<chrono::Utc>,
-    wallpapers: Vec<LocalWallpaper>,
-}
 
 /// 内存缓存的索引管理器
 ///
@@ -88,51 +76,36 @@ impl IndexManager {
             .await
             .context("Failed to read index file")?;
 
-        let sorted_index: SortedIndex =
+        let index: WallpaperIndex =
             serde_json::from_str(&contents).context("Failed to deserialize index")?;
 
         // 版本检查
-        if sorted_index.version != WallpaperIndex::VERSION {
-            log::warn!(
-                "Index version mismatch (expected {}, got {}), creating new index",
+        if index.version != WallpaperIndex::VERSION {
+            log::error!(
+                "索引版本不匹配 (期望: {}, 实际: {}), 数据将被重置",
                 WallpaperIndex::VERSION,
-                sorted_index.version
+                index.version
             );
+            // 考虑保存旧索引备份（可选）
+            let backup_path = self.index_path().with_extension("backup");
+            if let Err(e) = fs::copy(&self.index_path(), &backup_path).await {
+                log::warn!("保存索引备份失败: {}", e);
+            } else {
+                log::info!("已保存旧索引备份到: {}", backup_path.display());
+            }
             return Ok(WallpaperIndex::default());
         }
 
-        // 将数组转换为 HashMap（按 start_date 作为 key）
-        let wallpapers = sorted_index
-            .wallpapers
-            .into_iter()
-            .map(|w| (w.start_date.clone(), w))
-            .collect();
-
-        Ok(WallpaperIndex {
-            version: sorted_index.version,
-            last_updated: sorted_index.last_updated,
-            wallpapers,
-        })
+        Ok(index)
     }
 
     /// 保存索引到磁盘
     ///
     /// 使用原子写入（临时文件 + 重命名）确保数据完整性。
-    /// JSON 文件中的壁纸按 end_date 降序排序（最新的在前），便于阅读和调试。
+    /// v2 格式直接序列化 WallpaperIndex，支持多语言。
     pub async fn save_index(&self, index: &WallpaperIndex) -> Result<()> {
-        // 将 HashMap 转换为 Vec，并按 end_date 降序排序（最新的在前）
-        let mut wallpapers: Vec<_> = index.wallpapers.values().cloned().collect();
-        wallpapers.sort_by(|a, b| b.end_date.cmp(&a.end_date));
-
-        let sorted_index = SortedIndex {
-            version: index.version,
-            last_updated: index.last_updated,
-            wallpapers,
-        };
-
         // 序列化为 JSON（人类可读格式，便于调试）
-        let json =
-            serde_json::to_string_pretty(&sorted_index).context("Failed to serialize index")?;
+        let json = serde_json::to_string_pretty(index).context("Failed to serialize index")?;
 
         // 确保目录存在
         fs::create_dir_all(&self.directory)
@@ -158,54 +131,30 @@ impl IndexManager {
         Ok(())
     }
 
-    /// 添加或更新壁纸
-    ///
-    /// # Arguments
-    /// * `wallpaper` - 要添加或更新的壁纸
-    #[allow(dead_code)]
-    pub async fn upsert_wallpaper(&self, wallpaper: LocalWallpaper) -> Result<()> {
-        let mut index = self.load_index().await?;
-        index
-            .wallpapers
-            .insert(wallpaper.start_date.clone(), wallpaper);
-        index.last_updated = chrono::Utc::now();
-        self.save_index(&index).await
-    }
-
     /// 批量添加或更新壁纸（性能优化）
     ///
     /// 一次性写入多个壁纸，比多次调用 `upsert_wallpaper` 效率高。
     ///
     /// # Arguments
     /// * `wallpapers` - 要添加或更新的壁纸列表
-    pub async fn upsert_wallpapers(&self, wallpapers: Vec<LocalWallpaper>) -> Result<()> {
+    /// * `language` - 语言代码（如 "zh-CN", "en-US"）
+    pub async fn upsert_wallpapers(
+        &self,
+        wallpapers: Vec<LocalWallpaper>,
+        language: &str,
+    ) -> Result<()> {
         if wallpapers.is_empty() {
             return Ok(());
         }
 
         let mut index = self.load_index().await?;
-        for wallpaper in wallpapers {
-            index
-                .wallpapers
-                .insert(wallpaper.start_date.clone(), wallpaper);
-        }
-        index.last_updated = chrono::Utc::now();
-        self.save_index(&index).await
-    }
-
-    /// 删除壁纸
-    ///
-    /// # Arguments
-    /// * `start_date` - 要删除的壁纸的开始日期
-    #[allow(dead_code)]
-    pub async fn remove_wallpaper(&self, start_date: &str) -> Result<()> {
-        let mut index = self.load_index().await?;
-        index.wallpapers.remove(start_date);
-        index.last_updated = chrono::Utc::now();
+        index.upsert_wallpapers_for_language(language, wallpapers);
         self.save_index(&index).await
     }
 
     /// 批量删除壁纸（性能优化）
+    ///
+    /// 从所有语言中删除指定 start_date 的壁纸。
     ///
     /// # Arguments
     /// * `start_dates` - 要删除的壁纸的开始日期列表
@@ -215,8 +164,11 @@ impl IndexManager {
         }
 
         let mut index = self.load_index().await?;
-        for start_date in start_dates {
-            index.wallpapers.remove(start_date);
+        // 从所有语言中删除这些 start_date
+        for lang_wallpapers in index.wallpapers_by_language.values_mut() {
+            for start_date in start_dates {
+                lang_wallpapers.remove(start_date);
+            }
         }
         index.last_updated = chrono::Utc::now();
         self.save_index(&index).await
@@ -225,22 +177,18 @@ impl IndexManager {
     /// 获取所有壁纸（排序）
     ///
     /// 返回按日期降序排列的壁纸列表（最新的在前）。
-    pub async fn get_all_wallpapers(&self) -> Result<Vec<LocalWallpaper>> {
-        let index = self.load_index().await?;
-        let mut wallpapers: Vec<_> = index.wallpapers.into_values().collect();
-        // 按 end_date 降序排序（最新的在前）
-        wallpapers.sort_by(|a, b| b.end_date.cmp(&a.end_date));
-        Ok(wallpapers)
-    }
-
-    /// 获取单个壁纸
     ///
     /// # Arguments
-    /// * `start_date` - 壁纸的开始日期
-    #[allow(dead_code)]
-    pub async fn get_wallpaper(&self, start_date: &str) -> Result<Option<LocalWallpaper>> {
+    /// * `language` - 语言代码（如 "zh-CN", "en-US"）
+    pub async fn get_all_wallpapers(&self, language: &str) -> Result<Vec<LocalWallpaper>> {
         let index = self.load_index().await?;
-        Ok(index.wallpapers.get(start_date).cloned())
+        Ok(index.get_wallpapers_for_language(language))
+    }
+
+    /// 获取所有语言的唯一壁纸（用于清理操作）
+    pub async fn get_all_wallpapers_unique(&self) -> Result<Vec<LocalWallpaper>> {
+        let index = self.load_index().await?;
+        Ok(index.get_all_wallpapers_unique())
     }
 
     /// 清理缓存
@@ -309,9 +257,13 @@ mod tests {
             urlbase: "/th?id=OHR.TestWallpaper".to_string(),
         };
 
-        manager.upsert_wallpaper(wallpaper.clone()).await.unwrap();
+        manager
+            .upsert_wallpapers(vec![wallpaper.clone()], "zh-CN")
+            .await
+            .unwrap();
 
-        let retrieved = manager.get_wallpaper("20240101").await.unwrap();
+        let all = manager.get_all_wallpapers("zh-CN").await.unwrap();
+        let retrieved = all.into_iter().find(|w| w.start_date == "20240101");
         assert!(retrieved.is_some());
         assert_eq!(retrieved.unwrap().title, "Test Wallpaper");
 
@@ -355,9 +307,12 @@ mod tests {
             },
         ];
 
-        manager.upsert_wallpapers(wallpapers).await.unwrap();
+        manager
+            .upsert_wallpapers(wallpapers, "zh-CN")
+            .await
+            .unwrap();
 
-        let all = manager.get_all_wallpapers().await.unwrap();
+        let all = manager.get_all_wallpapers("zh-CN").await.unwrap();
         assert_eq!(all.len(), 2);
 
         // 清理
@@ -388,13 +343,17 @@ mod tests {
         // 第一个管理器实例
         {
             let manager = IndexManager::new(temp_dir.clone());
-            manager.upsert_wallpaper(wallpaper.clone()).await.unwrap();
+            manager
+                .upsert_wallpapers(vec![wallpaper.clone()], "zh-CN")
+                .await
+                .unwrap();
         }
 
         // 第二个管理器实例（模拟程序重启）
         {
             let manager = IndexManager::new(temp_dir.clone());
-            let retrieved = manager.get_wallpaper("20240101").await.unwrap();
+            let all = manager.get_all_wallpapers("zh-CN").await.unwrap();
+            let retrieved = all.into_iter().find(|w| w.start_date == "20240101");
             assert!(retrieved.is_some());
             assert_eq!(retrieved.unwrap().title, "Persist Test");
         }

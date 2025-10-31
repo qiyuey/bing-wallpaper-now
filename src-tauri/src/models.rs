@@ -55,15 +55,16 @@ impl From<BingImageEntry> for LocalWallpaper {
 /// 壁纸元数据索引（单一文件存储）
 ///
 /// 索引版本号说明：
-/// - v1: 初始版本，使用 MessagePack 格式
+/// - v2: 支持多语言存储（按语言分组）
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WallpaperIndex {
     /// 版本号（用于兼容性检查）
     pub version: u32,
     /// 最后更新时间
     pub last_updated: DateTime<Utc>,
-    /// 壁纸列表（key = start_date）
-    pub wallpapers: HashMap<String, LocalWallpaper>,
+    /// 按语言分组的壁纸列表
+    /// 外层 key = 语言代码（如 "zh-CN", "en-US"），内层 key = start_date
+    pub wallpapers_by_language: HashMap<String, HashMap<String, LocalWallpaper>>,
 }
 
 impl Default for WallpaperIndex {
@@ -74,21 +75,87 @@ impl Default for WallpaperIndex {
 
 impl WallpaperIndex {
     /// 索引版本常量
-    pub const VERSION: u32 = 1;
+    pub const VERSION: u32 = 2;
 
     /// 创建新索引
     pub fn new() -> Self {
         Self {
             version: Self::VERSION,
             last_updated: Utc::now(),
-            wallpapers: HashMap::new(),
+            wallpapers_by_language: HashMap::new(),
         }
     }
 
     /// 判断是否为空
     #[allow(dead_code)]
     pub fn is_empty(&self) -> bool {
-        self.wallpapers.is_empty()
+        self.wallpapers_by_language.is_empty()
+    }
+
+    /// 获取指定语言的壁纸列表
+    pub fn get_wallpapers_for_language(&self, language: &str) -> Vec<LocalWallpaper> {
+        self.wallpapers_by_language
+            .get(language)
+            .map(|wp_map| {
+                let mut wallpapers: Vec<_> = wp_map.values().cloned().collect();
+                wallpapers.sort_by(|a, b| b.end_date.cmp(&a.end_date));
+                wallpapers
+            })
+            .unwrap_or_default()
+    }
+
+    /// 添加或更新指定语言的壁纸
+    #[allow(dead_code)]
+    pub fn upsert_wallpaper_for_language(&mut self, language: &str, wallpaper: LocalWallpaper) {
+        self.wallpapers_by_language
+            .entry(language.to_string())
+            .or_default()
+            .insert(wallpaper.start_date.clone(), wallpaper);
+        self.last_updated = Utc::now();
+    }
+
+    /// 批量添加或更新指定语言的壁纸
+    pub fn upsert_wallpapers_for_language(
+        &mut self,
+        language: &str,
+        wallpapers: Vec<LocalWallpaper>,
+    ) {
+        if wallpapers.is_empty() {
+            return;
+        }
+        let lang_map = self
+            .wallpapers_by_language
+            .entry(language.to_string())
+            .or_default();
+        for wallpaper in wallpapers {
+            lang_map.insert(wallpaper.start_date.clone(), wallpaper);
+        }
+        self.last_updated = Utc::now();
+    }
+
+    /// 获取所有语言的壁纸（用于清理操作）
+    /// 返回所有语言中唯一的 start_date 对应的壁纸列表
+    /// 如果有多个语言存在相同 start_date，优先选择字典序靠前的语言
+    pub fn get_all_wallpapers_unique(&self) -> Vec<LocalWallpaper> {
+        use std::collections::{BTreeMap, HashSet};
+        let mut seen = HashSet::new();
+        let mut result = Vec::new();
+
+        // 使用 BTreeMap 按语言代码排序，确保一致性
+        let lang_order: BTreeMap<_, _> = self.wallpapers_by_language.iter().collect();
+
+        // 按语言代码顺序遍历，优先选择字典序靠前的语言
+        for (_, lang_wallpapers) in lang_order {
+            for wallpaper in lang_wallpapers.values() {
+                if seen.insert(wallpaper.start_date.clone()) {
+                    result.push(wallpaper.clone());
+                }
+            }
+        }
+
+        // 按 end_date 降序排序（最新的在前）
+        result.sort_by(|a, b| b.end_date.cmp(&a.end_date));
+        result
     }
 }
 

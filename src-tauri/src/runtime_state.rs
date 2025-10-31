@@ -83,14 +83,18 @@ pub fn should_update_today(state: &AppRuntimeState) -> bool {
 
 /// 检查本地是否已有今日壁纸
 /// 通过检查本地壁纸列表的第一项的 end_date 是否匹配今天
-pub async fn has_today_wallpaper(wallpaper_dir: &Path) -> bool {
+///
+/// # Arguments
+/// * `wallpaper_dir` - 壁纸存储目录
+/// * `language` - 语言代码（如 "zh-CN", "en-US"）
+pub async fn has_today_wallpaper(wallpaper_dir: &Path, language: &str) -> bool {
     // 获取今天的日期字符串 (YYYYMMDD 格式)
     use chrono::Datelike;
     let today = Local::now().date_naive();
     let today_str = format!("{:04}{:02}{:02}", today.year(), today.month(), today.day());
 
     // 读取本地壁纸列表
-    match crate::storage::get_local_wallpapers(wallpaper_dir).await {
+    match crate::storage::get_local_wallpapers(wallpaper_dir, language).await {
         Ok(wallpapers) => {
             if let Some(first) = wallpapers.first() {
                 // 使用 end_date 来判断这是否是今天的壁纸
@@ -133,7 +137,16 @@ pub fn update_last_check_time(app: &AppHandle, state: &mut AppRuntimeState) -> R
 /// 检查是否可以跳过 API 请求（基于缓存策略）
 /// 如果距离上次 API 请求不足 5 分钟，且本地有今日壁纸，可以跳过 API 请求
 /// 注意：如果已经是新的一天，即使距离上次检查不足 5 分钟，也不能跳过（需要检查新壁纸）
-pub async fn can_skip_api_request(state: &AppRuntimeState, wallpaper_dir: &Path) -> bool {
+///
+/// # Arguments
+/// * `state` - 运行时状态
+/// * `wallpaper_dir` - 壁纸存储目录
+/// * `language` - 语言代码（如 "zh-CN", "en-US"）
+pub async fn can_skip_api_request(
+    state: &AppRuntimeState,
+    wallpaper_dir: &Path,
+    language: &str,
+) -> bool {
     // 检查是否有最后检查时间
     let Some(ref last_check_str) = state.last_check_time else {
         return false;
@@ -172,7 +185,7 @@ pub async fn can_skip_api_request(state: &AppRuntimeState, wallpaper_dir: &Path)
 
     if duration_since_check.num_minutes() < CACHE_DURATION_MINUTES {
         // 如果距离上次检查不足 5 分钟，检查本地是否有今日壁纸
-        if has_today_wallpaper(wallpaper_dir).await {
+        if has_today_wallpaper(wallpaper_dir, language).await {
             log::info!(target: "runtime", 
                 "距离上次 API 请求不足 5 分钟且本地有今日壁纸，跳过 API 请求（缓存策略）");
             return true;
