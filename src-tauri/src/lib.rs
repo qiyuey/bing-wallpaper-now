@@ -138,6 +138,16 @@ async fn get_local_wallpapers(
         .await
         .map_err(|e| e.to_string())?;
 
+    // 如果当前语言的索引为空，触发一次更新（异步，不阻塞返回）
+    // 但只有在没有更新正在进行时才触发，避免重复更新
+    if wallpapers.is_empty() {
+        let app_clone = app.clone();
+        let language_str = language.to_string();
+        tauri::async_runtime::spawn(async move {
+            let _ = try_trigger_update_if_empty(&app_clone, &language_str).await;
+        });
+    }
+
     // 检查文件是否存在，收集需要重新下载的壁纸
     let mut missing_wallpapers = Vec::new();
     for wallpaper in &wallpapers {
@@ -407,6 +417,105 @@ async fn show_main_window(app: tauri::AppHandle) -> Result<(), String> {
 /// 单次更新循环：下载、保存、清理、可选应用最新壁纸（含重试与共享客户端）
 async fn run_update_cycle(app: &AppHandle) {
     run_update_cycle_internal(app, false).await;
+}
+
+/// 检查指定语言的索引是否为空，如果为空且没有更新正在进行，则触发强制更新
+///
+/// 这个函数用于处理首次启动或语言切换时索引为空的情况。
+/// 通过先检查索引，再检查更新标志，避免不必要的锁竞争。
+/// run_update_cycle_internal 内部有并发保护，会确保只有一个更新真正执行。
+///
+/// # Arguments
+/// * `app` - Tauri app handle
+/// * `language` - 语言代码（用于日志和索引检查）
+///
+/// # Returns
+/// `true` 如果成功触发更新，`false` 如果索引不为空或更新已在进行中
+async fn try_trigger_update_if_empty(app: &AppHandle, language: &str) -> bool {
+    let state = app.state::<AppState>();
+
+    // 先快速检查索引（不需要持有 update_in_progress 锁）
+    let wallpaper_dir = {
+        let dir = state.wallpaper_directory.lock().await;
+        dir.clone()
+    };
+
+    let existing_wallpapers = storage::get_local_wallpapers(&wallpaper_dir, language)
+        .await
+        .unwrap_or_default();
+
+    if !existing_wallpapers.is_empty() {
+        // 索引不为空，不需要更新
+        return false;
+    }
+
+    // 索引为空，检查是否已有更新在进行
+    // 注意：这里只检查，不设置标志，让 run_update_cycle_internal 来处理
+    // 这样可以避免与 run_update_cycle_internal 内部的并发保护冲突
+    let is_updating = {
+        let flag = state.update_in_progress.lock().await;
+        *flag
+    };
+
+    if is_updating {
+        info!(
+            target: "commands",
+            "当前语言 ({}) 的索引为空，但已有更新在进行中，跳过触发",
+            language
+        );
+        return false;
+    }
+
+    // 启动更新任务
+    // run_update_cycle_internal 内部有并发保护，会确保只有一个更新真正执行
+    let app_clone = app.clone();
+    let language_clone = language.to_string();
+
+    tauri::async_runtime::spawn(async move {
+        info!(
+            target: "commands",
+            "当前语言 ({}) 的索引为空，触发更新",
+            language_clone
+        );
+        run_update_cycle_internal(&app_clone, true).await;
+    });
+
+    true
+}
+
+/// 检查索引是否为空，如果为空则触发强制更新（用于启动时）
+///
+/// 这个函数用于启动时检查索引，确保首次启动时能正确加载数据。
+///
+/// # Arguments
+/// * `app` - Tauri app handle
+///
+/// # Returns
+/// `true` 如果索引为空且需要强制更新，`false` 如果索引不为空
+async fn check_and_trigger_update_if_needed(app: &AppHandle) -> bool {
+    let state = app.state::<AppState>();
+
+    // 获取当前语言和壁纸目录
+    let (wallpaper_dir, language) = {
+        let dir = state.wallpaper_directory.lock().await.clone();
+        let settings = state.settings.lock().await;
+        let lang = utils::get_bing_market_code(&settings.language).to_string();
+        (dir, lang)
+    };
+
+    let existing_wallpapers = storage::get_local_wallpapers(&wallpaper_dir, &language)
+        .await
+        .unwrap_or_default();
+
+    if existing_wallpapers.is_empty() {
+        info!(target: "auto_update", "启动时检测到索引为空，执行强制更新");
+        run_update_cycle_internal(app, true).await;
+        true
+    } else {
+        // 索引不为空，执行常规更新（可能因为智能检查而跳过）
+        run_update_cycle(app).await;
+        false
+    }
 }
 
 /// 应用最新壁纸（如果需要）
@@ -816,8 +925,9 @@ fn start_auto_update_task(app: AppHandle) {
         h.abort();
         let app_clone = app.clone();
         let new_handle = tauri::async_runtime::spawn(async move {
-            // 初始立即执行一次
-            run_update_cycle(&app_clone).await;
+            // 初始立即执行一次更新（强制更新，确保首次启动时能获取数据）
+            // 检查索引是否为空，如果为空则强制更新
+            check_and_trigger_update_if_needed(&app_clone).await;
 
             // 标记是否是第一次收到设置变更（启动时的初始化不算）
             let mut is_first_change = true;
