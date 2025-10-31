@@ -40,7 +40,7 @@ impl IndexManager {
     /// 如果磁盘上没有索引文件，返回空索引。
     pub async fn load_index(&self) -> Result<WallpaperIndex> {
         let index_path = self.index_path();
-        
+
         // 检查缓存
         {
             let cache = self.cache.lock().await;
@@ -59,7 +59,8 @@ impl IndexManager {
         let index = match self.load_from_disk().await {
             Ok(index) => {
                 let lang_count = index.wallpapers_by_language.len();
-                let total_wallpapers: usize = index.wallpapers_by_language.values().map(|m| m.len()).sum();
+                let total_wallpapers: usize =
+                    index.wallpapers_by_language.values().map(|m| m.len()).sum();
                 log::info!(
                     "成功加载索引文件，包含 {} 种语言，共 {} 张壁纸，路径: {}",
                     lang_count,
@@ -101,8 +102,8 @@ impl IndexManager {
             .with_context(|| format!("Failed to read index file: {}", path.display()))?;
 
         log::debug!("解析索引文件内容，大小: {} bytes", contents.len());
-        let index: WallpaperIndex =
-            serde_json::from_str(&contents).with_context(|| format!("Failed to deserialize index file: {}", path.display()))?;
+        let index: WallpaperIndex = serde_json::from_str(&contents)
+            .with_context(|| format!("Failed to deserialize index file: {}", path.display()))?;
 
         // 版本检查
         if index.version != WallpaperIndex::VERSION {
@@ -209,16 +210,17 @@ impl IndexManager {
     /// * `language` - 语言代码（如 "zh-CN", "en-US"）
     pub async fn get_all_wallpapers(&self, language: &str) -> Result<Vec<LocalWallpaper>> {
         let index = self.load_index().await?;
-        let available_languages: Vec<String> = index.wallpapers_by_language.keys().cloned().collect();
+        let available_languages: Vec<String> =
+            index.wallpapers_by_language.keys().cloned().collect();
         let wallpapers = index.get_wallpapers_for_language(language);
-        
+
         log::debug!(
             "获取壁纸列表，语言: {}, 找到 {} 张壁纸，可用语言: {:?}",
             language,
             wallpapers.len(),
             available_languages
         );
-        
+
         Ok(wallpapers)
     }
 

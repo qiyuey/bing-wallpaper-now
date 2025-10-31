@@ -44,6 +44,8 @@ export const WallpaperCard = memo(
 
         // 如果下载完成的图片就是当前这张
         if (event.payload === dateFromPath) {
+          // 清除缓存，强制浏览器重新加载图片
+          loadedImagesCache.delete(wallpaper.file_path);
           setWaitingForDownload(false); // 标记已收到下载通知
           setImageLoading(true);
           setImageError(false);
@@ -112,10 +114,13 @@ export const WallpaperCard = memo(
     }, [wallpaper.title, wallpaper.copyright]);
 
     // 将本地文件路径转换为前端可访问的 URL（使用 useMemo 缓存）
-    const imageUrl = useMemo(
-      () => convertFileSrc(wallpaper.file_path),
-      [wallpaper.file_path],
-    );
+    // 注意：包含 retryCount 作为查询参数，强制浏览器在重试时重新加载图片
+    const imageUrl = useMemo(() => {
+      const baseUrl = convertFileSrc(wallpaper.file_path);
+      // 添加 retryCount 作为查询参数，确保浏览器不会使用缓存的损坏图片
+      // 仅在 retryCount > 0 时添加（首次加载不需要）
+      return retryCount > 0 ? `${baseUrl}?retry=${retryCount}` : baseUrl;
+    }, [wallpaper.file_path, retryCount]);
 
     return (
       <div className="wallpaper-card">

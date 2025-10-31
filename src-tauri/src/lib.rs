@@ -43,6 +43,124 @@ struct AppState {
 
 // 下载壁纸
 // (removed obsolete download_wallpaper command)
+/// 按需下载单个壁纸
+///
+/// 从文件路径中提取 start_date，查找对应的元数据并下载图片
+///
+/// # Arguments
+/// * `file_path` - 壁纸文件路径（例如：/path/to/20251026.jpg）
+/// * `wallpaper_dir` - 壁纸存储目录
+/// * `app` - Tauri app handle
+///
+/// # Returns
+/// `Ok(())` 如果下载成功或文件已存在，`Err` 如果下载失败
+async fn download_wallpaper_if_needed(
+    file_path: &Path,
+    wallpaper_dir: &Path,
+    app: &AppHandle,
+) -> Result<(), String> {
+    // 如果文件已存在，直接返回
+    if file_path.exists() {
+        return Ok(());
+    }
+
+    // 验证文件路径是否在壁纸目录下（安全性检查）
+    // 注意：文件不存在时无法 canonicalize，所以使用父目录检查
+    if let Some(parent) = file_path.parent() {
+        // 尝试规范化父目录和壁纸目录进行比较
+        if let (Ok(parent_can), Ok(dir_can)) = (parent.canonicalize(), wallpaper_dir.canonicalize())
+        {
+            if !parent_can.starts_with(&dir_can) {
+                return Err(format!(
+                    "文件路径不在壁纸目录下: {} (期望在: {})",
+                    file_path.display(),
+                    wallpaper_dir.display()
+                ));
+            }
+        } else {
+            // 如果无法规范化，至少检查父目录是否匹配（字符串比较）
+            if parent != wallpaper_dir {
+                return Err(format!(
+                    "文件路径的父目录不匹配: {} (期望: {})",
+                    parent.display(),
+                    wallpaper_dir.display()
+                ));
+            }
+        }
+    } else {
+        return Err(format!("无法确定文件路径的父目录: {}", file_path.display()));
+    }
+
+    // 从文件路径中提取 start_date（例如：20251026.jpg -> 20251026）
+    let filename = file_path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .ok_or_else(|| "无法从路径中提取文件名".to_string())?;
+
+    let start_date = filename
+        .strip_suffix(".jpg")
+        .ok_or_else(|| format!("文件名格式不正确，应为 YYYYMMDD.jpg: {}", filename))?;
+
+    // 获取当前语言设置
+    let state = app.state::<AppState>();
+    let settings = state.settings.lock().await;
+    let language = utils::get_bing_market_code(&settings.language);
+    drop(settings);
+
+    // 查找对应的壁纸元数据
+    let wallpapers = storage::get_local_wallpapers(wallpaper_dir, language)
+        .await
+        .map_err(|e| format!("获取壁纸列表失败: {}", e))?;
+
+    let wallpaper = wallpapers
+        .iter()
+        .find(|w| w.start_date == start_date)
+        .ok_or_else(|| format!("未找到 start_date 为 {} 的壁纸元数据", start_date))?;
+
+    // 检查是否有 urlbase（旧数据可能没有）
+    if wallpaper.urlbase.is_empty() {
+        // 如果没有 urlbase，尝试从 Bing API 获取最新数据
+        info!(
+            target: "commands",
+            "壁纸元数据缺少 urlbase，尝试从 API 获取: {}",
+            start_date
+        );
+        // 这里可以添加从 API 获取的逻辑，但为了简化，先返回错误
+        return Err(
+            "壁纸元数据缺少 urlbase 信息，无法下载。请等待下次更新或手动刷新。".to_string()
+        );
+    }
+
+    // 构建完整的图片 URL
+    let image_url = bing_api::get_wallpaper_url(&wallpaper.urlbase, "UHD");
+
+    // 下载图片
+    info!(
+        target: "commands",
+        "开始按需下载壁纸: {} -> {}",
+        start_date,
+        file_path.display()
+    );
+
+    match download_manager::download_image(&image_url, file_path).await {
+        Ok(()) => {
+            info!(target: "commands", "成功按需下载壁纸: {}", file_path.display());
+            // 发送事件通知前端
+            let _ = app.emit("image-downloaded", start_date);
+            Ok(())
+        }
+        Err(e) => {
+            error!(
+                target: "commands",
+                "按需下载壁纸失败 {}: {}",
+                start_date,
+                e
+            );
+            Err(format!("下载失败: {}", e))
+        }
+    }
+}
+
 /// 设置桌面壁纸（异步非阻塞）
 #[tauri::command]
 async fn set_desktop_wallpaper(
@@ -60,6 +178,20 @@ async fn set_desktop_wallpaper(
     let base_dir_can = base_dir
         .canonicalize()
         .map_err(|e| format!("无法解析壁纸目录: {e}"))?;
+
+    // 如果文件不存在，尝试按需下载
+    if !path.exists() {
+        info!(
+            target: "wallpaper",
+            "壁纸文件不存在，尝试按需下载: {}",
+            path.display()
+        );
+        if let Err(e) = download_wallpaper_if_needed(&path, &base_dir_can, &app).await {
+            return Err(format!("文件不存在且下载失败: {}", e));
+        }
+    }
+
+    // 再次检查文件是否存在（下载后）
     let target_can = path
         .canonicalize()
         .map_err(|e| format!("无法解析目标路径: {e}"))?;
@@ -133,7 +265,7 @@ async fn get_local_wallpapers(
 
     // 获取当前语言的市场代码
     let language = utils::get_bing_market_code(&settings.language);
-    
+
     info!(
         target: "commands",
         "获取本地壁纸列表，语言设置: {} -> {}, 目录: {}",
@@ -567,6 +699,19 @@ async fn apply_latest_wallpaper_if_needed(app: &AppHandle, state: &AppState, wal
         drop(current_path_guard);
 
         if needs_set {
+            // 如果文件不存在，尝试按需下载
+            if !path.exists() {
+                info!(
+                    target: "update",
+                    "最新壁纸文件不存在，尝试按需下载: {}",
+                    path.display()
+                );
+                if let Err(e) = download_wallpaper_if_needed(&path, wallpaper_dir, app).await {
+                    error!(target: "update", "按需下载壁纸失败: {e}，跳过设置壁纸");
+                    return; // 下载失败，不设置壁纸
+                }
+            }
+
             if let Err(e) = wallpaper_manager::set_wallpaper(&path) {
                 error!(target: "update", "设置壁纸失败: {e}");
             } else {
@@ -631,7 +776,11 @@ async fn fetch_bing_images_with_retry(mkt: &str) -> Option<Vec<models::BingImage
     images_opt
 }
 
-/// 并发下载壁纸
+/// 并发下载多张壁纸
+///
+/// 已废弃：采用按需下载策略，不再批量下载
+/// 保留此函数以备将来可能需要批量下载的场景
+#[allow(dead_code)]
 async fn download_wallpapers_concurrently(
     app: &AppHandle,
     download_tasks: Vec<(String, PathBuf, models::BingImageEntry)>,
@@ -693,8 +842,9 @@ async fn download_wallpapers_concurrently(
 
 /// 从壁纸列表中提取实际存在的文件名集合
 ///
-/// 用于在下载前检查哪些文件已经存在，避免重复下载。
-/// 只保留实际存在的文件，避免 index 和实际文件不同步。
+/// 已废弃：采用按需下载策略，不再需要批量检查文件
+/// 保留此函数以备将来可能需要批量检查的场景
+#[allow(dead_code)]
 async fn get_existing_file_names(wallpapers: &[LocalWallpaper]) -> HashSet<String> {
     wallpapers
         .iter()
@@ -751,11 +901,10 @@ async fn run_update_cycle_internal(app: &AppHandle, force_update: bool) {
     let mkt = utils::get_bing_market_code(&settings_snapshot.language);
 
     // 优化：在开始时读取一次本地壁纸列表，后续复用
-    // 重要：只保留实际存在的文件，避免 index 和实际文件不同步
+    // 用于判断是否首次启动（首次启动时 existing_wallpapers 为空）
     let existing_wallpapers = storage::get_local_wallpapers(&dir, mkt)
         .await
         .unwrap_or_default();
-    let existing_files = get_existing_file_names(&existing_wallpapers).await;
 
     // 智能更新检查（非强制更新时）
     if !force_update {
@@ -813,69 +962,15 @@ async fn run_update_cycle_internal(app: &AppHandle, force_update: bool) {
         }
     };
 
-    // 首次启动优化：立即保存所有元信息，让前端可以马上展示列表
-    let is_first_launch = existing_wallpapers.is_empty();
-
-    if is_first_launch {
-        info!(target: "update", "首次启动检测到，立即保存所有元信息供前端展示");
-
-        // 立即为所有图片创建元信息（不下载图片）
-        let metadata_list: Vec<LocalWallpaper> = images
-            .iter()
-            .map(|image| {
-                let save_path = storage::get_wallpaper_path(&dir, &image.startdate);
-                let mut w = LocalWallpaper::from(image.clone());
-                w.file_path = save_path.to_string_lossy().to_string();
-                w
-            })
-            .collect();
-
-        // 批量保存元数据（使用当前语言）
-        if let Err(e) = storage::save_wallpapers_metadata(metadata_list, &dir, mkt).await {
-            error!(target: "update", "保存元数据失败: {e}");
-        } else {
-            // 立即通知前端刷新列表
-            if let Err(e) = app.emit("wallpaper-updated", ()) {
-                warn!(target: "update", "通知前端失败: {e}");
-            }
-            info!(target: "update", "元信息已保存并通知前端，开始后台下载图片");
-        }
-    }
-
-    // 准备下载任务列表（仅下载不存在的文件）
-    // 并发下载图片（元数据顺序已在首次启动时保证，下载顺序不影响显示顺序）
-    // 优化：使用已缓存的文件列表替代文件系统调用
-    let download_tasks: Vec<_> = images
-        .iter()
-        .filter_map(|image| {
-            let save_path = storage::get_wallpaper_path(&dir, &image.startdate);
-            let filename = save_path.file_name().and_then(|n| n.to_str()).unwrap_or("");
-            if existing_files.contains(filename) {
-                None
-            } else {
-                let url = bing_api::get_wallpaper_url(&image.urlbase, "UHD");
-                Some((url, save_path, image.clone()))
-            }
-        })
-        .collect();
-
-    // 优化：动态计算并发数，根据 CPU 核心数调整
-    // 公式：min(8, max(2, cpu_count * 2))，确保在合理范围内
-    let max_concurrent = {
-        let cpu_count = num_cpus::get();
-        // 确保至少为 1（防止极端情况 cpu_count 为 0）
-        // 限制在 2-8 之间，避免过多并发导致资源竞争
-        (std::cmp::max(1, cpu_count) * 2).clamp(2, 8)
-    };
-
-    // 并发下载壁纸
-    let (_success_count, _fail_count) =
-        download_wallpapers_concurrently(app, download_tasks, max_concurrent).await;
+    // 优化：按需下载策略
+    // JPG 文件不区分语言，理论上应该一次下载之后不再需要重新下载
+    // 包括索引重建、切换语言等场景，只更新元数据，不批量下载图片
+    // 图片只在真正需要时（如用户查看、设置壁纸）才按需下载
 
     // 更新所有壁纸的元数据（包括已存在的图片）
     // 这确保了语言切换时，已存在图片的标题和描述也会更新
-    // 优化：非首次启动时也统一在这里批量保存，避免重复写入
-    // 注意：保存所有 API 返回的图片的元数据，不管文件是否存在（首次启动时文件还未下载，支持重新下载）
+    // 首次启动和非首次启动都统一在这里批量保存元数据
+    // 注意：保存所有 API 返回的图片的元数据，不管文件是否存在（支持按需下载）
     let metadata_list: Vec<LocalWallpaper> = images
         .iter()
         .map(|image| {
@@ -886,13 +981,29 @@ async fn run_update_cycle_internal(app: &AppHandle, force_update: bool) {
         })
         .collect();
 
+    let is_first_launch = existing_wallpapers.is_empty();
     if !metadata_list.is_empty() {
         let count = metadata_list.len();
         if let Err(e) = storage::save_wallpapers_metadata(metadata_list, &dir, mkt).await {
-            warn!(target: "update", "更新元数据失败: {e}");
+            if is_first_launch {
+                error!(target: "update", "保存元数据失败: {e}");
+            } else {
+                warn!(target: "update", "更新元数据失败: {e}");
+            }
         } else {
-            info!(target: "update", "已更新所有壁纸元数据（{} 条）", count);
-            // 优化：移除这里的通知，统一在最后发送一次
+            info!(
+                target: "update",
+                "已{}所有壁纸元数据（{} 条）",
+                if is_first_launch { "保存" } else { "更新" },
+                count
+            );
+            // 首次启动时立即通知前端刷新列表
+            if is_first_launch {
+                if let Err(e) = app.emit("wallpaper-updated", ()) {
+                    warn!(target: "update", "通知前端失败: {e}");
+                }
+                info!(target: "update", "元信息已保存并通知前端，图片将按需下载");
+            }
         }
     }
 
