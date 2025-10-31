@@ -76,8 +76,9 @@ pub async fn ensure_wallpaper_directory(path: &Path) -> Result<()> {
 }
 
 /// 获取壁纸的保存路径
-pub fn get_wallpaper_path(directory: &Path, start_date: &str) -> PathBuf {
-    directory.join(format!("{}.jpg", start_date))
+/// 使用 end_date 作为文件名，因为 Bing 的壁纸 startdate 是昨天，enddate 才是今天
+pub fn get_wallpaper_path(directory: &Path, end_date: &str) -> PathBuf {
+    directory.join(format!("{}.jpg", end_date))
 }
 
 /// 获取所有已下载的壁纸（使用索引）
@@ -147,8 +148,8 @@ pub async fn save_wallpapers_metadata(
         if !validate_wallpaper_language(&wallpaper, language) {
             // 检测到语言不匹配，记录警告并跳过
             log::warn!(
-                "跳过语言不匹配的壁纸: start_date={}, urlbase={}, 期望语言={}",
-                wallpaper.start_date,
+                "跳过语言不匹配的壁纸: end_date={}, urlbase={}, 期望语言={}",
+                wallpaper.end_date,
                 wallpaper.urlbase,
                 language
             );
@@ -200,7 +201,7 @@ pub async fn cleanup_old_wallpapers(directory: &Path, keep_count: usize) -> Resu
     wallpapers.sort_by(|a, b| b.end_date.cmp(&a.end_date));
     let to_delete = wallpapers.split_off(keep_count);
 
-    // 收集要删除的 start_date，并跟踪成功删除的文件
+    // 收集要删除的 end_date，并跟踪成功删除的文件
     let mut failed_deletes = Vec::new();
     let mut successful_deletes = Vec::new();
 
@@ -227,9 +228,9 @@ pub async fn cleanup_old_wallpapers(directory: &Path, keep_count: usize) -> Resu
         }
 
         if delete_success {
-            successful_deletes.push(wallpaper.start_date.clone());
+            successful_deletes.push(wallpaper.end_date.clone());
         } else {
-            failed_deletes.push(wallpaper.start_date.clone());
+            failed_deletes.push(wallpaper.end_date.clone());
         }
     }
 
@@ -376,20 +377,44 @@ mod tests {
     }
 
     // 创建若干假壁纸文件与元数据
-    async fn create_fake_wallpaper(dir: &Path, start_date: &str) -> LocalWallpaper {
-        let img_path = get_wallpaper_path(dir, start_date);
+    async fn create_fake_wallpaper(dir: &Path, end_date: &str) -> LocalWallpaper {
+        let img_path = get_wallpaper_path(dir, end_date);
         fs::write(&img_path, b"").await.unwrap();
 
+        // 模拟 start_date 比 end_date 小1天（Bing API的行为）
+        let start_date = if let Ok(date_int) = end_date.parse::<u32>() {
+            // 简单处理：如果日期是 YYYYMMDD 格式，减1天
+            let year = date_int / 10000;
+            let month = (date_int / 100) % 100;
+            let day = date_int % 100;
+            let mut day_num = day - 1;
+            let mut month_num = month;
+            let mut year_num = year;
+            if day_num == 0 {
+                month_num -= 1;
+                if month_num == 0 {
+                    month_num = 12;
+                    year_num -= 1;
+                }
+                // 简化：假设每月30天
+                day_num = 30;
+            }
+            format!("{:04}{:02}{:02}", year_num, month_num, day_num)
+        } else {
+            // 如果解析失败，使用一个默认值
+            format!("{}", end_date.parse::<u32>().unwrap_or(20240100) - 1)
+        };
+
         LocalWallpaper {
-            id: format!("id{}", start_date),
-            title: format!("Title {}", start_date),
+            id: format!("id{}", end_date),
+            title: format!("Title {}", end_date),
             copyright: "Copyright".into(),
             copyright_link: "https://example.com".into(),
-            start_date: start_date.into(),
-            end_date: start_date.into(),
+            start_date,
+            end_date: end_date.into(),
             file_path: img_path.to_string_lossy().to_string(),
             download_time: Utc::now(),
-            urlbase: format!("/th?id=OHR.Wallpaper{}", start_date),
+            urlbase: format!("/th?id=OHR.Wallpaper{}", end_date),
         }
     }
 
@@ -420,8 +445,8 @@ mod tests {
         let remaining = get_local_wallpapers(&temp_dir, "zh-CN").await.unwrap();
         assert_eq!(remaining.len(), 3);
 
-        // 最新的三个日期应该保留
-        let dates: Vec<_> = remaining.iter().map(|w| w.start_date.clone()).collect();
+        // 最新的三个日期应该保留（使用 end_date 检查，因为索引key使用 end_date）
+        let dates: Vec<_> = remaining.iter().map(|w| w.end_date.clone()).collect();
         assert!(dates.contains(&"20240105".to_string()));
         assert!(dates.contains(&"20240104".to_string()));
         assert!(dates.contains(&"20240103".to_string()));

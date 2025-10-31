@@ -45,10 +45,10 @@ struct AppState {
 // (removed obsolete download_wallpaper command)
 /// 按需下载单个壁纸
 ///
-/// 从文件路径中提取 start_date，查找对应的元数据并下载图片
+/// 从文件路径中提取 end_date，查找对应的元数据并下载图片
 ///
 /// # Arguments
-/// * `file_path` - 壁纸文件路径（例如：/path/to/20251026.jpg）
+/// * `file_path` - 壁纸文件路径（例如：/path/to/20251031.jpg）
 /// * `wallpaper_dir` - 壁纸存储目录
 /// * `app` - Tauri app handle
 ///
@@ -91,13 +91,14 @@ async fn download_wallpaper_if_needed(
         return Err(format!("无法确定文件路径的父目录: {}", file_path.display()));
     }
 
-    // 从文件路径中提取 start_date（例如：20251026.jpg -> 20251026）
+    // 从文件路径中提取 end_date（例如：20251031.jpg -> 20251031）
+    // 文件名使用 end_date，因为 Bing 的 startdate 是昨天，enddate 才是今天
     let filename = file_path
         .file_name()
         .and_then(|n| n.to_str())
         .ok_or_else(|| "无法从路径中提取文件名".to_string())?;
 
-    let start_date = filename
+    let end_date = filename
         .strip_suffix(".jpg")
         .ok_or_else(|| format!("文件名格式不正确，应为 YYYYMMDD.jpg: {}", filename))?;
 
@@ -107,15 +108,15 @@ async fn download_wallpaper_if_needed(
     let language = utils::get_bing_market_code(&settings.language);
     drop(settings);
 
-    // 查找对应的壁纸元数据
+    // 查找对应的壁纸元数据（使用 end_date 作为 key）
     let wallpapers = storage::get_local_wallpapers(wallpaper_dir, language)
         .await
         .map_err(|e| format!("获取壁纸列表失败: {}", e))?;
 
     let wallpaper = wallpapers
         .iter()
-        .find(|w| w.start_date == start_date)
-        .ok_or_else(|| format!("未找到 start_date 为 {} 的壁纸元数据", start_date))?;
+        .find(|w| w.end_date == end_date)
+        .ok_or_else(|| format!("未找到 end_date 为 {} 的壁纸元数据", end_date))?;
 
     // 检查是否有 urlbase（旧数据可能没有）
     if wallpaper.urlbase.is_empty() {
@@ -123,11 +124,11 @@ async fn download_wallpaper_if_needed(
         info!(
             target: "commands",
             "壁纸元数据缺少 urlbase，尝试从 API 获取: {}",
-            start_date
+            end_date
         );
         // 这里可以添加从 API 获取的逻辑，但为了简化，先返回错误
         return Err(
-            "壁纸元数据缺少 urlbase 信息，无法下载。请等待下次更新或手动刷新。".to_string()
+            "壁纸元数据缺少 urlbase 信息，无法下载。请等待下次更新或手动刷新。".to_string(),
         );
     }
 
@@ -138,7 +139,7 @@ async fn download_wallpaper_if_needed(
     info!(
         target: "commands",
         "开始按需下载壁纸: {} -> {}",
-        start_date,
+        end_date,
         file_path.display()
     );
 
@@ -146,14 +147,14 @@ async fn download_wallpaper_if_needed(
         Ok(()) => {
             info!(target: "commands", "成功按需下载壁纸: {}", file_path.display());
             // 发送事件通知前端
-            let _ = app.emit("image-downloaded", start_date);
+            let _ = app.emit("image-downloaded", end_date);
             Ok(())
         }
         Err(e) => {
             error!(
                 target: "commands",
                 "按需下载壁纸失败 {}: {}",
-                start_date,
+                end_date,
                 e
             );
             Err(format!("下载失败: {}", e))
@@ -230,25 +231,25 @@ async fn redownload_missing_wallpapers(
     for wallpaper in missing_wallpapers {
         // 如果 urlbase 为空（旧数据），无法重新下载
         if wallpaper.urlbase.is_empty() {
-            warn!(target: "commands", "壁纸缺少 urlbase 信息，无法重新下载: {}", wallpaper.start_date);
+            warn!(target: "commands", "壁纸缺少 urlbase 信息，无法重新下载: {}", wallpaper.end_date);
             continue;
         }
 
         // 构建完整的图片 URL
         let image_url = bing_api::get_wallpaper_url(&wallpaper.urlbase, "UHD");
 
-        // 构建保存路径
-        let save_path = wallpaper_dir.join(format!("{}.jpg", wallpaper.start_date));
+        // 构建保存路径（使用 end_date，因为文件名使用 end_date）
+        let save_path = wallpaper_dir.join(format!("{}.jpg", wallpaper.end_date));
 
         // 下载图片
         match download_manager::download_image(&image_url, &save_path).await {
             Ok(()) => {
                 info!(target: "commands", "成功重新下载壁纸: {}", save_path.display());
                 // 发送事件通知前端
-                let _ = app.emit("image-downloaded", &wallpaper.start_date);
+                let _ = app.emit("image-downloaded", &wallpaper.end_date);
             }
             Err(e) => {
-                error!(target: "commands", "重新下载壁纸失败 {}: {}", wallpaper.start_date, e);
+                error!(target: "commands", "重新下载壁纸失败 {}: {}", wallpaper.end_date, e);
             }
         }
     }
@@ -971,10 +972,11 @@ async fn run_update_cycle_internal(app: &AppHandle, force_update: bool) {
     // 这确保了语言切换时，已存在图片的标题和描述也会更新
     // 首次启动和非首次启动都统一在这里批量保存元数据
     // 注意：保存所有 API 返回的图片的元数据，不管文件是否存在（支持按需下载）
+    // 使用 end_date 作为文件名，因为 Bing 的 startdate 是昨天，enddate 才是今天
     let metadata_list: Vec<LocalWallpaper> = images
         .iter()
         .map(|image| {
-            let save_path = storage::get_wallpaper_path(&dir, &image.startdate);
+            let save_path = storage::get_wallpaper_path(&dir, &image.enddate);
             let mut w = LocalWallpaper::from(image.clone());
             w.file_path = save_path.to_string_lossy().to_string();
             w

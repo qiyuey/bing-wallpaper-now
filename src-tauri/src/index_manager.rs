@@ -130,7 +130,7 @@ impl IndexManager {
     /// 保存索引到磁盘
     ///
     /// 使用原子写入（临时文件 + 重命名）确保数据完整性。
-    /// v2 格式直接序列化 WallpaperIndex，支持多语言。
+    /// 直接序列化 WallpaperIndex，支持多语言。
     pub async fn save_index(&self, index: &WallpaperIndex) -> Result<()> {
         // 序列化为 JSON（人类可读格式，便于调试）
         let json = serde_json::to_string_pretty(index).context("Failed to serialize index")?;
@@ -182,20 +182,20 @@ impl IndexManager {
 
     /// 批量删除壁纸（性能优化）
     ///
-    /// 从所有语言中删除指定 start_date 的壁纸。
+    /// 从所有语言中删除指定 end_date 的壁纸。
     ///
     /// # Arguments
-    /// * `start_dates` - 要删除的壁纸的开始日期列表
-    pub async fn remove_wallpapers(&self, start_dates: &[String]) -> Result<()> {
-        if start_dates.is_empty() {
+    /// * `end_dates` - 要删除的壁纸的结束日期列表
+    pub async fn remove_wallpapers(&self, end_dates: &[String]) -> Result<()> {
+        if end_dates.is_empty() {
             return Ok(());
         }
 
         let mut index = self.load_index().await?;
-        // 从所有语言中删除这些 start_date
+        // 从所有语言中删除这些 end_date
         for lang_wallpapers in index.wallpapers_by_language.values_mut() {
-            for start_date in start_dates {
-                lang_wallpapers.remove(start_date);
+            for end_date in end_dates {
+                lang_wallpapers.remove(end_date);
             }
         }
         index.last_updated = chrono::Utc::now();
@@ -302,7 +302,7 @@ mod tests {
             .unwrap();
 
         let all = manager.get_all_wallpapers("zh-CN").await.unwrap();
-        let retrieved = all.into_iter().find(|w| w.start_date == "20240101");
+        let retrieved = all.into_iter().find(|w| w.end_date == "20240102");
         assert!(retrieved.is_some());
         assert_eq!(retrieved.unwrap().title, "Test Wallpaper");
 

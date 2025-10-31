@@ -55,7 +55,7 @@ impl From<BingImageEntry> for LocalWallpaper {
 /// 壁纸元数据索引（单一文件存储）
 ///
 /// 索引版本号说明：
-/// - v2: 支持多语言存储（按语言分组）
+/// - v3: 支持多语言存储（按语言分组），内层 key 使用 end_date，与文件名保持一致
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WallpaperIndex {
     /// 版本号（用于兼容性检查）
@@ -63,7 +63,8 @@ pub struct WallpaperIndex {
     /// 最后更新时间
     pub last_updated: DateTime<Utc>,
     /// 按语言分组的壁纸列表
-    /// 外层 key = 语言代码（如 "zh-CN", "en-US"），内层 key = start_date
+    /// 外层 key = 语言代码（如 "zh-CN", "en-US"），内层 key = end_date
+    /// 使用 end_date 作为 key，因为文件名也使用 end_date（Bing 的 startdate 是昨天，enddate 才是今天）
     pub wallpapers_by_language: HashMap<String, HashMap<String, LocalWallpaper>>,
 }
 
@@ -75,7 +76,7 @@ impl Default for WallpaperIndex {
 
 impl WallpaperIndex {
     /// 索引版本常量
-    pub const VERSION: u32 = 2;
+    pub const VERSION: u32 = 3;
 
     /// 创建新索引
     pub fn new() -> Self {
@@ -110,7 +111,7 @@ impl WallpaperIndex {
         self.wallpapers_by_language
             .entry(language.to_string())
             .or_default()
-            .insert(wallpaper.start_date.clone(), wallpaper);
+            .insert(wallpaper.end_date.clone(), wallpaper);
         self.last_updated = Utc::now();
     }
 
@@ -128,14 +129,14 @@ impl WallpaperIndex {
             .entry(language.to_string())
             .or_default();
         for wallpaper in wallpapers {
-            lang_map.insert(wallpaper.start_date.clone(), wallpaper);
+            lang_map.insert(wallpaper.end_date.clone(), wallpaper);
         }
         self.last_updated = Utc::now();
     }
 
     /// 获取所有语言的壁纸（用于清理操作）
-    /// 返回所有语言中唯一的 start_date 对应的壁纸列表
-    /// 如果有多个语言存在相同 start_date，优先选择字典序靠前的语言
+    /// 返回所有语言中唯一的 end_date 对应的壁纸列表
+    /// 如果有多个语言存在相同 end_date，优先选择字典序靠前的语言
     pub fn get_all_wallpapers_unique(&self) -> Vec<LocalWallpaper> {
         use std::collections::{BTreeMap, HashSet};
         let mut seen = HashSet::new();
@@ -147,7 +148,7 @@ impl WallpaperIndex {
         // 按语言代码顺序遍历，优先选择字典序靠前的语言
         for (_, lang_wallpapers) in lang_order {
             for wallpaper in lang_wallpapers.values() {
-                if seen.insert(wallpaper.start_date.clone()) {
+                if seen.insert(wallpaper.end_date.clone()) {
                     result.push(wallpaper.clone());
                 }
             }
