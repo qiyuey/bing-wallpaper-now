@@ -4,6 +4,7 @@ import { renderWithI18n } from "../test/test-utils";
 import { WallpaperCard } from "./WallpaperCard";
 import type { LocalWallpaper } from "../types";
 import * as eventModule from "@tauri-apps/api/event";
+import type { UnlistenFn } from "@tauri-apps/api/event";
 
 vi.mock("@tauri-apps/plugin-opener");
 vi.mock("@tauri-apps/api/core", () => {
@@ -34,7 +35,7 @@ describe("WallpaperCard", () => {
 
   const mockOnSetWallpaper = vi.fn();
   const mockWallpaperDirectory = "/path/to/wallpapers";
-  let mockUnlisten: ReturnType<typeof vi.fn>;
+  let mockUnlisten: UnlistenFn;
 
   beforeEach(() => {
     vi.clearAllMocks();

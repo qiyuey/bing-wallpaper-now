@@ -682,8 +682,8 @@ async fn apply_latest_wallpaper_if_needed(app: &AppHandle, state: &AppState, wal
 /// 带重试的 Bing 图片获取
 async fn fetch_bing_images_with_retry(mkt: &str) -> Option<Vec<models::BingImageEntry>> {
     let mut images_opt = None;
-    const MAX_RETRIES: u32 = 10;
-    const MAX_BACKOFF_SECS: u64 = 60; // 最大延迟 60 秒
+    const MAX_RETRIES: u32 = 3;
+    const MAX_BACKOFF_SECS: u64 = 16; // 最大延迟 16 秒
 
     info!(target: "update", "开始获取 Bing 图片（市场代码: {}, 最大重试次数: {}）", mkt, MAX_RETRIES);
 
@@ -699,8 +699,8 @@ async fn fetch_bing_images_with_retry(mkt: &str) -> Option<Vec<models::BingImage
             Err(e) => {
                 if attempt < MAX_RETRIES - 1 {
                     // 优化：限制最大延迟时间，避免等待时间过长
-                    let base_backoff = 1 << attempt; // 指数退避：1, 2, 4, 8, 16, 32, 64, 128, 256, 512
-                    let backoff = base_backoff.min(MAX_BACKOFF_SECS); // 限制最大 60 秒
+                    let base_backoff = 1 << attempt; // 指数退避：1, 2, 4
+                    let backoff = base_backoff.min(MAX_BACKOFF_SECS); // 限制最大 16 秒
                     warn!(target: "update",
                         "获取 Bing 图片失败(第 {} 次): {}，{}s 后重试",
                         attempt + 1,
@@ -1378,6 +1378,8 @@ pub fn run() {
             tauri_plugin_log::Builder::default()
                 .level(log::LevelFilter::Info)
                 .timezone_strategy(tauri_plugin_log::TimezoneStrategy::UseLocal)
+                .max_file_size(10_000_000) // 10MB
+                .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepOne)
                 .build(),
         )
         .manage(app_state)
@@ -1459,6 +1461,7 @@ pub fn run() {
             }
 
             // 使用 tauri-plugin-log 进行标准化日志输出（已在 Builder 中初始化）
+            // 日志文件超过 10MB 时自动轮转，保留所有历史日志文件
             start_auto_update_task(app.handle().clone());
             Ok(())
         })

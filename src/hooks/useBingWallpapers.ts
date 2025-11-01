@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import {
   LocalWallpaper,
   LocalWallpaperRaw,
@@ -132,7 +133,6 @@ export function useBingWallpapers() {
 
     (async () => {
       try {
-        const { listen } = await import("@tauri-apps/api/event");
         if (!mounted) return;
 
         const unlistenFn = await listen("wallpaper-updated", () => {

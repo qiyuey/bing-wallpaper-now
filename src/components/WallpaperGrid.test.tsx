@@ -75,7 +75,7 @@ describe("WallpaperGrid", () => {
 
     expect(screen.getByText("暂无壁纸")).toBeInTheDocument();
     expect(
-      screen.getByText("点击上方刷新按钮获取最新壁纸"),
+      screen.getByText(/点击上方刷新按钮获取最新壁纸/),
     ).toBeInTheDocument();
   });
 
@@ -137,7 +137,7 @@ describe("WallpaperGrid", () => {
     // 当 loading 默认为 false 且没有壁纸时，应该显示空状态
     expect(screen.getByText("暂无壁纸")).toBeInTheDocument();
     expect(
-      screen.getByText("点击上方刷新按钮获取最新壁纸"),
+      screen.getByText(/点击上方刷新按钮获取最新壁纸/),
     ).toBeInTheDocument();
   });
 

@@ -1,9 +1,23 @@
+// 扩展 Window 接口以支持 React DevTools 钩子
+interface ReactDevToolsHook {
+  renderers?: Map<number, unknown>;
+  supportsFiber?: boolean;
+  onCommitFiberRoot?: ((...args: unknown[]) => void) | null;
+  inject?: (renderer: unknown) => number;
+  rendererInterfaces?: Map<number, unknown>;
+}
+
+declare global {
+  interface Window {
+    __REACT_DEVTOOLS_GLOBAL_HOOK__?: ReactDevToolsHook;
+  }
+}
+
 // 在开发环境中，在 React 加载前确保全局钩子是干净的
 // 检查并清除可能被 shim 的钩子，让 React Refresh 能够正确初始化
 if (import.meta.env.DEV) {
   const hookKey = "__REACT_DEVTOOLS_GLOBAL_HOOK__";
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const existingHook = (window as any)[hookKey];
+  const existingHook = window[hookKey];
 
   if (existingHook && typeof existingHook === "object") {
     // 检查钩子是否被 Proxy 包装（通过检查属性描述符）
@@ -38,8 +52,7 @@ if (import.meta.env.DEV) {
             value: undefined,
           });
         }
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        delete (window as any)[hookKey];
+        delete window[hookKey];
       } catch {
         // 忽略错误，继续执行
       }

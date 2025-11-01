@@ -8,6 +8,7 @@ import { ThemeProvider } from "../contexts/ThemeContext";
 import * as dialog from "@tauri-apps/plugin-dialog";
 import * as useSettingsModule from "../hooks/useSettings";
 import { invoke } from "@tauri-apps/api/core";
+import type { AppSettings } from "../types";
 
 vi.mock("@tauri-apps/api/core");
 vi.mock("@tauri-apps/plugin-dialog");
@@ -17,10 +18,15 @@ const renderWithTheme = (component: React.ReactElement) => {
   return renderWithI18n(<ThemeProvider>{component}</ThemeProvider>);
 };
 
+// 定义函数类型
+type UpdateSettingsFn = (newSettings: AppSettings) => Promise<void>;
+type GetDefaultDirectoryFn = () => Promise<string | null>;
+
 describe("Settings", () => {
   const mockOnClose = vi.fn();
-  let mockUpdateSettings: ReturnType<typeof vi.fn>;
-  let mockGetDefaultDirectory: ReturnType<typeof vi.fn>;
+  // 按照正确的方式声明 mock 变量
+  const mockUpdateSettings = vi.fn<UpdateSettingsFn>();
+  const mockGetDefaultDirectory = vi.fn<GetDefaultDirectoryFn>();
 
   const mockSettings = {
     auto_update: true,
@@ -41,10 +47,11 @@ describe("Settings", () => {
       return Promise.resolve(undefined);
     });
 
-    mockUpdateSettings = vi.fn().mockResolvedValue(undefined);
-    mockGetDefaultDirectory = vi
-      .fn()
-      .mockResolvedValue("/Users/Test/Pictures/BingWallpapers");
+    // 重置 mock 的实现
+    mockUpdateSettings.mockResolvedValue(undefined);
+    mockGetDefaultDirectory.mockResolvedValue(
+      "/Users/Test/Pictures/BingWallpapers",
+    );
 
     vi.spyOn(useSettingsModule, "useSettings").mockReturnValue({
       settings: mockSettings,

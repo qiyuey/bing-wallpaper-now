@@ -231,6 +231,7 @@ describe("ThemeContext", () => {
     const changeHandler = matchMediaMock.addEventListener.mock.calls[0]?.[1];
     if (changeHandler) {
       act(() => {
+        // 模拟 MediaQueryListEvent
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         changeHandler({ matches: true } as any);
       });

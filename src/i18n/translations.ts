@@ -22,7 +22,8 @@ export const translations = {
 
     // 壁纸相关
     noWallpapers: "暂无壁纸",
-    noWallpapersHint: "点击上方刷新按钮获取最新壁纸",
+    noWallpapersHint:
+      "点击上方刷新按钮获取最新壁纸。如果您不是所在地区的 IP，可能无法获取对应语言的内容，请尝试切换语言。",
     wallpaperError: "设置壁纸失败",
     setWallpaper: "设置壁纸",
     retry: "重新加载",
@@ -96,7 +97,7 @@ export const translations = {
     // 壁纸相关
     noWallpapers: "No wallpapers",
     noWallpapersHint:
-      "Click the refresh button above to get the latest wallpapers",
+      "Click the refresh button above to get the latest wallpapers. If you are not using an IP from the target region, you may not be able to fetch content in the corresponding language. Please try switching languages.",
     wallpaperError: "Failed to set wallpaper",
     setWallpaper: "Set Wallpaper",
     retry: "Retry",
