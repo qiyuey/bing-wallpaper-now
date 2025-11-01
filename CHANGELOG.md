@@ -2,6 +2,35 @@
 
 All notable changes to Bing Wallpaper Now will be documented in this file.
 
+## 0.4.4
+
+### Changed
+
+- 🔧 **优化 API 重试策略**
+  - 将 Bing API 重试次数从 10 次降低到 3 次
+  - 将最大退避延迟从 60 秒降低到 16 秒
+  - 提升失败后的响应速度，减少不必要的等待时间
+
+- 🔧 **优化日志文件管理**
+  - 配置自动日志轮转：单个日志文件最大 10MB
+  - 使用 KeepOne 策略：保留最新的日志文件
+  - 防止日志文件无限增长，节省磁盘空间
+
+- 💬 **改进空状态提示信息**
+  - 在壁纸列表为空时，增加 IP 地区提示
+  - 提醒用户如果不在目标地区，可能无法获取对应语言的内容
+  - 建议用户尝试切换语言设置以获取壁纸
+
+### Fixed
+
+- 🐛 **修复测试代码类型安全问题**
+  - 移除所有测试文件中的 `as any` 类型断言
+  - Settings.test.tsx: 使用正确的 `vi.fn<FunctionType>()` 模式
+  - WallpaperCard.test.tsx: 使用 Tauri 的 `UnlistenFn` 类型
+  - ThemeContext.test.tsx: 为模拟事件添加 ESLint 禁用注释
+  - main.tsx: 扩展 Window 接口以支持 React DevTools 钩子
+  - 提升代码质量和类型安全性
+
 ## 0.4.3
 
 ### Changed
