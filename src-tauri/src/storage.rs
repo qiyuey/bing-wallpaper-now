@@ -173,7 +173,6 @@ pub async fn save_wallpapers_metadata(
         .await
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -277,5 +276,4 @@ mod tests {
         let path = get_wallpaper_path(&dir, "20240315");
         assert_eq!(path, PathBuf::from("/tmp/wallpapers/20240315.jpg"));
     }
-
 }

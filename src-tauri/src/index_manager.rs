@@ -9,14 +9,14 @@ use tokio::sync::Mutex;
 const INDEX_FILE: &str = "index.json";
 
 /// 索引最大条目数限制（基于唯一日期数）
-/// 
+///
 /// 限制为 2000 个唯一日期，相当于约 5.5 年的历史记录。
-/// 
+///
 /// 文件大小估算：
 /// - 单语言：约 400KB（格式化后）
 /// - 双语言：约 800KB（格式化后）
 /// - 三语言：约 1.2MB（格式化后）
-/// 
+///
 /// 性能考虑：
 /// - serde_json 解析 1-2MB JSON 文件通常 < 50ms
 /// - 使用内存缓存机制，大部分情况下不需要从磁盘加载
@@ -201,10 +201,10 @@ impl IndexManager {
 
         let mut index = self.load_index().await?;
         index.upsert_wallpapers_for_language(language, wallpapers);
-        
+
         // 限制索引数量，防止 JSON 文件过大
         index.limit_index_size(MAX_INDEX_COUNT);
-        
+
         self.save_index(&index).await
     }
 
@@ -229,7 +229,6 @@ impl IndexManager {
 
         Ok(wallpapers)
     }
-
 }
 
 #[cfg(test)]
@@ -514,7 +513,10 @@ mod tests {
         let index2 = manager.load_index().await.unwrap();
 
         // 两次加载应该返回相同的数据
-        assert_eq!(index1.wallpapers_by_language.len(), index2.wallpapers_by_language.len());
+        assert_eq!(
+            index1.wallpapers_by_language.len(),
+            index2.wallpapers_by_language.len()
+        );
 
         // 清理
         let _ = fs::remove_dir_all(&temp_dir).await;
@@ -679,7 +681,7 @@ mod tests {
             json_content.contains("\"c\""),
             "JSON 应该使用短字段名 c 表示 copyright"
         );
-        
+
         // 验证 JSON 内容是紧凑格式（不是格式化）
         assert!(
             !json_content.contains("\n  "),
@@ -691,10 +693,15 @@ mod tests {
         // JSON 格式应该是：{"zh-CN": {"20240102": {...}}}
         // 所以 "20240102" 应该是 key
         let parsed: serde_json::Value = serde_json::from_str(&json_content).unwrap();
-        let zh_cn_map = parsed["wallpapers_by_language"]["zh-CN"].as_object().unwrap();
+        let zh_cn_map = parsed["wallpapers_by_language"]["zh-CN"]
+            .as_object()
+            .unwrap();
 
         // 验证 key 是 end_date
-        assert!(zh_cn_map.contains_key("20240102"), "JSON key 应该是 end_date");
+        assert!(
+            zh_cn_map.contains_key("20240102"),
+            "JSON key 应该是 end_date"
+        );
 
         // 验证版本号
         assert_eq!(parsed["version"], 4, "版本号应该是 4");
@@ -715,7 +722,9 @@ mod tests {
         let index_path = temp_dir.join("index.json");
 
         // 创建一个无效的 JSON 文件
-        fs::write(&index_path, "invalid json content").await.unwrap();
+        fs::write(&index_path, "invalid json content")
+            .await
+            .unwrap();
 
         // 尝试加载（应该返回空索引，因为解析失败）
         let manager = IndexManager::new(temp_dir.clone());

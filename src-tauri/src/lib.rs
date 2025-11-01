@@ -117,7 +117,7 @@ async fn download_wallpaper_if_needed(
         .find(|w| w.end_date == end_date)
         .ok_or_else(|| format!("未找到 end_date 为 {} 的壁纸元数据", end_date))?;
 
-        // 检查是否有 urlbase（可选字段）
+    // 检查是否有 urlbase（可选字段）
     if wallpaper.urlbase.is_empty() {
         // 如果没有 urlbase，尝试从 Bing API 获取最新数据
         info!(
@@ -634,7 +634,7 @@ async fn apply_latest_wallpaper_if_needed(app: &AppHandle, state: &AppState, wal
             utils::get_bing_market_code(&settings.language).to_string(),
         )
     };
-    
+
     if !should_apply {
         // 未开启自动应用，跳过
         return;
@@ -866,7 +866,6 @@ async fn run_update_cycle_internal(app: &AppHandle, force_update: bool) {
             }
         }
     }
-
 
     // 自动应用最新壁纸：检查是否需要设置
     // 优化：重新读取壁纸列表（下载完成后列表可能已更新），但仅在需要设置时检查

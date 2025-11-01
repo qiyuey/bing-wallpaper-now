@@ -88,16 +88,21 @@ pub async fn fetch_bing_images(count: u8, idx: u8, mkt: &str) -> Result<Vec<Bing
 /// # Returns
 /// 减一天后的日期字符串（YYYYMMDD 格式）
 fn subtract_one_day(date_str: &str) -> String {
-    use chrono::{NaiveDate, Datelike};
-    
+    use chrono::{Datelike, NaiveDate};
+
     // 解析日期字符串 YYYYMMDD
     if let Ok(date) = NaiveDate::parse_from_str(date_str, "%Y%m%d") {
         // 减一天
         if let Some(prev_day) = date.pred_opt() {
-            return format!("{:04}{:02}{:02}", prev_day.year(), prev_day.month(), prev_day.day());
+            return format!(
+                "{:04}{:02}{:02}",
+                prev_day.year(),
+                prev_day.month(),
+                prev_day.day()
+            );
         }
     }
-    
+
     // 如果解析失败，返回原字符串
     date_str.to_string()
 }
@@ -117,14 +122,19 @@ mod tests {
 
     // 测试辅助函数：将日期字符串减一天
     fn subtract_one_day(date_str: &str) -> String {
-        use chrono::{NaiveDate, Datelike};
-        
+        use chrono::{Datelike, NaiveDate};
+
         if let Ok(date) = NaiveDate::parse_from_str(date_str, "%Y%m%d") {
             if let Some(prev_day) = date.pred_opt() {
-                return format!("{:04}{:02}{:02}", prev_day.year(), prev_day.month(), prev_day.day());
+                return format!(
+                    "{:04}{:02}{:02}",
+                    prev_day.year(),
+                    prev_day.month(),
+                    prev_day.day()
+                );
             }
         }
-        
+
         date_str.to_string()
     }
 
@@ -151,7 +161,7 @@ mod tests {
         assert_eq!(subtract_one_day("20240101"), "20231231");
         assert_eq!(subtract_one_day("20240301"), "20240229"); // 闰年
         assert_eq!(subtract_one_day("20240201"), "20240131");
-        
+
         // 测试无效日期格式（返回原字符串）
         assert_eq!(subtract_one_day("invalid"), "invalid");
         assert_eq!(subtract_one_day(""), "");

@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
 use indexmap::IndexMap;
+use serde::{Deserialize, Serialize};
 
 /// Bing API 返回的图片条目
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -22,7 +22,7 @@ pub struct BingImageArchive {
 }
 
 /// 本地壁纸信息
-/// 
+///
 /// 使用短字段名以节省存储空间：
 /// - title -> t
 /// - copyright -> c
@@ -80,7 +80,7 @@ impl Default for WallpaperIndex {
 
 impl WallpaperIndex {
     /// 索引版本常量
-    /// 
+    ///
     /// v4: 使用短字段名和紧凑格式
     pub const VERSION: u32 = 4;
 
@@ -119,18 +119,18 @@ impl WallpaperIndex {
             .wallpapers_by_language
             .entry(language.to_string())
             .or_default();
-        
+
         // 先插入所有壁纸
         for wallpaper in wallpapers {
             lang_map.insert(wallpaper.end_date.clone(), wallpaper);
         }
-        
+
         // 按日期降序排序（最新的在前）
         lang_map.sort_by(|k1, _, k2, _| k2.cmp(k1));
-        
+
         // 对外层（语言）也按字典序排序，确保 JSON 中的语言顺序一致
         self.wallpapers_by_language.sort_keys();
-        
+
         self.last_updated = Utc::now();
     }
 
@@ -179,7 +179,7 @@ impl WallpaperIndex {
     pub fn limit_index_size(&mut self, max_count: usize) {
         // 获取所有唯一的 end_date，按降序排序（最新的在前）
         let all_unique = self.get_all_wallpapers_unique();
-        
+
         // 如果总数不超过限制，不需要清理
         if all_unique.len() <= max_count {
             return;
