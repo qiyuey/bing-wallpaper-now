@@ -124,15 +124,15 @@ mod tests {
     fn subtract_one_day(date_str: &str) -> String {
         use chrono::{Datelike, NaiveDate};
 
-        if let Ok(date) = NaiveDate::parse_from_str(date_str, "%Y%m%d") {
-            if let Some(prev_day) = date.pred_opt() {
-                return format!(
-                    "{:04}{:02}{:02}",
-                    prev_day.year(),
-                    prev_day.month(),
-                    prev_day.day()
-                );
-            }
+        if let Ok(date) = NaiveDate::parse_from_str(date_str, "%Y%m%d")
+            && let Some(prev_day) = date.pred_opt()
+        {
+            return format!(
+                "{:04}{:02}{:02}",
+                prev_day.year(),
+                prev_day.month(),
+                prev_day.day()
+            );
         }
 
         date_str.to_string()
