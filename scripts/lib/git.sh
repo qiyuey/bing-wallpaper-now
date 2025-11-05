@@ -126,7 +126,7 @@ git_is_main_branch() {
 # Check if tag exists locally
 # Args: $1 - tag name
 # Returns: 0 if exists, 1 otherwise
-# Usage: if git_tag_exists "v1.0.0"; then ... fi
+# Usage: if git_tag_exists "1.0.0"; then ... fi
 git_tag_exists() {
     local tag="$1"
     git show-ref --verify --quiet "refs/tags/$tag"
@@ -135,7 +135,7 @@ git_tag_exists() {
 # Check if tag exists on remote
 # Args: $1 - tag name, $2 - remote (default: origin)
 # Returns: 0 if exists, 1 otherwise
-# Usage: if git_tag_exists_remote "v1.0.0"; then ... fi
+# Usage: if git_tag_exists_remote "1.0.0"; then ... fi
 git_tag_exists_remote() {
     local tag="$1"
     local remote="${2:-origin}"
@@ -162,16 +162,18 @@ git_list_tags() {
 
 # Create annotated tag
 # Args: $1 - tag name, $2 - message
-# Usage: git_create_tag "v1.0.0" "Release version 1.0.0"
+# Usage: git_create_tag "1.0.0" "Release version 1.0.0"
+# Note: Tag is created on HEAD (current commit), tags do not use 'v' prefix
 git_create_tag() {
     local tag="$1"
     local message="$2"
-    git tag -a "$tag" -m "$message"
+    # Explicitly create tag on HEAD to ensure it's on the current commit
+    git tag -a "$tag" -m "$message" HEAD
 }
 
 # Delete local tag
 # Args: $1 - tag name
-# Usage: git_delete_tag "v1.0.0"
+# Usage: git_delete_tag "1.0.0"
 git_delete_tag() {
     local tag="$1"
     git tag -d "$tag"
@@ -179,7 +181,7 @@ git_delete_tag() {
 
 # Delete remote tag
 # Args: $1 - tag name, $2 - remote (default: origin)
-# Usage: git_delete_tag_remote "v1.0.0"
+# Usage: git_delete_tag_remote "1.0.0"
 git_delete_tag_remote() {
     local tag="$1"
     local remote="${2:-origin}"
@@ -338,7 +340,7 @@ git_commit_count() {
 # Get commits since tag
 # Args: $1 - tag name
 # Returns: List of commit messages
-# Usage: git_commits_since "v1.0.0"
+# Usage: git_commits_since "1.0.0"
 git_commits_since() {
     local tag="$1"
     git log "${tag}..HEAD" --oneline

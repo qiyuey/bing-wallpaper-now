@@ -41,11 +41,8 @@
 6. **提交 CHANGELOG**：
    - 运行 `git add CHANGELOG.md` 添加 CHANGELOG.md
    - 从 package.json 读取当前版本号（例如：`cat package.json | grep '"version"' | head -1 | sed 's/.*"version": "\(.*\)".*/\1/'`）
-   - 自动生成 commit message：`chore: release v<version>`（例如：`chore: release v0.4.5`）
-   - 运行 `git commit -m "chore: release v<version>"` 提交 CHANGELOG
+   - 自动生成 commit message：`chore: release <version>`（例如：`chore: release 0.4.5`）
+   - 运行 `git commit -m "chore: release <version>"` 提交 CHANGELOG
 
-7. **发布**：`make release`
-   - 这将验证、更新版本号（从 X.Y.Z-0 到 X.Y.Z）、提交版本号更改、创建标签并推送到远程
-   - 标签会在版本号更新并提交后创建
-   - 如果任何验证失败，修复问题并重试
-   - CI/CD 将在成功推送后自动构建和发布
+7. **发布**：运行 `make release`
+   - 如果出现问题，中断执行，让用户处理

@@ -89,6 +89,7 @@ major:
 	@bash $(VERSION_SCRIPT) major
 
 ## release: Release current development version (update version, commit, create tag, push)
+##         Tags are created on the version update commit (chore(release): X.Y.Z), not on CHANGELOG commit
 release:
 	@bash $(VERSION_SCRIPT) release
 

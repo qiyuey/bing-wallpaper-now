@@ -209,10 +209,12 @@ release_version() {
     git_commit "chore(release): $release_version"
     print_success "Created release version: $release_version"
 
-    # Create tag (after version commit)
-    print_info "Creating Git tag..."
+    # Create tag on the version update commit (HEAD)
+    # This ensures the tag points to the commit with the updated version numbers,
+    # not the CHANGELOG commit that comes before it
+    print_info "Creating Git tag on version update commit..."
     git_create_tag "$tag" "Release $release_version"
-    print_success "Created Git tag: $tag"
+    print_success "Created Git tag: $tag (on commit: chore(release): $release_version)"
 
     # Push to remote
     echo ""
