@@ -258,6 +258,10 @@ pub struct AppRuntimeState {
     pub last_successful_update: Option<String>,
     /// 最后检查更新时间（ISO 8601 格式）
     pub last_check_time: Option<String>,
+    /// 用户手动设置壁纸时，各语言的最新壁纸标识（key = 语言代码，value = end_date）
+    /// 用于判断自动更新时是否需要跳过相同的壁纸
+    #[serde(default)]
+    pub manually_set_latest_wallpapers: std::collections::HashMap<String, String>,
 }
 
 #[cfg(test)]

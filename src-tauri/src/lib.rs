@@ -206,13 +206,50 @@ async fn set_desktop_wallpaper(
     // 异步执行设置壁纸，避免阻塞 UI
     let target_for_spawn = target_can.clone();
     let app_clone = app.clone();
+    // 获取当前语言和壁纸目录，用于记录手动设置时的最新壁纸
+    let (language, wallpaper_dir_for_record) = {
+        let settings = state.settings.lock().await;
+        let lang = utils::get_bing_market_code(&settings.language).to_string();
+        drop(settings);
+        let dir = state.wallpaper_directory.lock().await.clone();
+        (lang, dir)
+    };
+    // 从文件路径中提取 end_date（例如：20251031.jpg -> 20251031）
+    let set_end_date = path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .and_then(|filename| filename.strip_suffix(".jpg"))
+        .map(|s| s.to_string());
+
     tauri::async_runtime::spawn(async move {
         if let Err(e) = wallpaper_manager::set_wallpaper(&target_for_spawn) {
             error!(target: "wallpaper", "设置壁纸失败: {e}");
         } else {
             let state_clone = app_clone.state::<AppState>();
             let mut current_path = state_clone.current_wallpaper_path.lock().await;
-            *current_path = Some(target_for_spawn);
+            *current_path = Some(target_for_spawn.clone());
+            drop(current_path);
+
+            // 记录用户手动设置时的最新壁纸（按语言隔离）
+            // 获取当前语言的最新壁纸的 end_date，记录到运行时状态
+            if let Some(set_end_date) = set_end_date
+                && let Ok(latest_wallpapers) =
+                    storage::get_local_wallpapers(&wallpaper_dir_for_record, &language).await
+                && let Some(latest) = latest_wallpapers.first()
+            {
+                let mut runtime_state =
+                    runtime_state::load_runtime_state(&app_clone).unwrap_or_default();
+                runtime_state
+                    .manually_set_latest_wallpapers
+                    .insert(language.clone(), latest.end_date.clone());
+                if let Err(e) = runtime_state::save_runtime_state(&app_clone, &runtime_state) {
+                    warn!(target: "wallpaper", "保存手动设置记录失败: {e}");
+                } else {
+                    info!(target: "wallpaper", 
+                        "已记录用户手动设置时的最新壁纸：语言={}, 设置壁纸={}, 当时最新壁纸={}", 
+                        language, set_end_date, latest.end_date);
+                }
+            }
         }
     });
 
@@ -644,6 +681,22 @@ async fn apply_latest_wallpaper_if_needed(app: &AppHandle, state: &AppState, wal
         .await
         .unwrap_or_default();
     if let Some(first) = latest_wallpapers.first() {
+        // 检查用户是否手动设置过壁纸，且当前最新壁纸和手动设置时的最新壁纸相同
+        let runtime_state = runtime_state::load_runtime_state(app).unwrap_or_default();
+        if runtime_state
+            .manually_set_latest_wallpapers
+            .get(&language)
+            .is_some_and(|manually_set_end_date| manually_set_end_date == &first.end_date)
+        {
+            info!(
+                target: "update",
+                "跳过自动应用：当前语言 ({}) 的最新壁纸 ({}) 和用户手动设置时的最新壁纸相同",
+                language,
+                first.end_date
+            );
+            return;
+        }
+
         let path = storage::get_wallpaper_path(wallpaper_dir, &first.end_date);
         // 检查当前壁纸是否已经是目标壁纸
         let current_path_guard = state.current_wallpaper_path.lock().await;
