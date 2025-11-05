@@ -2,6 +2,17 @@
 
 All notable changes to Bing Wallpaper Now will be documented in this file.
 
+## 0.4.6-0
+
+### Added
+
+- ✨ **新增版本检查功能**
+  - 支持从 GitHub Releases 自动检查新版本
+  - 在设置页面添加"检查更新"功能
+  - 检测到新版本时显示更新提示和下载链接
+  - 支持跳转到 GitHub Releases 页面下载最新版本
+  - 提升用户体验，让用户及时了解新版本发布
+
 ## 0.4.5
 
 ### Changed
