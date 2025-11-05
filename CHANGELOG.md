@@ -2,6 +2,14 @@
 
 All notable changes to Bing Wallpaper Now will be documented in this file.
 
+## 0.4.9
+
+### Changed
+
+- 🔧 **改进发布流程**
+  - 修复 release 标签创建逻辑，确保标签正确指向版本更新提交
+  - 提升发布流程的可靠性和一致性
+
 ## 0.4.8
 
 ### Changed
