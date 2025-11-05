@@ -138,7 +138,7 @@ function App() {
         // 静默处理错误，不影响应用启动
         console.error("Failed to check for updates:", err);
       }
-    }, 2000);
+    }, 60000);
 
     return () => {
       mounted = false;
