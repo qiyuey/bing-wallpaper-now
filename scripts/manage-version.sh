@@ -165,13 +165,15 @@ release_version() {
     print_info "Updating version files to $release_version..."
     project_update_all_versions "$release_version"
 
-    # Commit and tag
-    print_info "Creating release commit and tag..."
+    # Commit version changes
+    print_info "Creating release commit..."
     git_stage "$PROJECT_PACKAGE_JSON" "$PROJECT_CARGO_TOML" "$PROJECT_TAURI_CONF" "$PROJECT_CARGO_LOCK"
     git_commit "chore(release): $release_version"
-    git_create_tag "$tag" "Release $release_version"
-
     print_success "Created release version: $release_version"
+
+    # Create tag (after version commit)
+    print_info "Creating Git tag..."
+    git_create_tag "$tag" "Release $release_version"
     print_success "Created Git tag: $tag"
 
     # Push to remote

@@ -85,7 +85,7 @@ minor:
 major:
 	@bash $(VERSION_SCRIPT) major
 
-## release: Release current development version, tag and push
+## release: Release current development version (update version, commit, create tag, push)
 release:
 	@bash $(VERSION_SCRIPT) release
 
@@ -137,7 +137,7 @@ help:
 	@echo "  make patch            - Create patch development version (0.1.0 -> 0.1.1-0)"
 	@echo "  make minor            - Create minor development version (0.1.0 -> 0.2.0-0)"
 	@echo "  make major            - Create major development version (0.1.0 -> 1.0.0-0)"
-	@echo "  make release          - Release version, tag and push"
+	@echo "  make release          - Release version (update version, commit, create tag, push)"
 	@echo "  make retag            - Re-push current version tag (re-trigger CI)"
 	@echo ""
 	@echo "Other:"
