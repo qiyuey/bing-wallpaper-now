@@ -4,6 +4,7 @@ import { useBingWallpapers } from "./hooks/useBingWallpapers";
 import { WallpaperGrid } from "./components/WallpaperGrid";
 import { Settings } from "./components/Settings";
 import { About } from "./components/About";
+import { UpdateDialog } from "./components/UpdateDialog";
 
 import { LocalWallpaper, getWallpaperFilePath } from "./types";
 import { invoke } from "@tauri-apps/api/core";
@@ -15,6 +16,7 @@ import { getStandardIconProps } from "./config/icons";
 import { INLINE_SPACING, EVENTS } from "./config/ui";
 import { useDynamicTagline } from "./hooks/useDynamicTagline";
 import { useI18n } from "./i18n/I18nContext";
+import { VersionCheckResult } from "./hooks/useVersionCheck";
 
 function App() {
   const {
@@ -33,6 +35,10 @@ function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [wallpaperDirectory, setWallpaperDirectory] = useState<string>("");
+  const [updateInfo, setUpdateInfo] = useState<{
+    version: string;
+    releaseUrl: string;
+  } | null>(null);
 
   // 获取壁纸目录
   useEffect(() => {
@@ -94,6 +100,49 @@ function App() {
     return () => {
       mounted = false;
       unlisten?.();
+    };
+  }, []);
+
+  // 启动时自动检查更新
+  useEffect(() => {
+    let mounted = true;
+
+    const timeoutId = window.setTimeout(async () => {
+      try {
+        if (!mounted) return;
+
+        const result = await invoke<VersionCheckResult>("check_for_updates");
+
+        if (!mounted) return;
+
+        // 检查是否有更新且平台安装包可用
+        if (
+          result.has_update &&
+          result.latest_version &&
+          result.release_url &&
+          result.platform_available
+        ) {
+          // 检查该版本是否已被用户忽略
+          const isIgnored = await invoke<boolean>("is_version_ignored", {
+            version: result.latest_version,
+          });
+
+          if (!isIgnored && mounted) {
+            setUpdateInfo({
+              version: result.latest_version,
+              releaseUrl: result.release_url,
+            });
+          }
+        }
+      } catch (err) {
+        // 静默处理错误，不影响应用启动
+        console.error("Failed to check for updates:", err);
+      }
+    }, 2000);
+
+    return () => {
+      mounted = false;
+      window.clearTimeout(timeoutId);
     };
   }, []);
 
@@ -305,6 +354,15 @@ function App() {
 
       {showAbout && (
         <About onClose={() => setShowAbout(false)} version={version} />
+      )}
+
+      {updateInfo && (
+        <UpdateDialog
+          version={updateInfo.version}
+          releaseUrl={updateInfo.releaseUrl}
+          onClose={() => setUpdateInfo(null)}
+          onIgnore={() => setUpdateInfo(null)}
+        />
       )}
     </div>
   );

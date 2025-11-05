@@ -479,7 +479,89 @@ async fn update_settings(
 }
 
 #[cfg(test)]
-mod lib_tests {}
+mod lib_tests {
+    use super::*;
+
+    #[test]
+    fn test_compare_versions() {
+        // 基本版本比较
+        assert_eq!(compare_versions("1.0.0", "1.0.0"), 0);
+        assert!(compare_versions("1.0.0", "1.0.1") < 0);
+        assert!(compare_versions("1.0.1", "1.0.0") > 0);
+
+        // 不同长度的版本号
+        assert_eq!(compare_versions("1.0", "1.0.0"), 0);
+        assert!(compare_versions("1.0.0", "1.0.1") < 0);
+        assert!(compare_versions("1.0.1", "1.0") > 0);
+
+        // 主要版本号差异
+        assert!(compare_versions("0.9.9", "1.0.0") < 0);
+        assert!(compare_versions("1.0.0", "2.0.0") < 0);
+
+        // 次要版本号差异
+        assert!(compare_versions("1.0.0", "1.1.0") < 0);
+        assert!(compare_versions("1.1.0", "1.0.0") > 0);
+
+        // 无效版本号（应该被解析为 0）
+        assert_eq!(compare_versions("invalid", "0.0.0"), 0);
+        assert_eq!(compare_versions("1.0.invalid", "1.0.0"), 0);
+    }
+
+    #[test]
+    fn test_has_platform_asset() {
+        #[cfg(target_os = "windows")]
+        {
+            let assets = vec![
+                GitHubAsset {
+                    name: "Bing.Wallpaper.Now_0.4.6_x64_zh-CN.msi".to_string(),
+                    browser_download_url: "https://example.com/test.msi".to_string(),
+                },
+                GitHubAsset {
+                    name: "Bing.Wallpaper.Now_0.4.6_x64-setup.exe".to_string(),
+                    browser_download_url: "https://example.com/test.exe".to_string(),
+                },
+                GitHubAsset {
+                    name: "test.dmg".to_string(),
+                    browser_download_url: "https://example.com/test.dmg".to_string(),
+                },
+            ];
+            assert!(has_platform_asset(&assets));
+
+            // 测试空列表
+            assert!(!has_platform_asset(&[]));
+        }
+
+        #[cfg(target_os = "macos")]
+        {
+            let assets = vec![GitHubAsset {
+                name: "Bing.Wallpaper.Now_0.4.6_aarch64.dmg".to_string(),
+                browser_download_url: "https://example.com/test.dmg".to_string(),
+            }];
+            assert!(has_platform_asset(&assets));
+
+            let assets_false = vec![GitHubAsset {
+                name: "test.msi".to_string(),
+                browser_download_url: "https://example.com/test.msi".to_string(),
+            }];
+            assert!(!has_platform_asset(&assets_false));
+        }
+
+        #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+        {
+            let assets = vec![GitHubAsset {
+                name: "bing-wallpaper-now_0.4.6_amd64.deb".to_string(),
+                browser_download_url: "https://example.com/test.deb".to_string(),
+            }];
+            assert!(has_platform_asset(&assets));
+
+            let assets_false = vec![GitHubAsset {
+                name: "test.msi".to_string(),
+                browser_download_url: "https://example.com/test.msi".to_string(),
+            }];
+            assert!(!has_platform_asset(&assets_false));
+        }
+    }
+}
 // 获取当前桌面壁纸路径
 // (removed obsolete get_current_wallpaper command)
 /// 获取默认壁纸目录
@@ -562,6 +644,16 @@ async fn show_main_window(app: tauri::AppHandle) -> Result<(), String> {
 struct GitHubRelease {
     tag_name: String,
     html_url: String,
+    assets: Vec<GitHubAsset>,
+}
+
+/// GitHub Release Asset 结构
+#[derive(Debug, Deserialize)]
+struct GitHubAsset {
+    name: String,
+    #[serde(rename = "browser_download_url")]
+    #[allow(dead_code)]
+    browser_download_url: String,
 }
 
 /// 版本检查结果
@@ -571,6 +663,49 @@ struct VersionCheckResult {
     latest_version: Option<String>,
     has_update: bool,
     release_url: Option<String>,
+    platform_available: bool,
+}
+
+/// 添加版本到"不再提醒"列表（保存最大版本）
+#[tauri::command]
+async fn add_ignored_update_version(app: AppHandle, version: String) -> Result<(), String> {
+    let mut runtime_state = runtime_state::load_runtime_state(&app)
+        .map_err(|e| format!("Failed to load runtime state: {}", e))?;
+
+    // 如果当前忽略的版本为空，或者新版本更大，则更新
+    let should_update = runtime_state
+        .ignored_update_version
+        .as_ref()
+        .map(|ignored| compare_versions(ignored, &version) < 0)
+        .unwrap_or(true);
+
+    if should_update {
+        runtime_state.ignored_update_version = Some(version.clone());
+        runtime_state::save_runtime_state(&app, &runtime_state)
+            .map_err(|e| format!("Failed to save runtime state: {}", e))?;
+        info!(
+            target: "version_check",
+            "Updated ignored update version to: {}",
+            version
+        );
+    }
+
+    Ok(())
+}
+
+/// 检查版本是否应该被忽略（版本小于等于忽略的版本）
+#[tauri::command]
+async fn is_version_ignored(app: AppHandle, version: String) -> Result<bool, String> {
+    let runtime_state = runtime_state::load_runtime_state(&app)
+        .map_err(|e| format!("Failed to load runtime state: {}", e))?;
+
+    match runtime_state.ignored_update_version {
+        Some(ref ignored_version) => {
+            // 如果当前版本小于等于忽略的版本，则忽略
+            Ok(compare_versions(&version, ignored_version) <= 0)
+        }
+        None => Ok(false),
+    }
 }
 
 /// 检查 GitHub Releases 是否有新版本
@@ -604,15 +739,21 @@ async fn check_for_updates() -> Result<VersionCheckResult, String> {
                         // 移除 tag_name 中的 'v' 前缀（如果有）
                         let latest_version = release.tag_name.trim_start_matches('v').to_string();
 
+                        // 检查是否有当前平台的安装包
+                        let platform_available = has_platform_asset(&release.assets);
+
                         // 比较版本号（简单字符串比较，对于语义化版本号足够）
-                        let has_update = compare_versions(&current_version, &latest_version) < 0;
+                        // 只有当平台安装包可用时才认为有更新
+                        let has_update = platform_available
+                            && compare_versions(&current_version, &latest_version) < 0;
 
                         info!(
                             target: "version_check",
-                            "Version check completed: current={}, latest={}, has_update={}",
+                            "Version check completed: current={}, latest={}, has_update={}, platform_available={}",
                             current_version,
                             latest_version,
-                            has_update
+                            has_update,
+                            platform_available
                         );
 
                         Ok(VersionCheckResult {
@@ -620,6 +761,7 @@ async fn check_for_updates() -> Result<VersionCheckResult, String> {
                             latest_version: Some(latest_version),
                             has_update,
                             release_url: Some(release.html_url),
+                            platform_available,
                         })
                     }
                     Err(e) => {
@@ -629,6 +771,7 @@ async fn check_for_updates() -> Result<VersionCheckResult, String> {
                             latest_version: None,
                             has_update: false,
                             release_url: None,
+                            platform_available: false,
                         })
                     }
                 }
@@ -643,6 +786,7 @@ async fn check_for_updates() -> Result<VersionCheckResult, String> {
                     latest_version: None,
                     has_update: false,
                     release_url: None,
+                    platform_available: false,
                 })
             }
         }
@@ -653,9 +797,41 @@ async fn check_for_updates() -> Result<VersionCheckResult, String> {
                 latest_version: None,
                 has_update: false,
                 release_url: None,
+                platform_available: false,
             })
         }
     }
+}
+
+/// 获取当前平台应该使用的安装包文件扩展名
+///
+/// # Returns
+/// 返回当前平台的安装包文件扩展名列表
+fn get_platform_extensions() -> Vec<&'static str> {
+    #[cfg(target_os = "windows")]
+    {
+        vec![".msi", ".exe"]
+    }
+    #[cfg(target_os = "macos")]
+    {
+        vec![".dmg"]
+    }
+    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+    {
+        vec![".deb", ".rpm", ".AppImage"]
+    }
+}
+
+/// 检查 assets 中是否有当前平台的安装包
+fn has_platform_asset(assets: &[GitHubAsset]) -> bool {
+    let extensions = get_platform_extensions();
+    assets.iter().any(|asset| {
+        extensions.iter().any(|ext| {
+            // 检查文件名是否以扩展名结尾
+            // 扩展名本身以 '.' 开头（如 ".dmg"），所以如果文件名以扩展名结尾，就已经有正确的分隔符了
+            asset.name.ends_with(ext)
+        })
+    })
 }
 
 /// 比较两个版本号字符串
@@ -1583,6 +1759,8 @@ pub fn run() {
             show_main_window,
             force_update,
             check_for_updates,
+            add_ignored_update_version,
+            is_version_ignored,
         ])
         .setup(|app| {
             wallpaper_manager::initialize_observer();

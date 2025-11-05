@@ -262,6 +262,9 @@ pub struct AppRuntimeState {
     /// 用于判断自动更新时是否需要跳过相同的壁纸
     #[serde(default)]
     pub manually_set_latest_wallpapers: std::collections::HashMap<String, String>,
+    /// 用户选择"不再提醒"的最大版本号（如果最新版本小于等于此版本，则不提示）
+    #[serde(default)]
+    pub ignored_update_version: Option<String>,
 }
 
 #[cfg(test)]

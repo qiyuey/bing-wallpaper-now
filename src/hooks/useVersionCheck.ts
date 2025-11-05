@@ -6,6 +6,7 @@ export interface VersionCheckResult {
   latest_version: string | null;
   has_update: boolean;
   release_url: string | null;
+  platform_available: boolean;
 }
 
 export function useVersionCheck() {

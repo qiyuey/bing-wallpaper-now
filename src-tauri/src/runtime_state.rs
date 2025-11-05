@@ -206,6 +206,7 @@ mod tests {
             last_successful_update: None,
             last_check_time: None,
             manually_set_latest_wallpapers: std::collections::HashMap::new(),
+            ignored_update_version: None,
         };
 
         assert!(should_update_today(&state));
@@ -218,6 +219,7 @@ mod tests {
             last_successful_update: Some(yesterday.to_rfc3339()),
             last_check_time: None,
             manually_set_latest_wallpapers: std::collections::HashMap::new(),
+            ignored_update_version: None,
         };
 
         assert!(should_update_today(&state));
@@ -229,6 +231,7 @@ mod tests {
             last_successful_update: Some(Local::now().to_rfc3339()),
             last_check_time: None,
             manually_set_latest_wallpapers: std::collections::HashMap::new(),
+            ignored_update_version: None,
         };
 
         assert!(!should_update_today(&state));
@@ -240,6 +243,7 @@ mod tests {
             last_successful_update: Some("invalid-timestamp".to_string()),
             last_check_time: None,
             manually_set_latest_wallpapers: std::collections::HashMap::new(),
+            ignored_update_version: None,
         };
 
         // Should return true when timestamp is invalid
@@ -253,6 +257,7 @@ mod tests {
             last_successful_update: Some(old_date.to_rfc3339()),
             last_check_time: None,
             manually_set_latest_wallpapers: std::collections::HashMap::new(),
+            ignored_update_version: None,
         };
 
         assert!(should_update_today(&state));
@@ -267,6 +272,7 @@ mod tests {
             last_successful_update: Some(future.to_rfc3339()),
             last_check_time: None,
             manually_set_latest_wallpapers: std::collections::HashMap::new(),
+            ignored_update_version: None,
         };
 
         // Future date should be considered "already updated today"
