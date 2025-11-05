@@ -4,6 +4,8 @@ import { useSettings } from "../hooks/useSettings";
 import { useTheme, Theme } from "../contexts/ThemeContext";
 import { useI18n } from "../i18n/I18nContext";
 import { open } from "@tauri-apps/plugin-dialog";
+import { useVersionCheck } from "../hooks/useVersionCheck";
+import { openUrl } from "@tauri-apps/plugin-opener";
 
 interface SettingsProps {
   onClose: () => void;
@@ -20,6 +22,7 @@ export function Settings({
     useSettings();
   const { applyThemeToUI } = useTheme();
   const { t, setLanguage } = useI18n();
+  const { checking, result, error, checkForUpdates } = useVersionCheck();
 
   const [defaultDir, setDefaultDir] = useState<string>("");
 
@@ -79,6 +82,17 @@ export function Settings({
     } catch (err) {
       console.error("Failed to select folder:", err);
       alert(t("settingsFolderSelectError") + ": " + String(err));
+    }
+  };
+
+  const handleDownloadUpdate = async () => {
+    if (result?.release_url) {
+      try {
+        await openUrl(result.release_url);
+      } catch (err) {
+        console.error("Failed to open release URL:", err);
+        alert(t("updateCheckFailed"));
+      }
     }
   };
 
@@ -233,6 +247,84 @@ export function Settings({
                   {t("restoreDefault")}
                 </button>
               )}
+          </div>
+
+          <div className="settings-section">
+            <div className="settings-label">{t("checkForUpdates")}:</div>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "0.5rem",
+              }}
+            >
+              <button
+                onClick={checkForUpdates}
+                className="btn btn-secondary btn-small"
+                type="button"
+                disabled={checking}
+              >
+                {checking ? t("checkingForUpdates") : t("checkForUpdates")}
+              </button>
+              {result && (
+                <div
+                  style={{
+                    fontSize: "0.875rem",
+                    padding: "0.5rem",
+                    borderRadius: "6px",
+                    backgroundColor: result.has_update
+                      ? "var(--color-update-bg, rgba(59, 130, 246, 0.1))"
+                      : "var(--color-success-bg, rgba(34, 197, 94, 0.1))",
+                    color: result.has_update
+                      ? "var(--color-update-text, rgb(59, 130, 246))"
+                      : "var(--color-success-text, rgb(34, 197, 94))",
+                  }}
+                >
+                  {result.has_update ? (
+                    <div>
+                      <div style={{ marginBottom: "0.5rem" }}>
+                        {t("updateAvailable")}
+                      </div>
+                      <div
+                        style={{
+                          marginBottom: "0.5rem",
+                          fontSize: "0.8125rem",
+                        }}
+                      >
+                        {t("updateAvailableHint").replace(
+                          "{version}",
+                          result.latest_version || "",
+                        )}
+                      </div>
+                      <button
+                        onClick={handleDownloadUpdate}
+                        className="btn btn-primary btn-small"
+                        type="button"
+                        style={{ width: "100%" }}
+                      >
+                        {t("downloadUpdate")}
+                      </button>
+                    </div>
+                  ) : (
+                    <div>{t("noUpdateAvailable")}</div>
+                  )}
+                </div>
+              )}
+              {error && (
+                <div
+                  style={{
+                    fontSize: "0.875rem",
+                    padding: "0.5rem",
+                    borderRadius: "6px",
+                    backgroundColor:
+                      "var(--color-error-bg, rgba(239, 68, 68, 0.1))",
+                    color: "var(--color-error-text, rgb(239, 68, 68))",
+                  }}
+                >
+                  {t("updateCheckFailed")}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

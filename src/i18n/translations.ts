@@ -72,6 +72,16 @@ export const translations = {
     lastUpdate: "上次更新",
     refresh: "更新",
 
+    // 版本检查
+    checkForUpdates: "检查更新",
+    checkingForUpdates: "检查中...",
+    updateAvailable: "有新版本可用",
+    updateAvailableHint: "发现新版本 {version}，点击前往下载",
+    downloadUpdate: "前往下载",
+    noUpdateAvailable: "已是最新版本",
+    updateCheckError: "检查更新失败",
+    updateCheckFailed: "无法检查更新，请稍后重试",
+
     // 托盘菜单
     showWindow: "显示窗口",
     refreshWallpaper: "更新壁纸",
@@ -148,6 +158,17 @@ export const translations = {
     // 状态
     lastUpdate: "Last Update",
     refresh: "Refresh",
+
+    // 版本检查
+    checkForUpdates: "Check for Updates",
+    checkingForUpdates: "Checking...",
+    updateAvailable: "Update Available",
+    updateAvailableHint:
+      "New version {version} is available, click to download",
+    downloadUpdate: "Download",
+    noUpdateAvailable: "Already up to date",
+    updateCheckError: "Update Check Failed",
+    updateCheckFailed: "Unable to check for updates, please try again later",
 
     // 托盘菜单
     showWindow: "Show Window",

@@ -1,111 +1,50 @@
-# Release Process
+# 发布流程
 
-**CRITICAL: When executing this command, you MUST fix all issues and warnings before proceeding with the release. Do not proceed until all quality checks pass.**
+**重要提示：执行此命令时，必须先修复所有问题和警告，然后才能继续发布。在所有质量检查通过之前不要继续。**
 
-Follow these steps to release a new version:
+按照以下步骤发布新版本：
 
-1. **Run quality checks**: `make check`
-   - This runs lint, format check, typecheck, and tests
-   - **MUST fix all issues found and retry until all checks pass**
-   - Do not proceed to next step if any check fails
+1. **运行质量检查并修复所有问题**：
+   - 运行 `make check` 执行所有质量检查（lint、格式检查、类型检查、Markdown lint 和测试）
+   - 如果检查失败，根据错误类型修复：
+     - **Lint 错误**：运行 `pnpm run lint:fix` 自动修复，或使用 `search_replace`/`write` 手动修复
+     - **类型错误**：运行 `pnpm run typecheck` 查看详细信息，使用 `search_replace`/`write` 修复
+     - **格式问题**：运行 `pnpm run format` 自动修复
+     - **Markdown lint 错误**：修复 Markdown 文件中的格式问题
+     - **测试失败**：修复失败的测试用例
+   - 使用 `read_lints` 工具检查所有 lint 错误
+   - 重复运行 `make check` 并修复问题，直到所有检查完全通过
+   - **在 `make check` 完全通过之前不要继续**
 
-2. **Fix all linting errors**:
-   - Run `pnpm run lint` to check ESLint errors
-   - Run `pnpm run lint:fix` to auto-fix ESLint issues if possible
-   - Manually fix remaining ESLint errors using `search_replace` or `write` tools
-   - Run `read_lints` tool to check all lint errors across the codebase
-   - Continue fixing until `pnpm run lint` passes with no errors
+2. **查找上一个发布标签**：`git describe --tags --abbrev=0`
+   - 保存标签名称供步骤 3 使用
 
-3. **Fix all type errors**:
-   - Run `pnpm run typecheck` to check TypeScript type errors
-   - Fix all type errors using `search_replace` or `write` tools
-   - Continue fixing until `pnpm run typecheck` passes with no errors
+3. **审查变更**：`git diff <previous-tag>..HEAD`
+   - 将 `<previous-tag>` 替换为步骤 2 中的标签
+   - 审查自上次发布以来的所有变更
 
-4. **Fix all formatting issues**:
-   - Run `pnpm run format:check` to check formatting
-   - Run `pnpm run format` to auto-fix formatting issues
-   - Manually fix any remaining formatting issues
-   - Continue fixing until `pnpm run format:check` passes
+4. **提交未提交的代码更改**：
+   - 检查是否有未提交的更改：`git status`
+   - 如果有未提交的更改：
+     - 运行 `git add .` 添加所有更改
+     - 根据变更内容自动生成 commit message（例如：`feat: add version check feature` 或 `fix: resolve update issue`）
+     - 运行 `git commit -m "<generated-message>"` 提交代码更改
+   - 如果没有未提交的更改，跳过此步骤
 
-5. **Fix all Markdown linting issues**:
-   - Run `pnpm run lint:md` to check Markdown files
-   - Fix all Markdown linting errors
-   - Continue fixing until `pnpm run lint:md` passes
+5. **更新 CHANGELOG.md**：
+   - 添加新章节：`## x.y.z`（使用 package.json 中的版本号）
+   - 编写面向用户的中文内容描述变更
+   - 遵循先前条目的格式（Added、Changed、Fixed 等）
+   - 避免对最终用户无意义的纯技术优化
+   - 专注于用户可见的变更：新功能、bug 修复、改进和移除的功能
 
-6. **Ensure all tests pass**:
-   - Run `pnpm test` to run all tests (Rust + frontend)
-   - Fix any failing tests
-   - Continue fixing until all tests pass
+6. **提交 CHANGELOG**：
+   - 运行 `git add CHANGELOG.md` 添加 CHANGELOG.md
+   - 从 package.json 读取当前版本号（例如：`cat package.json | grep '"version"' | head -1 | sed 's/.*"version": "\(.*\)".*/\1/'`）
+   - 自动生成 commit message：`chore: release v<version>`（例如：`chore: release v0.4.5`）
+   - 运行 `git commit -m "chore: release v<version>"` 提交 CHANGELOG
 
-7. **Verify quality checks pass again**:
-   - Run `make check` again to ensure everything passes
-   - If any check fails, go back to the appropriate step above
-   - Do not proceed until `make check` passes completely
-
-8. **Find previous release tag**: `git describe --tags --abbrev=0`
-   - Save the tag name for step 9
-
-9. **Review changes**: `git diff <previous-tag>..HEAD`
-   - Replace `<previous-tag>` with the tag from step 8
-   - Review all changes since last release
-
-10. **Update CHANGELOG.md**:
-    - Add a new section: `## x.y.z` (use the version number from package.json)
-    - Write user-facing Chinese content describing the changes
-    - Follow the format of previous entries (Added, Changed, Fixed, etc.)
-    - Avoid pure technical optimizations that are meaningless to end users
-    - Focus on user-visible changes: new features, bug fixes, improvements, and removed features
-
-11. **Commit CHANGELOG**: `git add CHANGELOG.md && git commit -m "docs: update changelog for x.y.z"`
-    - Do NOT push yet
-
-12. **Release**: `make release`
-    - This will validate, update version, create tag, and push to remote
-    - If any validation fails, fix the issues and retry
-    - CI/CD will automatically build and publish after successful push
-
-## Fix Workflow
-
-When fixing issues found during quality checks:
-
-1. **Identify the issue**: Use the error message to understand what needs fixing
-2. **Locate the code**: Use `read_file` to read the file with the issue
-3. **Fix the code**: Use `search_replace` or `write` tools to fix the issue
-4. **Verify the fix**: Run the appropriate check command again
-5. **Repeat**: Continue until all checks pass
-
-## Priority Order for Fixes
-
-1. **Critical issues** (must fix before release):
-   - Panic risks (unwraps, indexing without bounds check, `block_on` in async)
-   - Data loss potential
-   - Security vulnerabilities
-   - Breaking functionality
-   - Memory leaks or resource leaks
-   - Type errors that prevent compilation
-   - Test failures
-
-2. **High priority issues** (must fix before release):
-   - Linting errors
-   - Type safety issues (TypeScript `any` types)
-   - Formatting inconsistencies
-   - Markdown linting errors
-
-3. **Medium priority issues** (should fix before release):
-   - Code smells that affect maintainability
-   - Performance issues
-
-## Verification Checklist
-
-Before proceeding to release, ensure:
-
-- [ ] `make check` passes completely
-- [ ] `pnpm run lint` passes with no errors
-- [ ] `pnpm run typecheck` passes with no errors
-- [ ] `pnpm run format:check` passes
-- [ ] `pnpm run lint:md` passes
-- [ ] `pnpm test` passes (all tests)
-- [ ] No linting errors when running `read_lints` tool
-- [ ] All Critical and High priority issues are fixed
-
-**DO NOT proceed with release until all items above are checked.**
+7. **发布**：`make release`
+   - 这将验证、更新版本、创建标签并推送到远程
+   - 如果任何验证失败，修复问题并重试
+   - CI/CD 将在成功推送后自动构建和发布

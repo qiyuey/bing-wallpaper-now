@@ -1,403 +1,403 @@
-# Code Review
+# 代码审查
 
-Review code changes for architecture quality, modularity, bug potential, and refactoring opportunities. Focus on Tauri + React architecture with Rust backend and TypeScript frontend.
+审查代码变更的架构质量、模块化程度、潜在 bug 和重构机会。重点关注 Tauri + React 架构，包含 Rust 后端和 TypeScript 前端。
 
-## Review Process
+## 审查流程
 
-### 1. Analyze Current Changes
+### 1. 分析当前变更
 
-**Step 1: Identify Modified Files**
+**步骤 1：识别修改的文件**
 
-Use these commands to understand what has been modified:
+使用以下命令了解修改了哪些文件：
 
 ```bash
-# For uncommitted changes
+# 未提交的变更
 git status
 git diff --name-only
 
-# For staged changes
+# 已暂存的变更
 git diff --cached --name-only
 
-# Compare with a branch (e.g., main)
+# 与分支对比（例如，main）
 git diff --name-only main...HEAD
 ```
 
-**Step 2: Analyze Changes**
+**步骤 2：分析变更**
 
-For each modified file:
+对于每个修改的文件：
 
-- Use `read_file` tool to read the file content
-- Use `grep` tool to find usages and dependencies
-- Use `codebase_search` to understand module relationships
-- Identify affected modules and their boundaries
+- 使用 `read_file` 工具读取文件内容
+- 使用 `grep` 工具查找使用和依赖关系
+- 使用 `codebase_search` 理解模块关系
+- 识别受影响的模块及其边界
 
-### 2. Architecture Quality Checklist
+### 2. 架构质量检查清单
 
-#### High Cohesion
+#### 高内聚
 
-- **Single Responsibility**: Each module/function should have one clear purpose
-- **Related Logic Together**: Functions/data that belong together are in the same module
-- **No Mixed Concerns**: Business logic, UI, and data access are separated
-- **Clear Module Boundaries**: Each module has well-defined responsibilities
+- **单一职责**：每个模块/函数应该只有一个明确的目的
+- **相关逻辑集中**：属于一起的函数/数据应该在同一模块中
+- **无混合关注点**：业务逻辑、UI 和数据访问应分离
+- **清晰的模块边界**：每个模块都有明确定义的职责
 
-**Check for:**
+**检查：**
 
-- Functions that do multiple unrelated things
-- Modules that mix concerns (e.g., UI + business logic + data fetching)
-- Functions that could be split into smaller, focused functions
-- React components that contain business logic (should use hooks instead)
-- Rust modules mixing different concerns (e.g., API + storage + business logic)
+- 执行多个无关操作的函数
+- 混合关注点的模块（例如：UI + 业务逻辑 + 数据获取）
+- 可以拆分为更小、更专注的函数
+- 包含业务逻辑的 React 组件（应使用 hooks）
+- 混合不同关注点的 Rust 模块（例如：API + 存储 + 业务逻辑）
 
-#### Low Coupling
+#### 低耦合
 
-- **Minimal Dependencies**: Modules depend on abstractions, not concrete implementations
-- **Interface-Based Design**: Dependencies are through interfaces/types, not concrete classes
-- **No Circular Dependencies**: Module A shouldn't depend on B if B depends on A
-- **Loose Inter-Module Coupling**: Changes in one module shouldn't require changes in others
+- **最小依赖**：模块依赖抽象，而非具体实现
+- **基于接口的设计**：依赖通过接口/类型，而非具体类
+- **无循环依赖**：如果模块 B 依赖模块 A，则模块 A 不应依赖模块 B
+- **模块间松耦合**：一个模块的变更不应要求其他模块变更
 
-**Check for:**
+**检查：**
 
-- Direct imports of implementation details from other modules
-- Frontend directly accessing backend internals (should use Tauri commands)
-- Shared mutable state between modules
-- Hard-coded dependencies between modules
-- Tight coupling between React components
-- Rust modules directly depending on concrete implementations
+- 直接导入其他模块的实现细节
+- 前端直接访问后端内部（应使用 Tauri commands）
+- 模块间共享可变状态
+- 模块间硬编码的依赖关系
+- React 组件间紧密耦合
+- Rust 模块直接依赖具体实现
 
-#### Modularity
+#### 模块化
 
-- **Clear Module Boundaries**: Each module has a well-defined public API
-- **Encapsulation**: Internal implementation details are hidden
-- **Reusability**: Modules can be used independently
-- **Testability**: Each module can be tested in isolation
+- **清晰的模块边界**：每个模块都有明确定义的公共 API
+- **封装**：内部实现细节被隐藏
+- **可重用性**：模块可以独立使用
+- **可测试性**：每个模块可以独立测试
 
-**Check for:**
+**检查：**
 
-- Public APIs that expose too much internal detail
-- Modules that are hard to test due to tight coupling
-- Code duplication that could be extracted into shared modules
-- Utility functions that should be in separate modules
-- React hooks that could be reused
-- Rust functions that could be extracted into separate modules
+- 暴露过多内部细节的公共 API
+- 由于紧密耦合而难以测试的模块
+- 可以提取到共享模块的代码重复
+- 应该在单独模块中的工具函数
+- 可以重用的 React hooks
+- 可以提取到单独模块的 Rust 函数
 
-### 3. Project-Specific Considerations
+### 3. 项目特定考虑
 
-#### Tauri Architecture
+#### Tauri 架构
 
-- **Frontend-Backend Separation**: Frontend (React/TypeScript) should not have direct file system access
-- **Tauri Commands**: Rust commands should be well-defined with proper error handling
-  - Commands should use `#[tauri::command]` macro
-  - Return `Result<T, E>` or `anyhow::Result`
-  - Handle errors gracefully and return meaningful error messages
-- **Event Communication**: Use Tauri events properly, avoid tight coupling
-  - Events should be used for one-way communication (backend → frontend)
-  - Avoid bidirectional event loops
-- **Resource Management**: Properly handle Tauri resource IDs and cleanup
-  - Remove event listeners on component unmount
-  - Clean up resources in Rust (files, connections, etc.)
+- **前后端分离**：前端（React/TypeScript）不应直接访问文件系统
+- **Tauri Commands**：Rust commands 应该定义良好，有适当的错误处理
+  - Commands 应使用 `#[tauri::command]` 宏
+  - 返回 `Result<T, E>` 或 `anyhow::Result`
+  - 优雅地处理错误并返回有意义的错误消息
+- **事件通信**：正确使用 Tauri 事件，避免紧密耦合
+  - 事件应用于单向通信（后端 → 前端）
+  - 避免双向事件循环
+- **资源管理**：正确处理 Tauri 资源 ID 和清理
+  - 在组件卸载时移除事件监听器
+  - 在 Rust 中清理资源（文件、连接等）
 
-**Check for:**
+**检查：**
 
-- Frontend trying to access file system directly (should use Tauri commands)
-- Missing error handling in Tauri commands
-- Event listeners not being cleaned up
-- Resource leaks (file handles, network connections)
+- 前端尝试直接访问文件系统（应使用 Tauri commands）
+- Tauri commands 中缺少错误处理
+- 事件监听器未被清理
+- 资源泄漏（文件句柄、网络连接）
 
-#### Rust-Specific Patterns
+#### Rust 特定模式
 
-- **Async/Await**: Proper use of Tokio runtime
-  - Avoid `block_on` in async contexts (causes panic: "Cannot start a runtime from within a runtime")
-  - Use `await` for async operations
-  - Use `tauri::async_runtime::spawn` for background tasks
-- **Error Handling**: Use `Result<T, E>` or `anyhow::Result`
-  - Avoid `unwrap()` in production code (use `?` operator or proper error handling)
-  - Propagate errors properly up the call stack
-- **Memory Safety**: No unsafe code without justification
-  - Proper lifetime management
-  - Avoid unnecessary cloning
-  - Use `Arc<Mutex<T>>` for shared state across async tasks
-- **Lock Ordering**: Avoid deadlocks with multiple mutexes
-  - Use `try_lock()` when blocking might cause issues
-  - Consistent lock ordering
-  - Avoid holding locks across await points
+- **Async/Await**：正确使用 Tokio runtime
+  - 避免在 async 上下文中使用 `block_on`（会导致 panic："Cannot start a runtime from within a runtime"）
+  - 对异步操作使用 `await`
+  - 对后台任务使用 `tauri::async_runtime::spawn`
+- **错误处理**：使用 `Result<T, E>` 或 `anyhow::Result`
+  - 避免在生产代码中使用 `unwrap()`（使用 `?` 运算符或适当的错误处理）
+  - 正确向上传播错误
+- **内存安全**：没有正当理由不使用 unsafe 代码
+  - 正确的生命周期管理
+  - 避免不必要的克隆
+  - 对跨异步任务的共享状态使用 `Arc<Mutex<T>>`
+- **锁顺序**：避免多个 mutex 的死锁
+  - 在阻塞可能导致问题时使用 `try_lock()`
+  - 一致的锁顺序
+  - 避免在 await 点持有锁
 
-**Check for:**
+**检查：**
 
-- `block_on` calls inside async functions
-- `unwrap()` calls that could panic
-- Missing error handling with `?` operator
-- Deadlock potential with multiple mutexes
-- Async cancellation not handled properly
+- 在 async 函数中调用 `block_on`
+- 可能 panic 的 `unwrap()` 调用
+- 缺少使用 `?` 运算符的错误处理
+- 多个 mutex 的死锁可能性
+- 异步取消未正确处理
 
-#### TypeScript/React-Specific Patterns
+#### TypeScript/React 特定模式
 
-- **Type Safety**: No `any` types, proper React hook dependencies
-  - Use proper TypeScript types for all props and state
-  - Avoid `as any` type assertions
-  - Proper generic types for reusable components
-- **Component Design**: Props interfaces, proper memoization
-  - Define interfaces for component props
-  - Use `memo()` for expensive components
-  - Avoid unnecessary re-renders
-- **State Management**: Avoid prop drilling, use context/hooks appropriately
-  - Use React Context for shared state
-  - Custom hooks for complex logic
-  - Avoid lifting state too high
-- **Hook Dependencies**: Proper dependency arrays in useEffect/useMemo/useCallback
-  - Follow exhaustive-deps rule
-  - Avoid missing dependencies
-  - Clean up effects properly
+- **类型安全**：无 `any` 类型，正确的 React hook 依赖
+  - 为所有 props 和 state 使用适当的 TypeScript 类型
+  - 避免 `as any` 类型断言
+  - 可重用组件的适当泛型类型
+- **组件设计**：Props 接口，适当的 memoization
+  - 为组件 props 定义接口
+  - 对昂贵的组件使用 `memo()`
+  - 避免不必要的重新渲染
+- **状态管理**：避免 prop drilling，适当使用 context/hooks
+  - 对共享状态使用 React Context
+  - 对复杂逻辑使用自定义 hooks
+  - 避免将状态提升过高
+- **Hook 依赖**：useEffect/useMemo/useCallback 中正确的依赖数组
+  - 遵循 exhaustive-deps 规则
+  - 避免缺少依赖
+  - 正确清理 effects
 
-**Check for:**
+**检查：**
 
-- `any` types or unsafe type assertions
-- Missing dependencies in hook arrays
-- Components not cleaning up effects (event listeners, timers)
-- Props drilling through multiple levels
-- Unnecessary re-renders
+- `any` 类型或不安全的类型断言
+- hook 数组中缺少依赖
+- 组件未清理 effects（事件监听器、定时器）
+- 通过多个级别的 props drilling
+- 不必要的重新渲染
 
-### 4. Bug Potential Analysis
+### 4. Bug 潜在风险分析
 
-#### Common Bug Patterns
+#### 常见 Bug 模式
 
-- **Null/Undefined Checks**: Proper null/undefined handling
-  - Rust: Use `Option<T>`, check with `match` or `if let`
-  - TypeScript: Use optional chaining `?.`, nullish coalescing `??`
-- **Error Handling**: All error paths are handled appropriately
-  - Rust: Use `Result<T, E>` and propagate errors
-  - TypeScript: Handle promise rejections, try-catch blocks
-- **Edge Cases**: Boundary conditions, empty inputs, overflow cases
-  - Empty arrays, null values, zero-length strings
-  - Array bounds checking
-  - Number overflow/underflow
-- **Race Conditions**: Async operations, concurrent access, state updates
-  - Multiple async operations modifying same state
-  - Lock contention in Rust
-  - React state updates in async callbacks
-- **Resource Management**: File handles, network connections, memory leaks
-  - Unclosed file handles
-  - Event listeners not removed
-  - Memory leaks from closures keeping references
+- **空值/未定义检查**：正确处理 null/undefined
+  - Rust：使用 `Option<T>`，用 `match` 或 `if let` 检查
+  - TypeScript：使用可选链 `?.`，空值合并 `??`
+- **错误处理**：所有错误路径都得到适当处理
+  - Rust：使用 `Result<T, E>` 并传播错误
+  - TypeScript：处理 promise rejections，try-catch 块
+- **边界情况**：边界条件、空输入、溢出情况
+  - 空数组、null 值、零长度字符串
+  - 数组边界检查
+  - 数字溢出/下溢
+- **竞态条件**：异步操作、并发访问、状态更新
+  - 多个异步操作修改同一状态
+  - Rust 中的锁竞争
+  - React 状态在异步回调中更新
+- **资源管理**：文件句柄、网络连接、内存泄漏
+  - 未关闭的文件句柄
+  - 未移除的事件监听器
+  - 闭包保持引用导致的内存泄漏
 
-#### Tauri-Specific Bug Patterns
+#### Tauri 特定 Bug 模式
 
-- **block_on in async context**: Never use `block_on` inside async functions
-  - This causes panic: "Cannot start a runtime from within a runtime"
-  - Use `await` instead, or `tauri::async_runtime::spawn` for background tasks
-- **Tauri command errors**: Proper error propagation from Rust to TypeScript
-  - Commands should return `Result<T, E>` or `anyhow::Result`
-  - Frontend should handle errors gracefully
-- **Event listener cleanup**: Remove event listeners on component unmount
-  - Use `return` function in `useEffect` to clean up
-  - Remove global event listeners properly
-- **Resource ID management**: Properly handle Tauri resource IDs
-  - Don't leak resource IDs
-  - Proper cleanup of resources
+- **async 上下文中的 block_on**：永远不要在 async 函数中使用 `block_on`
+  - 这会导致 panic："Cannot start a runtime from within a runtime"
+  - 使用 `await` 代替，或对后台任务使用 `tauri::async_runtime::spawn`
+- **Tauri command 错误**：从 Rust 到 TypeScript 的正确错误传播
+  - Commands 应返回 `Result<T, E>` 或 `anyhow::Result`
+  - 前端应优雅地处理错误
+- **事件监听器清理**：在组件卸载时移除事件监听器
+  - 在 `useEffect` 中使用 `return` 函数进行清理
+  - 正确移除全局事件监听器
+- **资源 ID 管理**：正确处理 Tauri 资源 ID
+  - 不要泄漏资源 ID
+  - 正确清理资源
 
-#### Rust Async-Specific Issues
+#### Rust Async 特定问题
 
-- **Runtime panic**: Avoid creating runtime from within runtime
-  - Never use `block_on` in async context
-  - Use `tokio::runtime::Handle::current()` if needed
-- **Lock ordering**: Avoid deadlocks with multiple mutexes
-  - Use consistent lock ordering
-  - Consider using `try_lock()` when blocking might cause issues
-- **Async cancellation**: Handle cancellation properly in async tasks
-  - Use `tokio::select!` for cancellation
-  - Clean up resources on cancellation
+- **Runtime panic**：避免在 runtime 内创建 runtime
+  - 永远不要在 async 上下文中使用 `block_on`
+  - 如需要，使用 `tokio::runtime::Handle::current()`
+- **锁顺序**：避免多个 mutex 的死锁
+  - 使用一致的锁顺序
+  - 当阻塞可能导致问题时，考虑使用 `try_lock()`
+- **异步取消**：正确处理异步任务中的取消
+  - 对取消使用 `tokio::select!`
+  - 在取消时清理资源
 
-**Check for:**
+**检查：**
 
-- Missing error handling in async functions
-- Unhandled edge cases (empty arrays, null values, etc.)
-- Potential race conditions in async code
-- Resource leaks (unclosed files, event listeners, etc.)
-- TypeScript `any` types or unsafe type assertions
-- Rust `unwrap()` calls that could panic
-- `block_on` in async contexts
-- Missing cleanup in React effects
+- async 函数中缺少错误处理
+- 未处理的边界情况（空数组、null 值等）
+- 异步代码中潜在的竞态条件
+- 资源泄漏（未关闭的文件、事件监听器等）
+- TypeScript `any` 类型或不安全的类型断言
+- 可能 panic 的 Rust `unwrap()` 调用
+- async 上下文中的 `block_on`
+- React effects 中缺少清理
 
-### 5. Refactoring Opportunities
+### 5. 重构机会
 
-#### Code Smells to Identify
+#### 需要识别的关键代码异味
 
-- **Long Functions**:
-  - TypeScript: > 50 lines should be considered for splitting
-  - Rust: > 80 lines (Rust functions can be longer due to pattern matching)
-- **Deep Nesting**: More than 3-4 levels of nesting suggests refactoring needed
-  - Use early returns
-  - Extract functions
-  - Use guard clauses
-- **Magic Numbers**: Hard-coded values should be constants
-  - Use named constants
-  - Extract to configuration
-- **Code Duplication**: Repeated patterns should be extracted
-  - Extract common logic into functions
-  - Use higher-order functions
-  - Create reusable components/hooks
-- **Large Modules**:
-  - TypeScript: > 300 lines may need splitting
-  - Rust: > 500 lines (acceptable for Rust modules, but consider splitting)
-- **Complex Conditionals**: Long if/else chains or switch statements
-  - Use strategy pattern
-  - Extract to separate functions
-  - Use pattern matching (Rust) or lookup tables
-- **Comments Explaining Code**: If code needs comments to explain what it does, refactor for clarity
-  - Better naming
-  - Extract functions
-  - Simplify logic
-- **Over-Engineering**: Unnecessary complexity or abstractions
-  - Complex patterns where simple solutions would work
-  - Abstractions that don't add value
-  - "Clever" code that's hard to understand
-  - Preemptively solving problems that don't exist yet
-  - Over-abstracting for hypothetical future needs
-  - Unnecessary design patterns or architectural layers
-  - Favor simple, direct solutions over clever ones
+- **代码重复**：重复的模式应该被提取
+  - 将通用逻辑提取到函数
+  - 使用高阶函数
+  - 创建可重用的组件/hooks
+- **过度设计**：不必要的复杂性或抽象
+  - 简单解决方案可以工作的复杂模式
+  - 不增加价值的抽象
+  - 预先解决还不存在的问题
+  - 为假设的未来需求过度抽象
+  - 不必要的设计模式或架构层
 
-#### Optimization Opportunities
+### 6. 测试覆盖检查
 
-- **Performance**: Unnecessary computations, inefficient algorithms
-  - Unnecessary re-renders in React
-  - Inefficient loops
-  - Missing memoization
-- **Memory**: Unnecessary allocations, large objects kept in memory
-  - Unnecessary cloning in Rust
-  - Large objects in React state
-  - Memory leaks from closures
-- **Network**: Redundant API calls, missing caching
-  - Duplicate API requests
-  - Missing request deduplication
-  - No caching strategy
-- **Bundling**: Unused imports, unnecessary dependencies
-  - Unused imports in TypeScript/Rust
-  - Unnecessary dependencies in package.json/Cargo.toml
-- **Simplicity Over Optimization**: Avoid premature optimization
-  - Don't optimize code that doesn't need optimization
-  - Measure before optimizing - profile first
-  - Simple code is often fast enough
-  - Complexity should be justified by actual performance needs
+#### 新增代码测试要求
 
-### 6. Review Execution
+- **新功能必须有测试**：新增的 Tauri commands、React hooks、组件应该包含测试
+  - Rust：为新增的 `#[tauri::command]` 函数添加单元测试
+  - TypeScript：为新增的 hooks 和组件添加测试（使用 Vitest）
+  - 测试应该覆盖主要的成功路径和错误路径
+- **测试文件位置**：
+  - Rust：在同一文件中使用 `#[cfg(test)]` 模块，或创建 `tests/` 目录
+  - TypeScript：测试文件应该与源文件在同一目录，使用 `.test.ts` 或 `.test.tsx` 后缀
+- **测试覆盖率**：关注关键路径的测试覆盖率
+  - 重要业务逻辑应该至少有基本测试
+  - 错误处理路径应该被测试
+  - 边界情况应该被测试
 
-**Step 1: Get Changed Files**
+**检查：**
+
+- 新增的 Tauri command 是否有对应的测试
+- 新增的 React hooks 是否有对应的测试
+- 新增的组件是否有对应的测试（特别是包含复杂逻辑的组件）
+- 错误处理路径是否被测试覆盖
+- 边界情况是否被测试覆盖
+- 测试文件是否遵循项目的命名约定
+
+#### 测试质量要求
+
+- **测试命名**：测试名称应该清晰描述测试场景
+  - Rust：使用 `#[test]` 和描述性函数名
+  - TypeScript：使用 `describe` 和 `it` 块，名称应该清晰
+- **测试隔离**：每个测试应该独立运行，不依赖其他测试
+  - 使用 `beforeEach`/`afterEach` 清理状态
+  - 避免测试间的共享状态
+- **Mock 使用**：适当使用 mock 隔离被测试的代码
+  - Mock 外部依赖（API、文件系统等）
+  - Mock Tauri commands 在前端测试中
+  - Mock React hooks 在组件测试中
+- **断言清晰**：测试断言应该清晰表达期望的行为
+  - 使用有意义的错误消息
+  - 避免过于宽泛的断言
+  - 测试应该专注于单一行为
+
+**检查：**
+
+- 测试是否独立，不依赖执行顺序
+- 是否正确使用了 mock（避免真实的外部调用）
+- 测试断言是否清晰和具体
+- 测试是否测试了正确的东西（行为而非实现细节）
+
+### 7. 审查执行
+
+**步骤 1：获取变更的文件**
 
 ```bash
-# Option 1: Git diff (for uncommitted changes)
+# 选项 1：Git diff（未提交的变更）
 git diff --name-only
 
-# Option 2: Git diff --cached (for staged changes)
+# 选项 2：Git diff --cached（已暂存的变更）
 git diff --cached --name-only
 
-# Option 3: Compare with branch
+# 选项 3：与分支对比
 git diff --name-only main...HEAD
 ```
 
-**Step 2: For each modified file:**
+**步骤 2：对于每个修改的文件：**
 
-- Use `read_file` tool to read the file and understand its purpose
-- Use `grep` tool to find dependencies and usages
-- Use `codebase_search` to understand module relationships
-- Analyze functions for cohesion and complexity
-  - Count lines per function
-  - Check nesting depth
-  - Identify responsibilities
-- Look for potential bugs
-  - Check error handling
-  - Verify edge cases
-  - Look for race conditions
-- Identify refactoring opportunities
-  - Code duplication
-  - Long functions
-  - Complex logic
+- 使用 `read_file` 工具读取文件并理解其目的
+- 使用 `grep` 工具查找依赖和使用
+- 使用 `codebase_search` 理解模块关系
+- 分析函数的凝聚力和复杂性
+  - 计算每个函数的行数
+  - 检查嵌套深度
+  - 识别职责
+- 查找潜在的 bug
+  - 检查错误处理
+  - 验证边界情况
+  - 查找竞态条件
+- 识别重构机会
+  - 代码重复
+  - 过度设计
+- 检查测试覆盖
+  - 识别新增的功能（commands、hooks、组件）
+  - 检查是否存在对应的测试文件
+  - 验证测试是否覆盖主要路径和错误路径
+  - 检查测试质量和测试隔离性
 
-**Step 3: Cross-module Analysis**
+**步骤 3：跨模块分析**
 
-- Use `codebase_search` to map dependencies between modules
-- Check for circular dependencies
-- Verify module boundaries are respected
-  - Frontend vs backend separation
-  - Component vs hook separation
-  - Business logic vs UI separation
-- Ensure interfaces are well-defined
-  - Tauri command signatures
-  - React component props
-  - Rust module public APIs
+- 使用 `codebase_search` 映射模块间的依赖关系
+- 检查循环依赖
+- 验证模块边界是否被遵守
+  - 前端与后端分离
+  - 组件与 hook 分离
+  - 业务逻辑与 UI 分离
+- 确保接口定义良好
+  - Tauri command 签名
+  - React 组件 props
+  - Rust 模块公共 API
 
-**Step 4: Provide Recommendations**
+**步骤 4：提供建议**
 
-- List specific issues found with file paths and line numbers
-- Categorize by priority (Critical/High/Medium/Low)
-- Suggest concrete refactoring steps
-- Provide code examples when helpful
-- Estimate effort for fixes
+- 列出发现的特定问题，包含文件路径和行号
+- 按优先级分类（关键/高）
+- 建议具体的重构步骤
+- 在有用时提供代码示例
+- 估算修复工作量
+- 检查测试覆盖情况，如果新增代码缺少测试，应标记为高优先级问题
 
-### 7. Issue Priority Levels
+### 7. 问题优先级级别
 
-**Critical** (Must fix before merge):
+**关键**（合并前必须修复）：
 
-- Panic risks (unwraps, indexing without bounds check, `block_on` in async)
-- Data loss potential
-- Security vulnerabilities
-- Breaking functionality
-- Memory leaks or resource leaks
+- Panic 风险（unwraps、无边界检查的索引、async 中的 `block_on`）
+- 数据丢失可能性
+- 安全漏洞
+- 破坏功能
+- 内存泄漏或资源泄漏
 
-**High** (Should fix soon):
+**高**（应尽快修复）：
 
-- Bug potential (race conditions, null handling, missing error handling)
-- Performance issues (blocking operations, unnecessary re-renders)
-- Major architectural issues (tight coupling, mixed concerns)
-- Type safety issues (`any` types in TypeScript)
+- Bug 可能性（竞态条件、null 处理、缺少错误处理）
+- 性能问题（阻塞操作、不必要的重新渲染）
+- 主要架构问题（紧密耦合、混合关注点）
+- 类型安全问题（TypeScript 中的 `any` 类型）
+- **缺少测试覆盖**（新增代码未包含测试，特别是包含业务逻辑的代码）
 
-**Medium** (Consider fixing):
 
-- Code smells (long functions, duplication, magic numbers)
-- Testability concerns (hard to test due to coupling)
-- Minor architectural improvements
-- Code style inconsistencies
+## 输出格式
 
-**Low** (Nice to have):
-
-- Code style improvements
-- Minor optimizations
-- Documentation improvements
-- Refactoring suggestions
-
-## Output Format
-
-Review report should be organized as follows (concise and focused):
+审查报告应按以下方式组织（简洁且重点突出）：
 
 ```markdown
-## Code Review Summary
+## 代码审查摘要
 
-### Overall Assessment
-[Brief summary of code quality, architectural improvements, highlights, etc.]
+### 总体评估
+[代码质量、架构改进、亮点的简要摘要等]
 
-### Recommendations
-1. **[`file.ts:line`]** [Issue Title]
-   - **Impact**: [Why this is important]
-   - **Fix**: [Specific suggestions with code examples]
-   - **Effort**: [Quick/Medium/Major]
+### 建议
+1. **[`file.ts:line`]** [问题标题]
+   - **影响**：[为什么这很重要]
+   - **修复**：[具体建议和代码示例]
+   - **工作量**：[快速/中等/主要]
 
-### Considerations
-1. **[`file.tsx:line`]** [Issue Title] - [Suggestion] - [Effort]
+### 测试覆盖
+1. **[`file.ts:line`]** [新增功能] - [测试状态] - [建议]
+   - 如果缺少测试，说明需要添加的测试类型和覆盖范围
+
+### 考虑事项
+1. **[`file.tsx:line`]** [问题标题] - [建议] - [工作量]
 ```
 
-## Notes
+## 注意事项
 
-- Focus on the actual changes made, not the entire codebase
-- Be constructive and specific
-- Prioritize critical bugs and architectural issues
-- **Code Simplicity**: Prefer simple, straightforward solutions over clever or complex ones
-  - Write code that is easy to understand and maintain
-  - Avoid unnecessary abstractions or design patterns
-  - Don't add complexity "just in case" - solve actual problems as they arise
-  - Simple code is easier to debug, test, and modify
-  - Question overly complex solutions - can this be done more simply?
-- Consider the project's existing patterns and conventions:
-  - Rust: Edition 2024, use `anyhow::Result`, snake_case for functions
-  - TypeScript: Strict mode, functional components, hooks for state
-  - Tauri: Use commands for backend communication, events for notifications
-- When suggesting refactoring, explain the benefit clearly
-- Provide code examples when helpful
-- Estimate effort to help prioritize fixes
+- 专注于实际做出的变更，而非整个代码库
+- 建设性且具体
+- 优先考虑关键 bug 和架构问题
+- **代码简单性**：偏好简单、直接的解决方案而非聪明或复杂的方案
+  - 编写易于理解和维护的代码
+  - 避免不必要的抽象或设计模式
+  - 不要"以防万一"添加复杂性 - 在实际问题出现时解决它们
+  - 简单代码更容易调试、测试和修改
+  - 质疑过度复杂的解决方案 - 这能更简单地完成吗？
+- 考虑项目的现有模式和约定：
+  - Rust：Edition 2024，使用 `anyhow::Result`，函数使用 snake_case
+  - TypeScript：严格模式，函数组件，使用 hooks 管理状态
+  - Tauri：使用 commands 进行后端通信，事件用于通知
+- 建议重构时，清楚地说明好处
+- 在有用时提供代码示例
+- 估算工作量以帮助确定修复优先级

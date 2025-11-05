@@ -13,6 +13,7 @@ use chrono::{DateTime, Duration as ChronoDuration, Local, TimeZone, Timelike};
 use log::{error, info, warn};
 
 use models::{AppSettings, LocalWallpaper};
+use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -554,6 +555,139 @@ async fn show_main_window(app: tauri::AppHandle) -> Result<(), String> {
         window.set_focus().map_err(|e| e.to_string())?;
     }
     Ok(())
+}
+
+/// GitHub Releases API 响应结构
+#[derive(Debug, Deserialize)]
+struct GitHubRelease {
+    tag_name: String,
+    html_url: String,
+}
+
+/// 版本检查结果
+#[derive(Debug, Serialize)]
+struct VersionCheckResult {
+    current_version: String,
+    latest_version: Option<String>,
+    has_update: bool,
+    release_url: Option<String>,
+}
+
+/// 检查 GitHub Releases 是否有新版本
+///
+/// # Returns
+/// 返回版本检查结果，包含当前版本、最新版本和是否有更新
+#[tauri::command]
+async fn check_for_updates() -> Result<VersionCheckResult, String> {
+    const GITHUB_API_URL: &str =
+        "https://api.github.com/repos/qiyuey/bing-wallpaper-now/releases/latest";
+    const CURRENT_VERSION: &str = env!("CARGO_PKG_VERSION");
+
+    // 移除开发版本后缀（例如：0.4.5-0 -> 0.4.5）
+    let current_version = CURRENT_VERSION
+        .split('-')
+        .next()
+        .unwrap_or(CURRENT_VERSION)
+        .to_string();
+
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(10))
+        .user_agent("Bing-Wallpaper-Now/1.0")
+        .build()
+        .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
+
+    match client.get(GITHUB_API_URL).send().await {
+        Ok(response) => {
+            if response.status().is_success() {
+                match response.json::<GitHubRelease>().await {
+                    Ok(release) => {
+                        // 移除 tag_name 中的 'v' 前缀（如果有）
+                        let latest_version = release.tag_name.trim_start_matches('v').to_string();
+
+                        // 比较版本号（简单字符串比较，对于语义化版本号足够）
+                        let has_update = compare_versions(&current_version, &latest_version) < 0;
+
+                        info!(
+                            target: "version_check",
+                            "Version check completed: current={}, latest={}, has_update={}",
+                            current_version,
+                            latest_version,
+                            has_update
+                        );
+
+                        Ok(VersionCheckResult {
+                            current_version,
+                            latest_version: Some(latest_version),
+                            has_update,
+                            release_url: Some(release.html_url),
+                        })
+                    }
+                    Err(e) => {
+                        warn!(target: "version_check", "Failed to parse GitHub release response: {}", e);
+                        Ok(VersionCheckResult {
+                            current_version,
+                            latest_version: None,
+                            has_update: false,
+                            release_url: None,
+                        })
+                    }
+                }
+            } else {
+                warn!(
+                    target: "version_check",
+                    "GitHub API returned status: {}",
+                    response.status()
+                );
+                Ok(VersionCheckResult {
+                    current_version,
+                    latest_version: None,
+                    has_update: false,
+                    release_url: None,
+                })
+            }
+        }
+        Err(e) => {
+            warn!(target: "version_check", "Failed to check for updates: {}", e);
+            Ok(VersionCheckResult {
+                current_version,
+                latest_version: None,
+                has_update: false,
+                release_url: None,
+            })
+        }
+    }
+}
+
+/// 比较两个版本号字符串
+///
+/// # Returns
+/// - 负数：如果 version1 < version2
+/// - 0：如果 version1 == version2
+/// - 正数：如果 version1 > version2
+fn compare_versions(version1: &str, version2: &str) -> i32 {
+    let v1_parts: Vec<u32> = version1
+        .split('.')
+        .map(|s| s.parse().unwrap_or(0))
+        .collect();
+    let v2_parts: Vec<u32> = version2
+        .split('.')
+        .map(|s| s.parse().unwrap_or(0))
+        .collect();
+
+    let max_len = v1_parts.len().max(v2_parts.len());
+
+    for i in 0..max_len {
+        let v1_part = v1_parts.get(i).copied().unwrap_or(0);
+        let v2_part = v2_parts.get(i).copied().unwrap_or(0);
+
+        match v1_part.cmp(&v2_part) {
+            std::cmp::Ordering::Less => return -1,
+            std::cmp::Ordering::Greater => return 1,
+            std::cmp::Ordering::Equal => continue,
+        }
+    }
+
+    0
 }
 
 /// 单次更新循环：下载、保存、清理、可选应用最新壁纸（含重试与共享客户端）
@@ -1448,6 +1582,7 @@ pub fn run() {
             ensure_wallpaper_directory_exists,
             show_main_window,
             force_update,
+            check_for_updates,
         ])
         .setup(|app| {
             wallpaper_manager::initialize_observer();
