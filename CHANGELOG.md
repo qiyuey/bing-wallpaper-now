@@ -2,6 +2,16 @@
 
 All notable changes to Bing Wallpaper Now will be documented in this file.
 
+## 0.4.5
+
+### Changed
+
+- ✨ **改进自动应用壁纸逻辑**
+  - 记录用户手动设置壁纸时的最新壁纸信息（按语言隔离）
+  - 当自动应用检测到最新壁纸与用户手动设置时的最新壁纸相同时，自动跳过应用
+  - 避免用户手动选择壁纸后，自动更新功能又将其改回的情况
+  - 提升用户体验，让用户的选择得到尊重
+
 ## 0.4.4
 
 ### Changed
