@@ -76,19 +76,57 @@ create_snapshot() {
         exit 1
     fi
 
+    # Check for other uncommitted files before updating version
+    # git status --porcelain outputs: " M file" (modified), "M  file" (staged), "?? file" (untracked)
+    local other_changes=$(git status --porcelain 2>/dev/null | grep -v -E "(package\.json|src-tauri/Cargo\.toml|src-tauri/tauri\.conf\.json|src-tauri/Cargo\.lock)" || true)
+    
     # Update all version files
     project_update_all_versions "$dev_version"
 
-    # Skip git operations for snapshot commands
-    # Just update the version files without committing
-
-    print_success "Updated version to: $dev_version"
-    print_info "Version files have been modified (not committed)"
-    print_info "Modified files:"
-    echo "  - $PROJECT_PACKAGE_JSON"
-    echo "  - $PROJECT_CARGO_TOML"
-    echo "  - $PROJECT_TAURI_CONF"
-    echo "  - $PROJECT_CARGO_LOCK"
+    # Check if there are other uncommitted files (excluding version files)
+    if [[ -n "$other_changes" ]]; then
+        print_success "Updated version to: $dev_version"
+        print_warning "Working directory has other uncommitted changes"
+        echo ""
+        print_info "Uncommitted files (excluding version files):"
+        echo "$other_changes" | sed 's/^/  /'
+        echo ""
+        print_info "Version files have been modified (not committed)"
+        print_info "Please commit other changes first, then commit version files separately"
+        print_info "Modified version files:"
+        echo "  - $PROJECT_PACKAGE_JSON"
+        echo "  - $PROJECT_CARGO_TOML"
+        echo "  - $PROJECT_TAURI_CONF"
+        echo "  - $PROJECT_CARGO_LOCK"
+    else
+        # No other changes, auto-commit version files
+        print_info "No other uncommitted changes detected"
+        print_info "Staging version files..."
+        git_stage "$PROJECT_PACKAGE_JSON" "$PROJECT_CARGO_TOML" "$PROJECT_TAURI_CONF" "$PROJECT_CARGO_LOCK"
+        
+        # Generate commit message based on bump type
+        local commit_msg
+        case "$bump_type" in
+            patch)
+                commit_msg="chore: bump version to $dev_version (patch)"
+                ;;
+            minor)
+                commit_msg="chore: bump version to $dev_version (minor)"
+                ;;
+            major)
+                commit_msg="chore: bump version to $dev_version (major)"
+                ;;
+            *)
+                commit_msg="chore: bump version to $dev_version"
+                ;;
+        esac
+        
+        print_info "Creating commit..."
+        git_commit "$commit_msg"
+        print_success "Updated version to: $dev_version"
+        print_success "Version files have been committed"
+        print_info "Commit message: $commit_msg"
+    fi
 }
 
 # ============================================================================

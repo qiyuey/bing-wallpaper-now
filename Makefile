@@ -74,14 +74,17 @@ check:
 # ============================================================================
 
 ## patch: Create next patch development version (0.1.0 -> 0.1.1-0)
+##        自动提交版本文件（如果工作目录没有其他未提交的更改）
 patch:
 	@bash $(VERSION_SCRIPT) patch
 
 ## minor: Create next minor development version (0.1.0 -> 0.2.0-0)
+##        自动提交版本文件（如果工作目录没有其他未提交的更改）
 minor:
 	@bash $(VERSION_SCRIPT) minor
 
 ## major: Create next major development version (0.1.0 -> 1.0.0-0)
+##        自动提交版本文件（如果工作目录没有其他未提交的更改）
 major:
 	@bash $(VERSION_SCRIPT) major
 
