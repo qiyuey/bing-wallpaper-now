@@ -2,6 +2,15 @@
 
 All notable changes to Bing Wallpaper Now will be documented in this file.
 
+## 0.4.8
+
+### Changed
+
+- 🔧 **优化版本检查时机**
+  - 将启动时的版本检查延迟从 2 秒调整为 60 秒
+  - 避免在应用启动时立即发起网络请求，提升启动性能
+  - 让用户有足够时间使用应用后再进行版本检查
+
 ## 0.4.7
 
 ### Added
