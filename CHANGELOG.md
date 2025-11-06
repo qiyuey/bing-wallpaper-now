@@ -2,6 +2,22 @@
 
 All notable changes to Bing Wallpaper Now will be documented in this file.
 
+## 0.4.10
+
+### Fixed
+
+- 🐛 **修复自启动状态同步问题**
+  - 修复应用启动时自启动状态与系统设置不一致的问题
+  - 添加启动时自动同步系统自启动状态的功能
+  - 即使用户手动在系统设置中修改了自启动状态，应用也能正确获取并同步
+
+### Changed
+
+- 🔧 **改进自启动通知跟踪**
+  - 添加 `autostart_notification_shown` 字段，记录用户是否已查看过 macOS 系统自启动通知
+  - 改进错误处理，当读取自启动状态失败时提供更详细的日志信息
+  - 提升自启动功能的状态管理准确性
+
 ## 0.4.9
 
 ### Changed
