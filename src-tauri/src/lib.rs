@@ -422,13 +422,32 @@ async fn update_settings(
 
     // 只在自启动状态改变时才调用系统 API，避免不必要的系统提示
     let autostart_manager = app.autolaunch();
-    let current_autostart_enabled = autostart_manager.is_enabled().unwrap_or(false);
+    let current_autostart_enabled = autostart_manager.is_enabled().unwrap_or_else(|e| {
+        warn!(target: "settings", "读取当前自启动状态失败: {}，假设为未启用", e);
+        false
+    });
 
     if new_settings.launch_at_startup != current_autostart_enabled {
         if new_settings.launch_at_startup {
             autostart_manager
                 .enable()
                 .map_err(|e| format!("启用开机自启动失败: {}", e))?;
+
+            // 记录用户已启用自启动，macOS 系统会显示通知
+            // 通过这个标志，我们可以知道用户已经看到过系统通知
+            match runtime_state::load_runtime_state(&app) {
+                Ok(mut runtime_state) => {
+                    runtime_state.autostart_notification_shown = true;
+                    if let Err(e) = runtime_state::save_runtime_state(&app, &runtime_state) {
+                        warn!(target: "settings", "保存自启动通知标志失败: {}", e);
+                    } else {
+                        info!(target: "settings", "已记录自启动通知已显示标志");
+                    }
+                }
+                Err(e) => {
+                    warn!(target: "settings", "加载运行时状态失败，无法记录通知标志: {}", e);
+                }
+            }
         } else {
             autostart_manager
                 .disable()
@@ -1796,6 +1815,44 @@ pub fn run() {
             });
 
             info!(target: "settings", "成功加载持久化设置");
+
+            // 从操作系统读取真实的自启动状态，并更新应用设置
+            // 这样即使用户手动在系统设置中修改了自启动状态，应用也能获取到准确的值
+            {
+                let autostart_manager = app.handle().autolaunch();
+                let system_autostart_enabled = autostart_manager.is_enabled().unwrap_or_else(|e| {
+                    warn!(target: "startup", "读取系统自启动状态失败: {}，假设为未启用", e);
+                    false
+                });
+                let settings_autostart_enabled = loaded_settings.launch_at_startup;
+
+                // 如果系统实际状态与设置不一致，更新设置以匹配系统状态
+                // 这可能是因为用户手动在系统设置中修改了自启动状态
+                if system_autostart_enabled != settings_autostart_enabled {
+                    info!(target: "startup",
+                        "检测到自启动状态不一致（设置: {}，系统: {}），更新设置为系统实际状态",
+                        settings_autostart_enabled, system_autostart_enabled);
+
+                    // 更新内存中的设置
+                    tauri::async_runtime::block_on(async {
+                        let mut settings = state.settings.lock().await;
+                        settings.launch_at_startup = system_autostart_enabled;
+                    });
+
+                    // 更新持久化设置
+                    let mut updated_settings = loaded_settings.clone();
+                    updated_settings.launch_at_startup = system_autostart_enabled;
+                    if let Err(e) = settings_store::save_settings(app.handle(), &updated_settings) {
+                        warn!(target: "startup", "保存同步后的设置失败: {}", e);
+                    } else {
+                        // 同步更新后的设置到 watch channel
+                        // 这样 auto_update_task 等监听者能获取到正确的自启动状态
+                        if let Err(e) = state.settings_tx.send(updated_settings.clone()) {
+                            warn!(target: "startup", "发送同步后的设置到 watch channel 失败: {}", e);
+                        }
+                    }
+                }
+            }
 
             // 从持久化状态加载上次更新时间
             {

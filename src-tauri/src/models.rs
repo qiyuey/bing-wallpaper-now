@@ -265,6 +265,10 @@ pub struct AppRuntimeState {
     /// 用户选择"不再提醒"的最大版本号（如果最新版本小于等于此版本，则不提示）
     #[serde(default)]
     pub ignored_update_version: Option<String>,
+    /// 自启动通知已显示标志（用于避免 macOS 系统重复显示自启动通知）
+    /// 当用户首次启用自启动时设置为 true，表示用户已经看到过系统通知
+    #[serde(default)]
+    pub autostart_notification_shown: bool,
 }
 
 #[cfg(test)]
