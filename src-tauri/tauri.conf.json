@@ -55,10 +55,10 @@
     },
     "macOS": {
       "minimumSystemVersion": "10.15",
-      "entitlements": "entitlements.plist",
+      "entitlements": null,
       "signingIdentity": "Bing Wallpaper Now Developer",
       "providerShortName": null,
-      "hardenedRuntime": true
+      "hardenedRuntime": false
     }
   }
 }
