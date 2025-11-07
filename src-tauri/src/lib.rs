@@ -12,7 +12,7 @@ mod wallpaper_manager;
 use chrono::{DateTime, Duration as ChronoDuration, Local, TimeZone, Timelike};
 use log::{error, info, warn};
 
-use models::{AppSettings, LocalWallpaper};
+use models::{AppRuntimeState, AppSettings, LocalWallpaper};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -40,6 +40,37 @@ struct AppState {
 }
 
 // (removed) fetch_bing_images command; image retrieval now handled by background auto-update logic.
+
+/// 设置自启动通知标志（如果尚未设置）
+///
+/// 当用户启用自启动时，macOS 系统会显示通知。
+/// 通过这个标志，我们可以记录用户已经看到过系统通知。
+///
+/// # Arguments
+/// * `app` - Tauri app handle
+/// * `log_target` - 日志目标（用于区分调用上下文，如 "settings" 或 "startup"）
+///
+/// # 测试覆盖
+/// 此函数依赖于 Tauri AppHandle，难以直接进行单元测试。
+/// 但底层逻辑（`runtime_state::load_runtime_state` 和 `runtime_state::save_runtime_state`）
+/// 已在 `runtime_state.rs` 模块中有完整的测试覆盖。
+fn set_autostart_notification_flag_if_needed(app: &AppHandle, log_target: &str) {
+    match runtime_state::load_runtime_state(app) {
+        Ok(mut runtime_state) => {
+            if !runtime_state.autostart_notification_shown {
+                runtime_state.autostart_notification_shown = true;
+                if let Err(e) = runtime_state::save_runtime_state(app, &runtime_state) {
+                    warn!(target: log_target, "保存自启动通知标志失败: {}", e);
+                } else {
+                    info!(target: log_target, "已记录自启动通知已显示标志");
+                }
+            }
+        }
+        Err(e) => {
+            warn!(target: log_target, "加载运行时状态失败，无法记录通知标志: {}", e);
+        }
+    }
+}
 
 // 下载壁纸
 // (removed obsolete download_wallpaper command)
@@ -435,19 +466,7 @@ async fn update_settings(
 
             // 记录用户已启用自启动，macOS 系统会显示通知
             // 通过这个标志，我们可以知道用户已经看到过系统通知
-            match runtime_state::load_runtime_state(&app) {
-                Ok(mut runtime_state) => {
-                    runtime_state.autostart_notification_shown = true;
-                    if let Err(e) = runtime_state::save_runtime_state(&app, &runtime_state) {
-                        warn!(target: "settings", "保存自启动通知标志失败: {}", e);
-                    } else {
-                        info!(target: "settings", "已记录自启动通知已显示标志");
-                    }
-                }
-                Err(e) => {
-                    warn!(target: "settings", "加载运行时状态失败，无法记录通知标志: {}", e);
-                }
-            }
+            set_autostart_notification_flag_if_needed(&app, "settings");
         } else {
             autostart_manager
                 .disable()
@@ -1818,6 +1837,7 @@ pub fn run() {
 
             // 从操作系统读取真实的自启动状态，并更新应用设置
             // 这样即使用户手动在系统设置中修改了自启动状态，应用也能获取到准确的值
+            // 同时一次性加载 runtime_state，避免重复加载
             {
                 let autostart_manager = app.handle().autolaunch();
                 let system_autostart_enabled = autostart_manager.is_enabled().unwrap_or_else(|e| {
@@ -1825,6 +1845,15 @@ pub fn run() {
                     false
                 });
                 let settings_autostart_enabled = loaded_settings.launch_at_startup;
+
+                // 一次性加载 runtime_state，后续复用
+                let mut runtime_state = match runtime_state::load_runtime_state(app.handle()) {
+                    Ok(state) => state,
+                    Err(e) => {
+                        warn!(target: "startup", "加载运行时状态失败: {}，使用默认值", e);
+                        AppRuntimeState::default()
+                    }
+                };
 
                 // 如果系统实际状态与设置不一致，更新设置以匹配系统状态
                 // 这可能是因为用户手动在系统设置中修改了自启动状态
@@ -1852,12 +1881,20 @@ pub fn run() {
                         }
                     }
                 }
-            }
 
-            // 从持久化状态加载上次更新时间
-            {
-                if let Ok(runtime_state) = runtime_state::load_runtime_state(app.handle())
-                    && let Some(ref last_update_str) = runtime_state.last_successful_update
+                // 如果自启动已启用，但通知标志未设置，则自动设置标志
+                // 这适用于在更新到 0.4.10 之前就已经启用自启动的用户
+                if system_autostart_enabled && !runtime_state.autostart_notification_shown {
+                    runtime_state.autostart_notification_shown = true;
+                    if let Err(e) = runtime_state::save_runtime_state(app.handle(), &runtime_state) {
+                        warn!(target: "startup", "保存自启动通知标志失败: {}", e);
+                    } else {
+                        info!(target: "startup", "检测到自启动已启用但通知标志未设置，已自动设置标志");
+                    }
+                }
+
+                // 使用已加载的 runtime_state 恢复上次更新时间
+                if let Some(ref last_update_str) = runtime_state.last_successful_update
                     && let Ok(dt) = chrono::DateTime::parse_from_rfc3339(last_update_str)
                 {
                     tauri::async_runtime::block_on(async {
