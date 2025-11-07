@@ -95,16 +95,6 @@ xattr -rd com.apple.quarantine "/Applications/Bing Wallpaper Now.app"
 **问：可以永久保留壁纸吗？**  
 **答：** 目前壁纸会根据保留数量自动清理，默认 10000 张。未来版本计划添加收藏功能。
 
-## 🗺️ 发展路线图
-
-### 计划中的功能
-
-- 🔔 **系统通知** - 新壁纸可用时发送通知
-- 🌍 **多语言支持** - 国际化 (i18n)
-- ⭐ **壁纸收藏** - 保存并快速访问您喜爱的壁纸
-- ✨ **界面优化** - 现代化设计，流畅动画和更好的布局
-- 🔄 **自动更新** - 应用自动检查并安装更新
-
 ## 📞 支持与反馈
 
 - **问题反馈**: [GitHub Issues](https://github.com/qiyuey/bing-wallpaper-now/issues)

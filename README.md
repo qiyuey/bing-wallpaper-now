@@ -95,16 +95,6 @@ Click the "Settings" (star icon) to customize:
 **Q: Can wallpapers be kept forever?**  
 **A:** Currently, old wallpapers are auto-cleaned based on your retention setting (default up to 10000). Favorites feature planned in future.
 
-## 🗺️ Roadmap
-
-### Upcoming Features
-
-- 🔔 **System Notifications** - Get notified when a new wallpaper is available
-- 🌍 **Multi-language Support** - Internationalization (i18n)
-- ⭐ **Favorites** - Save and quickly access your favorite wallpapers
-- ✨ **UI Improvements** - Modernized UI, smooth animations and layout
-- 🔄 **Auto Update** - Automatic app update checking and installation
-
 ## 📞 Support & Feedback
 
 - **Report issues**: [GitHub Issues](https://github.com/qiyuey/bing-wallpaper-now/issues)
