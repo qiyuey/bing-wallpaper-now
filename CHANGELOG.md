@@ -2,6 +2,19 @@
 
 All notable changes to Bing Wallpaper Now will be documented in this file.
 
+## 0.4.11
+
+### Changed
+
+- ⚡ **优化应用启动性能**
+  - 合并重复的运行时状态加载，减少启动时的文件 I/O 操作
+  - 提升应用启动速度，改善用户体验
+
+- 🔧 **改进代码质量**
+  - 提取自启动通知标志设置逻辑为可重用函数
+  - 改进错误处理，提供更详细的日志信息
+  - 优化代码结构，提升可维护性
+
 ## 0.4.10
 
 ### Fixed
