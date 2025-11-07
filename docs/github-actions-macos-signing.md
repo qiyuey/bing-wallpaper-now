@@ -45,6 +45,7 @@ security export -k ~/Library/Keychains/login.keychain-db \
 ```
 
 **注意**：
+
 - 如果使用 `-P` 参数，密码会直接设置（这就是 `APPLE_CERTIFICATE_PASSWORD`）
 - 如果不使用 `-P` 参数，macOS 可能会使用密钥链密码或要求交互输入
 - **建议使用方法 B**，明确设置密码，避免混淆
@@ -73,21 +74,23 @@ base64 -i ~/Desktop/certificate.p12  # 手动复制输出内容
 
    - **`APPLE_CERTIFICATE`**
      - Value: 步骤 2 中生成的 Base64 字符串（完整内容）
-   
+
    - **`APPLE_CERTIFICATE_PASSWORD`**
      - Value: **导出 .p12 文件时设置的密码**（步骤 1 中设置的密码）
      - ⚠️ 这不是证书本身的密码，而是导出文件时设置的密码
-   
+
    - **`KEYCHAIN_PASSWORD`**
      - Value: 用于创建临时密钥链的密码
      - **长度要求**：至少 8 个字符（建议 16-32 个字符）
      - **建议**：使用随机生成的字符串，例如：
+
        ```bash
        # 生成 32 位随机密码
        openssl rand -base64 24
        # 或使用 Python
        python3 -c "import secrets; print(secrets.token_urlsafe(24))"
        ```
+
      - **注意**：这只是临时密钥链的密码，与证书密码无关，可以设置为任何安全的随机字符串
 
 ### 4. 验证配置
@@ -98,6 +101,7 @@ base64 -i ~/Desktop/certificate.p12  # 手动复制输出内容
 - ❌ **如果缺少任何 Secret**：macOS 构建会失败，错误信息会明确指出缺少哪个 Secret
 
 **验证方法**：
+
 1. 确保三个 Secrets 都已添加
 2. 推送一个新标签触发构建
 3. 检查 GitHub Actions 日志，应该看到 "✅ All required secrets are configured" 和 "✅ Certificate imported successfully"
@@ -128,11 +132,13 @@ GitHub Actions 工作流中的 `Import macOS signing certificate` 步骤会：
 ### 构建失败：缺少必需的 Secret
 
 **错误信息**：
-```
+
+```text
 ❌ Error: APPLE_CERTIFICATE secret is not configured
 ```
 
 **解决方法**：
+
 1. 进入 GitHub 仓库的 Settings -> Secrets and variables -> Actions
 2. 添加缺失的 Secret
 3. 重新触发构建
@@ -140,11 +146,13 @@ GitHub Actions 工作流中的 `Import macOS signing certificate` 步骤会：
 ### 构建失败：证书导入失败
 
 **错误信息**：
-```
+
+```text
 ❌ Error: Failed to import certificate
 ```
 
 **检查清单**：
+
 1. `APPLE_CERTIFICATE` 是否为有效的 Base64 编码的 .p12 文件
 2. `APPLE_CERTIFICATE_PASSWORD` 是否与导出证书时设置的密码完全匹配
 3. `tauri.conf.json` 中的 `signingIdentity` 是否与证书名称完全匹配
@@ -153,13 +161,14 @@ GitHub Actions 工作流中的 `Import macOS signing certificate` 步骤会：
 ### 构建失败：证书解码失败
 
 **错误信息**：
-```
+
+```text
 ❌ Error: Failed to decode certificate
 ```
 
 **解决方法**：
+
 1. 重新导出证书为 .p12 文件
 2. 使用 `base64 -i certificate.p12` 重新生成 Base64 字符串
 3. 确保复制完整的 Base64 字符串（包括所有行）
 4. 更新 `APPLE_CERTIFICATE` Secret
-

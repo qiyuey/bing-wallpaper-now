@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import "./App.css";
 import { useBingWallpapers } from "./hooks/useBingWallpapers";
 import { WallpaperGrid } from "./components/WallpaperGrid";
 import { Settings } from "./components/Settings";
 import { About } from "./components/About";
 import { UpdateDialog } from "./components/UpdateDialog";
+import { showSystemNotification } from "./utils/notification";
 
 import { LocalWallpaper, getWallpaperFilePath } from "./types";
 import { invoke } from "@tauri-apps/api/core";
@@ -75,6 +76,106 @@ function App() {
     };
   }, []);
 
+  // 键盘快捷键支持
+  // 使用 ref 存储最新的状态值，避免依赖数组导致频繁重新绑定事件监听器
+  const showSettingsRef = useRef(showSettings);
+  const showAboutRef = useRef(showAbout);
+  const updateInfoRef = useRef(updateInfo);
+
+  useEffect(() => {
+    showSettingsRef.current = showSettings;
+    showAboutRef.current = showAbout;
+    updateInfoRef.current = updateInfo;
+  }, [showSettings, showAbout, updateInfo]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Esc 键关闭模态框
+      if (e.key === "Escape") {
+        if (showSettingsRef.current) {
+          setShowSettings(false);
+          e.preventDefault();
+        } else if (showAboutRef.current) {
+          setShowAbout(false);
+          e.preventDefault();
+        } else if (updateInfoRef.current) {
+          setUpdateInfo(null);
+          e.preventDefault();
+        }
+      }
+
+      // Cmd/Ctrl + , 打开设置
+      if ((e.metaKey || e.ctrlKey) && e.key === ",") {
+        setShowSettings(true);
+        e.preventDefault();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []); // 空依赖数组，事件监听器只创建一次
+
+  // 监听托盘发出的检查更新事件
+  useEffect(() => {
+    let mounted = true;
+    let unlisten: (() => void) | undefined;
+    let unlistenNoUpdate: (() => void) | undefined;
+
+    (async () => {
+      try {
+        // 监听有更新的情况
+        const unlistenFn = await listen<VersionCheckResult>(
+          EVENTS.CHECK_UPDATES_RESULT,
+          (event) => {
+            const result = event.payload;
+            if (
+              result.has_update &&
+              result.latest_version &&
+              result.release_url &&
+              result.platform_available
+            ) {
+              setUpdateInfo({
+                version: result.latest_version,
+                releaseUrl: result.release_url,
+              });
+            }
+          },
+        );
+        const safeUnlisten = createSafeUnlisten(unlistenFn);
+
+        // 监听无更新的情况
+        const unlistenNoUpdateFn = await listen(
+          EVENTS.CHECK_UPDATES_NO_UPDATE,
+          () => {
+            showSystemNotification(
+              t("checkForUpdates"),
+              t("noUpdateAvailable"),
+            );
+          },
+        );
+        const safeUnlistenNoUpdate = createSafeUnlisten(unlistenNoUpdateFn);
+
+        if (mounted) {
+          unlisten = safeUnlisten;
+          unlistenNoUpdate = safeUnlistenNoUpdate;
+        } else {
+          safeUnlisten();
+          safeUnlistenNoUpdate();
+        }
+      } catch (e) {
+        console.error("Failed to bind check-updates events:", e);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+      unlisten?.();
+      unlistenNoUpdate?.();
+    };
+  }, [t]);
+
   // 监听托盘发出的 open-about 事件，触发前端关于对话框显示
   useEffect(() => {
     let mounted = true;
@@ -104,6 +205,7 @@ function App() {
   }, []);
 
   // 启动时自动检查更新
+  // 注意：自动检查通过直接调用命令实现，不会触发后端事件，因此不会显示 toast
   useEffect(() => {
     let mounted = true;
 
@@ -134,6 +236,7 @@ function App() {
             });
           }
         }
+        // 自动检查时没有更新，静默处理，不显示 toast
       } catch (err) {
         // 静默处理错误，不影响应用启动
         console.error("Failed to check for updates:", err);
@@ -167,9 +270,13 @@ function App() {
 
       // 异步设置，不阻塞 UI
       await setDesktopWallpaper(filePath);
+      await showSystemNotification(t("setWallpaper"), t("wallpaperSetSuccess"));
     } catch (err) {
       console.error("Failed to set wallpaper:", err);
-      alert(`${t("wallpaperError")}: ${String(err)}`);
+      await showSystemNotification(
+        t("wallpaperError"),
+        `${t("wallpaperError")}: ${String(err)}`,
+      );
     }
   };
 
@@ -204,7 +311,10 @@ function App() {
       await openPath(folderPath);
     } catch (err) {
       console.error("Failed to open folder:", err);
-      alert(`${t("folderError")}: ${String(err)}`);
+      await showSystemNotification(
+        t("folderError"),
+        `${t("folderError")}: ${String(err)}`,
+      );
     }
   }, [t]);
 

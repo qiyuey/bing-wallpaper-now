@@ -14,10 +14,12 @@ import { listen, type Event } from "@tauri-apps/api/event";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { renderWithI18n } from "./test/test-utils";
 import { LocalWallpaperRaw } from "./types";
+import * as notificationUtils from "./utils/notification";
 
 vi.mock("@tauri-apps/api/core");
 vi.mock("@tauri-apps/plugin-opener");
 vi.mock("@tauri-apps/api/event");
+vi.mock("./utils/notification");
 
 const renderWithTheme = (component: React.ReactElement) => {
   return renderWithI18n(<ThemeProvider>{component}</ThemeProvider>);
@@ -919,6 +921,352 @@ describe("App", () => {
       ).not.toBeInTheDocument();
 
       consoleErrorSpy.mockRestore();
+    });
+  });
+
+  describe("Keyboard shortcuts", () => {
+    beforeEach(() => {
+      vi.mocked(notificationUtils.showSystemNotification).mockResolvedValue();
+    });
+
+    it("should open settings when Cmd/Ctrl + , is pressed", async () => {
+      renderWithTheme(<App />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Bing Wallpaper")).toBeInTheDocument();
+      });
+
+      // Press Cmd + , (macOS) or Ctrl + , (Windows/Linux)
+      fireEvent.keyDown(window, {
+        key: ",",
+        metaKey: true, // macOS
+        ctrlKey: false,
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText(/设置|Settings/i)).toBeInTheDocument();
+      });
+    });
+
+    it("should open settings when Ctrl + , is pressed (Windows/Linux)", async () => {
+      renderWithTheme(<App />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Bing Wallpaper")).toBeInTheDocument();
+      });
+
+      // Press Ctrl + , (Windows/Linux)
+      fireEvent.keyDown(window, {
+        key: ",",
+        metaKey: false,
+        ctrlKey: true,
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText(/设置|Settings/i)).toBeInTheDocument();
+      });
+    });
+
+    it("should close settings modal when Esc is pressed", async () => {
+      renderWithTheme(<App />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Bing Wallpaper")).toBeInTheDocument();
+      });
+
+      // Open settings first
+      const settingsButton = screen.getByTitle(/设置|Settings/i);
+      fireEvent.click(settingsButton);
+
+      await waitFor(() => {
+        expect(screen.getByText(/设置|Settings/i)).toBeInTheDocument();
+      });
+
+      // Press Esc to close
+      fireEvent.keyDown(window, {
+        key: "Escape",
+      });
+
+      await waitFor(() => {
+        expect(screen.queryByText(/设置|Settings/i)).not.toBeInTheDocument();
+      });
+    });
+
+    it("should close about modal when Esc is pressed", async () => {
+      // Mock listen to capture the open-about callback
+      // Need to reset the mock first to capture all listeners
+      vi.mocked(listen).mockClear();
+
+      let openAboutCallback: ((event: Event<unknown>) => void) | undefined;
+
+      vi.mocked(listen).mockImplementation(
+        (event: string, callback: (event: Event<unknown>) => void) => {
+          if (event === "open-about") {
+            openAboutCallback = callback;
+          }
+          // Return unlisten function for other events too
+          return Promise.resolve(() => {});
+        },
+      );
+
+      renderWithTheme(<App />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Bing Wallpaper")).toBeInTheDocument();
+      });
+
+      // Wait for listener to be set up
+      await waitFor(() => {
+        expect(listen).toHaveBeenCalledWith("open-about", expect.any(Function));
+      });
+
+      // Trigger the event to open about dialog
+      if (openAboutCallback) {
+        await act(async () => {
+          openAboutCallback!({
+            event: "open-about",
+            payload: undefined,
+          } as Event<unknown>);
+        });
+      }
+
+      // Wait for about dialog to appear - check for "关于" or "About" title
+      await waitFor(
+        () => {
+          const aboutText = screen.getByText(/关于|About/i);
+          expect(aboutText).toBeInTheDocument();
+        },
+        { timeout: 3000 },
+      );
+
+      // Press Esc to close
+      fireEvent.keyDown(window, {
+        key: "Escape",
+      });
+
+      await waitFor(() => {
+        expect(screen.queryByText(/关于|About/i)).not.toBeInTheDocument();
+      });
+    });
+
+    it("should close update dialog when Esc is pressed", async () => {
+      const mockVersionCheckResult = {
+        current_version: "0.4.5",
+        latest_version: "0.4.6",
+        has_update: true,
+        release_url: "https://github.com/example/releases/tag/0.4.6",
+        platform_available: true,
+      };
+
+      vi.mocked(invoke).mockImplementation((cmd: string) => {
+        if (cmd === "check_for_updates") {
+          return Promise.resolve(mockVersionCheckResult);
+        }
+        if (cmd === "is_version_ignored") {
+          return Promise.resolve(false);
+        }
+        if (cmd === "get_wallpaper_directory") {
+          return Promise.resolve("/path/to/wallpapers");
+        }
+        if (cmd === "get_local_wallpapers") {
+          return Promise.resolve(mockWallpapersRaw);
+        }
+        if (cmd === "get_settings") {
+          return Promise.resolve({
+            auto_update: true,
+            save_directory: null,
+            launch_at_startup: false,
+            language: "zh-CN",
+          });
+        }
+        if (cmd === "get_last_update_time") {
+          return Promise.resolve(null);
+        }
+        return Promise.resolve([]);
+      });
+
+      renderWithTheme(<App />);
+
+      // Trigger update check
+      await act(async () => {
+        const result = await invoke("check_for_updates");
+        // Simulate the event that would be emitted
+        const listeners = vi.mocked(listen).mock.calls;
+        // Find the check-updates-result listener
+        for (const [eventName, callback] of listeners) {
+          if (eventName === "check-updates-result") {
+            await callback({
+              event: "check-updates-result",
+              payload: result,
+            } as Event<unknown>);
+          }
+        }
+      });
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/有新版本可用|Update Available/i),
+        ).toBeInTheDocument();
+      });
+
+      // Press Esc to close
+      fireEvent.keyDown(window, {
+        key: "Escape",
+      });
+
+      await waitFor(() => {
+        expect(
+          screen.queryByText(/有新版本可用|Update Available/i),
+        ).not.toBeInTheDocument();
+      });
+    });
+  });
+
+  describe("Check updates event listeners", () => {
+    beforeEach(() => {
+      vi.mocked(notificationUtils.showSystemNotification).mockResolvedValue();
+    });
+
+    it("should display update dialog when check-updates-result event is received", async () => {
+      const mockVersionCheckResult = {
+        current_version: "0.4.5",
+        latest_version: "0.4.6",
+        has_update: true,
+        release_url: "https://github.com/example/releases/tag/0.4.6",
+        platform_available: true,
+      };
+
+      let checkUpdatesResultCallback:
+        | ((event: Event<unknown>) => void)
+        | undefined;
+
+      vi.mocked(listen).mockImplementation(
+        (event: string, callback: (event: Event<unknown>) => void) => {
+          if (event === "check-updates-result") {
+            checkUpdatesResultCallback = callback;
+          }
+          return Promise.resolve(() => {});
+        },
+      );
+
+      renderWithTheme(<App />);
+
+      await waitFor(() => {
+        expect(listen).toHaveBeenCalledWith(
+          "check-updates-result",
+          expect.any(Function),
+        );
+      });
+
+      // Trigger the event
+      if (checkUpdatesResultCallback) {
+        await act(async () => {
+          checkUpdatesResultCallback!({
+            event: "check-updates-result",
+            payload: mockVersionCheckResult,
+          } as Event<unknown>);
+        });
+      }
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/有新版本可用|Update Available/i),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it("should show system notification when check-updates-no-update event is received", async () => {
+      let checkUpdatesNoUpdateCallback:
+        | ((event: Event<unknown>) => void)
+        | undefined;
+
+      vi.mocked(listen).mockImplementation(
+        (event: string, callback: (event: Event<unknown>) => void) => {
+          if (event === "check-updates-no-update") {
+            checkUpdatesNoUpdateCallback = callback;
+          }
+          return Promise.resolve(() => {});
+        },
+      );
+
+      renderWithTheme(<App />);
+
+      await waitFor(() => {
+        expect(listen).toHaveBeenCalledWith(
+          "check-updates-no-update",
+          expect.any(Function),
+        );
+      });
+
+      // Trigger the event
+      if (checkUpdatesNoUpdateCallback) {
+        await act(async () => {
+          checkUpdatesNoUpdateCallback!({
+            event: "check-updates-no-update",
+            payload: undefined,
+          } as Event<unknown>);
+        });
+      }
+
+      await waitFor(() => {
+        expect(notificationUtils.showSystemNotification).toHaveBeenCalled();
+      });
+
+      expect(notificationUtils.showSystemNotification).toHaveBeenCalledWith(
+        "检查更新",
+        "已是最新版本",
+      );
+    });
+
+    it("should not display update dialog if version is missing", async () => {
+      const mockVersionCheckResult = {
+        current_version: "0.4.5",
+        latest_version: null,
+        has_update: false,
+        release_url: null,
+        platform_available: false,
+      };
+
+      let checkUpdatesResultCallback:
+        | ((event: Event<unknown>) => void)
+        | undefined;
+
+      vi.mocked(listen).mockImplementation(
+        (event: string, callback: (event: Event<unknown>) => void) => {
+          if (event === "check-updates-result") {
+            checkUpdatesResultCallback = callback;
+          }
+          return Promise.resolve(() => {});
+        },
+      );
+
+      renderWithTheme(<App />);
+
+      await waitFor(() => {
+        expect(listen).toHaveBeenCalledWith(
+          "check-updates-result",
+          expect.any(Function),
+        );
+      });
+
+      // Trigger the event with incomplete data
+      if (checkUpdatesResultCallback) {
+        await act(async () => {
+          checkUpdatesResultCallback!({
+            event: "check-updates-result",
+            payload: mockVersionCheckResult,
+          } as Event<unknown>);
+        });
+      }
+
+      // Wait a bit to ensure no dialog appears
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      });
+
+      expect(
+        screen.queryByText(/有新版本可用|Update Available/i),
+      ).not.toBeInTheDocument();
     });
   });
 });

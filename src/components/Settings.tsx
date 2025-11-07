@@ -3,6 +3,7 @@ import { AppSettings } from "../types";
 import { useSettings } from "../hooks/useSettings";
 import { useTheme, Theme } from "../contexts/ThemeContext";
 import { useI18n } from "../i18n/I18nContext";
+import { showSystemNotification } from "../utils/notification";
 import { open } from "@tauri-apps/plugin-dialog";
 
 interface SettingsProps {
@@ -58,7 +59,10 @@ export function Settings({
       }
     } catch (err) {
       console.error("Update settings error:", err);
-      alert(t("settingsSaveError") + ": " + err);
+      await showSystemNotification(
+        t("settingsSaveError"),
+        t("settingsSaveError") + ": " + err,
+      );
     }
   };
 
@@ -78,7 +82,10 @@ export function Settings({
       }
     } catch (err) {
       console.error("Failed to select folder:", err);
-      alert(t("settingsFolderSelectError") + ": " + String(err));
+      await showSystemNotification(
+        t("settingsFolderSelectError"),
+        t("settingsFolderSelectError") + ": " + String(err),
+      );
     }
   };
 

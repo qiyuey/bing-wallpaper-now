@@ -51,4 +51,8 @@ export const EVENTS = {
   OPEN_ABOUT: "open-about",
   /** 打开文件夹 */
   OPEN_FOLDER: "open-folder",
+  /** 检查更新结果 */
+  CHECK_UPDATES_RESULT: "check-updates-result",
+  /** 检查更新无更新 */
+  CHECK_UPDATES_NO_UPDATE: "check-updates-no-update",
 } as const;

@@ -695,7 +695,7 @@ struct GitHubAsset {
 }
 
 /// 版本检查结果
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct VersionCheckResult {
     current_version: String,
     latest_version: Option<String>,
@@ -1453,7 +1453,7 @@ fn start_auto_update_task(app: AppHandle) {
 }
 
 /// 根据语言获取托盘菜单文本
-fn get_tray_menu_texts(language: &str) -> (&str, &str, &str, &str, &str, &str) {
+fn get_tray_menu_texts(language: &str) -> (&str, &str, &str, &str, &str, &str, &str) {
     match language {
         "zh-CN" => (
             "显示窗口",
@@ -1461,6 +1461,7 @@ fn get_tray_menu_texts(language: &str) -> (&str, &str, &str, &str, &str, &str) {
             "打开保存目录",
             "打开设置",
             "关于",
+            "检查更新",
             "退出",
         ),
         "en-US" => (
@@ -1469,6 +1470,7 @@ fn get_tray_menu_texts(language: &str) -> (&str, &str, &str, &str, &str, &str) {
             "Open Save Directory",
             "Open Settings",
             "About",
+            "Check for Updates",
             "Quit",
         ),
         _ => {
@@ -1481,6 +1483,7 @@ fn get_tray_menu_texts(language: &str) -> (&str, &str, &str, &str, &str, &str) {
                     "打开保存目录",
                     "打开设置",
                     "关于",
+                    "检查更新",
                     "退出",
                 )
             } else {
@@ -1490,6 +1493,7 @@ fn get_tray_menu_texts(language: &str) -> (&str, &str, &str, &str, &str, &str) {
                     "Open Save Directory",
                     "Open Settings",
                     "About",
+                    "Check for Updates",
                     "Quit",
                 )
             }
@@ -1518,8 +1522,15 @@ async fn update_tray_menu(app: &tauri::AppHandle) -> tauri::Result<()> {
 
         info!(target: "tray", "更新托盘菜单，使用语言: {}", language);
 
-        let (show_text, refresh_text, open_folder_text, settings_text, about_text, quit_text) =
-            get_tray_menu_texts(&language);
+        let (
+            show_text,
+            refresh_text,
+            open_folder_text,
+            settings_text,
+            about_text,
+            check_updates_text,
+            quit_text,
+        ) = get_tray_menu_texts(&language);
 
         let show_item = MenuItemBuilder::with_id("show", show_text).build(app)?;
         let refresh_item = MenuItemBuilder::with_id("refresh", refresh_text).build(app)?;
@@ -1527,6 +1538,8 @@ async fn update_tray_menu(app: &tauri::AppHandle) -> tauri::Result<()> {
             MenuItemBuilder::with_id("open_folder", open_folder_text).build(app)?;
         let settings_item = MenuItemBuilder::with_id("settings", settings_text).build(app)?;
         let about_item = MenuItemBuilder::with_id("about", about_text).build(app)?;
+        let check_updates_item =
+            MenuItemBuilder::with_id("check_updates", check_updates_text).build(app)?;
         let quit_item = MenuItemBuilder::with_id("quit", quit_text).build(app)?;
 
         let menu = MenuBuilder::new(app)
@@ -1535,6 +1548,7 @@ async fn update_tray_menu(app: &tauri::AppHandle) -> tauri::Result<()> {
             .item(&refresh_item)
             .item(&open_folder_item)
             .item(&settings_item)
+            .item(&check_updates_item)
             .item(&about_item)
             .separator()
             .item(&quit_item)
@@ -1573,14 +1587,23 @@ fn setup_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
 
     info!(target: "tray", "使用语言: {}", language);
 
-    let (show_text, refresh_text, open_folder_text, settings_text, about_text, quit_text) =
-        get_tray_menu_texts(&language);
+    let (
+        show_text,
+        refresh_text,
+        open_folder_text,
+        settings_text,
+        about_text,
+        check_updates_text,
+        quit_text,
+    ) = get_tray_menu_texts(&language);
 
     let show_item = MenuItemBuilder::with_id("show", show_text).build(app)?;
     let refresh_item = MenuItemBuilder::with_id("refresh", refresh_text).build(app)?;
     let open_folder_item = MenuItemBuilder::with_id("open_folder", open_folder_text).build(app)?;
     let settings_item = MenuItemBuilder::with_id("settings", settings_text).build(app)?;
     let about_item = MenuItemBuilder::with_id("about", about_text).build(app)?;
+    let check_updates_item =
+        MenuItemBuilder::with_id("check_updates", check_updates_text).build(app)?;
     let quit_item = MenuItemBuilder::with_id("quit", quit_text).build(app)?;
 
     let menu = MenuBuilder::new(app)
@@ -1589,6 +1612,7 @@ fn setup_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
         .item(&refresh_item)
         .item(&open_folder_item)
         .item(&settings_item)
+        .item(&check_updates_item)
         .item(&about_item)
         .separator()
         .item(&quit_item)
@@ -1709,6 +1733,49 @@ fn setup_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
                         let _ = window.set_focus();
                     }
                     let _ = app.emit("open-about", ());
+                }
+                "check_updates" => {
+                    // 手动触发更新检查（仅托盘菜单触发，自动检查不会进入这里）
+                    // 注意：自动检查更新通过前端直接调用 check_for_updates 命令实现，
+                    // 不会触发此事件处理，因此不会显示 toast
+                    let app_handle = app.clone();
+                    tauri::async_runtime::spawn(async move {
+                        match check_for_updates().await {
+                            Ok(result) => {
+                                // 如果有更新且平台安装包可用，通知前端显示更新对话框
+                                if result.has_update
+                                    && result.latest_version.is_some()
+                                    && result.release_url.is_some()
+                                    && result.platform_available
+                                {
+                                    // 检查该版本是否已被用户忽略
+                                    let is_ignored = if let Some(version) = &result.latest_version {
+                                        is_version_ignored(app_handle.clone(), version.clone())
+                                            .await
+                                            .unwrap_or(false)
+                                    } else {
+                                        false
+                                    };
+
+                                    if !is_ignored {
+                                        // 通过事件通知前端显示更新对话框
+                                        if let Err(e) = app_handle.emit("check-updates-result", result) {
+                                            warn!(target: "tray", "Failed to emit check-updates-result event: {}", e);
+                                        }
+                                    }
+                                } else {
+                                    // 手动检查时没有更新，发送事件通知前端显示 toast
+                                    // 自动检查不会触发此事件，因此不会显示 toast
+                                    if let Err(e) = app_handle.emit("check-updates-no-update", ()) {
+                                        warn!(target: "tray", "Failed to emit check-updates-no-update event: {}", e);
+                                    }
+                                }
+                            }
+                            Err(e) => {
+                                warn!(target: "version_check", "手动检查更新失败: {}", e);
+                            }
+                        }
+                    });
                 }
                 "quit" => {
                     // 优雅退出应用

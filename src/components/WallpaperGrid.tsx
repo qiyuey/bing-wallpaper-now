@@ -142,6 +142,7 @@ export const WallpaperGrid = memo(function WallpaperGrid({
     return (
       <div ref={containerRef} className="wallpaper-container">
         <div className="wallpaper-grid-empty">
+          <div className="wallpaper-grid-empty-icon">🖼️</div>
           <p>{t("noWallpapers")}</p>
           <p className="wallpaper-grid-empty-hint">{t("noWallpapersHint")}</p>
         </div>

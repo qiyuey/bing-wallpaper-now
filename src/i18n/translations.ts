@@ -25,6 +25,7 @@ export const translations = {
     noWallpapersHint:
       "点击上方刷新按钮获取最新壁纸。如果您不是所在地区的 IP，可能无法获取对应语言的内容，请尝试切换语言。",
     wallpaperError: "设置壁纸失败",
+    wallpaperSetSuccess: "壁纸设置成功",
     setWallpaper: "设置壁纸",
     retry: "重新加载",
     imageLoadError: "加载失败",
@@ -112,6 +113,7 @@ export const translations = {
     noWallpapersHint:
       "Click the refresh button above to get the latest wallpapers. If you are not using an IP from the target region, you may not be able to fetch content in the corresponding language. Please try switching languages.",
     wallpaperError: "Failed to set wallpaper",
+    wallpaperSetSuccess: "Wallpaper set successfully",
     setWallpaper: "Set Wallpaper",
     retry: "Retry",
     imageLoadError: "Load Failed",

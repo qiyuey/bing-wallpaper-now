@@ -287,7 +287,7 @@
   --skeleton-shimmer: rgba(255, 255, 255, 0.15);
 
   /* 主边框 */
-  --border-primary: rgba(255, 255, 255, 0.2);
+  --border-primary: rgba(255, 255, 255, 0.06);
 
   /* 次边框 */
   --border-secondary: rgba(255, 255, 255, 0.12);
@@ -296,24 +296,16 @@
   --border-hover: rgba(255, 255, 255, 0.3);
 
   /* 小阴影 - 按钮、小卡片 */
-  --shadow-sm:
-    0 1px 0 0 rgba(255, 255, 255, 0.08), 0 2px 8px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
 
   /* 中等阴影 - 一般卡片 */
-  --shadow-md:
-    0 1px 0 0 rgba(255, 255, 255, 0.1), 0 4px 16px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.35);
 
   /* 大阴影 - 悬浮卡片 */
-  --shadow-lg:
-    0 1px 0 0 rgba(255, 255, 255, 0.1), 0 8px 32px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
 
   /* 超大阴影 - 模态框 */
-  --shadow-xl:
-    0 1px 0 0 rgba(255, 255, 255, 0.12), 0 16px 48px rgba(0, 0, 0, 0.5),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.5);
 
   /* 轻度背景模糊 */
   --blur-light: blur(20px) saturate(150%);
