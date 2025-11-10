@@ -2,6 +2,26 @@
 
 All notable changes to Bing Wallpaper Now will be documented in this file.
 
+## 0.4.14
+
+### Changed
+
+- 🎨 **应用图标优化**
+  - 优化应用图标设计，缩小图标内容以留出更多边距，提升视觉效果
+  - 使用 Tauri CLI 统一生成各平台图标，简化图标管理流程
+  - 改进图标生成脚本，移除不必要的依赖
+
+- 🔧 **构建配置优化**
+  - macOS 签名配置优化，默认使用临时签名（ad-hoc signing）
+  - CI/CD 中要求必须配置正式签名身份，确保生产构建使用正式签名
+  - 改进错误提示，明确说明签名配置要求
+
+### Fixed
+
+- 📝 **文档和代码质量**
+  - 修复 Markdown lint 问题，添加 markdownlint 配置文件
+  - 优化文档格式，提升可读性
+
 ## 0.4.13
 
 ### Fixed
