@@ -1664,7 +1664,7 @@ fn setup_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
             .icon(icon)
             .tooltip("Bing Wallpaper Now")
             .show_menu_on_left_click(false);
-        
+
         // macOS 设置模板图标以支持深色/浅色模式自动切换
         #[cfg(target_os = "macos")]
         {
