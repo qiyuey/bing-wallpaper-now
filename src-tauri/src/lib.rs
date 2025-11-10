@@ -1620,11 +1620,12 @@ fn setup_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
 
     info!(target: "tray", "菜单创建完成，正在创建托盘图标");
 
-    // Windows 高 DPI 下托盘图标优化：使用更高分辨率的 PNG 图标
+    // Windows 高 DPI 下托盘图标优化：使用完整大小的托盘图标
+    // 使用 tray-icon-windows.png（从 icon-windows.svg 生成，无缩放）
     // 在 200% 缩放下，128x128 的图标可以提供清晰的显示效果（等效 64x64 物理像素）
     #[cfg(target_os = "windows")]
     let icon = {
-        let icon_bytes = include_bytes!("../icons/128x128.png");
+        let icon_bytes = include_bytes!("../icons/tray-icon-windows.png");
         let icon_img = image::load_from_memory(icon_bytes)
             .map_err(|e| {
                 tauri::Error::InvalidIcon(std::io::Error::new(std::io::ErrorKind::InvalidData, e))
