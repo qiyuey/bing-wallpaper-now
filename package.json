@@ -1,7 +1,7 @@
 {
   "name": "bing-wallpaper-now",
   "private": true,
-  "version": "0.4.13",
+  "version": "0.4.14-0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -17,7 +17,8 @@
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\"",
     "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
     "test:frontend": "vitest run",
-    "test": "cargo test --manifest-path src-tauri/Cargo.toml && vitest run"
+    "test": "cargo test --manifest-path src-tauri/Cargo.toml && vitest run",
+    "icons": "node scripts/generate-icons.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.9.0",

@@ -41,8 +41,10 @@
 6. **提交 CHANGELOG**：
    - 运行 `git add CHANGELOG.md` 添加 CHANGELOG.md
    - 从 package.json 读取当前版本号（例如：`cat package.json | grep '"version"' | head -1 | sed 's/.*"version": "\(.*\)".*/\1/'`）
+   - 如果当前版本号不是 -0 的开发版，则运行 `make patch` 升级版本
    - 自动生成 commit message：`chore: release <version>`（例如：`chore: release 0.4.5`）
    - 运行 `git commit -m "chore: release <version>"` 提交 CHANGELOG
 
 7. **发布**：运行 `make release`
    - 如果出现问题，中断执行，让用户处理
+   - 需要严格运行命令，不要使用其他命令替代

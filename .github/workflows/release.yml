@@ -320,12 +320,41 @@ jobs:
           
           echo "✅ Certificate imported successfully"
 
-      - name: Patch tauri.conf.json (skip beforeBuildCommand)
+      - name: Validate macOS signing identity
+        if: runner.os == 'macOS'
         shell: bash
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
         run: |
+          if [ -z "$APPLE_SIGNING_IDENTITY" ]; then
+            echo "❌ Error: APPLE_SIGNING_IDENTITY secret is not configured"
+            echo "Production builds require a valid Apple signing identity."
+            echo "Please add APPLE_SIGNING_IDENTITY to GitHub Secrets (Settings -> Secrets and variables -> Actions)"
+            echo "The value should be your signing identity name, e.g., 'Developer ID Application: Your Name (TEAM_ID)'"
+            exit 1
+          fi
+          
+          echo "✅ Signing identity configured: $APPLE_SIGNING_IDENTITY"
+
+      - name: Patch tauri.conf.json (skip beforeBuildCommand and set signingIdentity)
+        shell: bash
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+        run: |
+          # Skip beforeBuildCommand (frontend already built)
           if command -v jq &> /dev/null; then
             jq '.build.beforeBuildCommand = ""' src-tauri/tauri.conf.json > src-tauri/tauri.conf.json.tmp
             mv src-tauri/tauri.conf.json.tmp src-tauri/tauri.conf.json
+            
+            # Set signingIdentity (required for production builds)
+            if [ -n "$APPLE_SIGNING_IDENTITY" ]; then
+              echo "Setting signingIdentity to: $APPLE_SIGNING_IDENTITY"
+              jq --arg identity "$APPLE_SIGNING_IDENTITY" '.bundle.macOS.signingIdentity = $identity' src-tauri/tauri.conf.json > src-tauri/tauri.conf.json.tmp
+              mv src-tauri/tauri.conf.json.tmp src-tauri/tauri.conf.json
+            else
+              echo "❌ Error: APPLE_SIGNING_IDENTITY is required but not set"
+              exit 1
+            fi
           else
             sed -i.bak 's/"beforeBuildCommand"[[:space:]]*:[[:space:]]*"[^"]*"/"beforeBuildCommand": ""/' src-tauri/tauri.conf.json
           fi
