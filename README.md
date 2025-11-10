@@ -84,7 +84,8 @@ Click the "Settings" (star icon) to customize:
 **A:** Bing releases new wallpapers daily. Enable "Auto Update" to fetch the latest automatically.
 
 **Q: Where are my wallpapers saved?**  
-**A:** By default, they're in a "Bing Wallpaper Now" folder in your system pictures directory, but you can change this in settings.
+**A:** By default, they're in a "Bing Wallpaper Now" folder in your system
+pictures directory, but you can change this in settings.
 
 **Q: Can I use it offline?**  
 **A:** Yes! Previously downloaded wallpapers are always available and can still be set offline.
@@ -93,7 +94,8 @@ Click the "Settings" (star icon) to customize:
 **A:** Each UHD wallpaper is roughly 1–3MB. Keeping 8 uses 8–24MB.
 
 **Q: Can wallpapers be kept forever?**  
-**A:** Currently, old wallpapers are auto-cleaned based on your retention setting (default up to 10000). Favorites feature planned in future.
+**A:** Currently, old wallpapers are auto-cleaned based on your retention
+setting (default up to 10000). Favorites feature planned in future.
 
 ## 📞 Support & Feedback
 

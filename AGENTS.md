@@ -17,7 +17,9 @@
 
 ## Project Overview
 
-Bing Wallpaper Now is a cross-platform desktop application that automatically fetches and sets Bing daily wallpapers. Built with Tauri 2.0, it combines a React/TypeScript frontend with a Rust backend.
+Bing Wallpaper Now is a cross-platform desktop application that automatically
+fetches and sets Bing daily wallpapers. Built with Tauri 2.0, it combines a
+React/TypeScript frontend with a Rust backend.
 
 **Tech Stack:**
 
@@ -102,11 +104,17 @@ bing-wallpaper-now/
   - Hooks: camelCase with "use" prefix (`useBingWallpapers.ts`)
   - Files: Match component/hook name
 - **React**: Functional components only, use hooks for state management, React 19+ (no need to import React in JSX files)
-- **ESLint rules**: Unused vars warn (except with `_` prefix), `any` type warn, console warn (allow `console.warn` and `console.error`), React Hooks enforce rules-of-hooks (error), exhaustive-deps (warn)
+- **ESLint rules**: Unused vars warn (except with `_` prefix), `any` type warn,
+  console warn (allow `console.warn` and `console.error`), React Hooks enforce
+  rules-of-hooks (error), exhaustive-deps (warn)
 - **Rust**: Edition 2024, use `cargo fmt --manifest-path src-tauri/Cargo.toml` for formatting, use `cargo clippy` for linting
 - **Rust naming**: Files snake_case (`bing_api.rs`), functions snake_case, types PascalCase, constants SCREAMING_SNAKE_CASE
-- **Rust patterns**: Use `anyhow::Result` for error handling, Tokio runtime (features = ["full"]) for async, add doc comments (`///`) for all public functions
-- **File organization**: Frontend source files in `src/`, backend source files in `src-tauri/src/`, tests colocated with source (`.test.ts`, `.test.tsx` for frontend), type definitions in `src/types/`
+- **Rust patterns**: Use `anyhow::Result` for error handling, Tokio runtime
+  (features = ["full"]) for async, add doc comments (`///`) for all public
+  functions
+- **File organization**: Frontend source files in `src/`, backend source files
+  in `src-tauri/src/`, tests colocated with source (`.test.ts`, `.test.tsx` for
+  frontend), type definitions in `src/types/`
 
 ## Testing instructions
 
@@ -115,9 +123,11 @@ bing-wallpaper-now/
 - Run `pnpm run test:frontend` for Vitest (React/TypeScript tests)
 - Run `pnpm run test:rust` for Cargo test (Rust tests)
 - Fix any test or type errors until the whole suite passes
-- After moving files or changing imports, run `pnpm run lint` and `pnpm run typecheck` to ensure ESLint and TypeScript rules still pass
+- After moving files or changing imports, run `pnpm run lint` and
+  `pnpm run typecheck` to ensure ESLint and TypeScript rules still pass
 - Add or update tests for the code you change, even if nobody asked
-- Frontend tests: `src/**/*.{test,spec}.{ts,tsx}`, coverage thresholds: Lines 70%, Functions 40%, Branches 60%, Statements 70%
+- Frontend tests: `src/**/*.{test,spec}.{ts,tsx}`, coverage thresholds: Lines
+  70%, Functions 40%, Branches 60%, Statements 70%
 - Backend tests: Same files as implementation (`#[cfg(test)]` modules), run with `-- --nocapture` to see println! output
 
 ## PR instructions
