@@ -2,6 +2,25 @@
 
 All notable changes to Bing Wallpaper Now will be documented in this file.
 
+## 0.4.15
+
+### Fixed
+
+- 🎨 **Windows 托盘图标显示优化**
+  - 修复 Windows 托盘图标显示过小的问题
+  - 为 Windows 平台创建专用的完整大小托盘图标（tray-icon-windows.png）
+  - 确保 Windows 托盘图标使用无缩放的完整大小图标，提升显示清晰度
+  - macOS 托盘图标保持不变，继续使用原有的适配方案
+
+### Changed
+
+- 🔧 **图标生成流程优化**
+  - 创建 `icon-windows.svg`（无缩放版本）专门用于 Windows 平台
+  - 改进图标生成脚本，为不同平台使用不同的 SVG 源文件
+  - Windows 使用完整大小的 `icon-windows.svg` 生成图标
+  - macOS 继续使用带 0.75 缩放的 `icon.svg` 生成图标
+  - 优化生成流程，确保各平台图标大小适配正确
+
 ## 0.4.14
 
 ### Changed
