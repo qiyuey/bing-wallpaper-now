@@ -2,6 +2,15 @@
 
 All notable changes to Bing Wallpaper Now will be documented in this file.
 
+## 0.4.13
+
+### Fixed
+
+- 🎨 **macOS Menu Bar 图标适配**
+  - 修复 macOS Menu Bar 图标在深色模式下无法自动切换的问题
+  - 现在图标会根据系统深色/浅色模式自动调整颜色
+  - 提升在深色模式下的视觉体验
+
 ## 0.4.12
 
 ### Added
