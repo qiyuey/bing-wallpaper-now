@@ -1634,6 +1634,7 @@ fn setup_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
     };
 
     // macOS 使用黑白托盘图标（符合系统设计规范）
+    // 图标应为黑色和透明，系统会根据深色/浅色模式自动调整颜色
     #[cfg(target_os = "macos")]
     let icon = {
         let icon_bytes = include_bytes!("../icons/tray-icon-macos@2x.png");
@@ -1657,11 +1658,19 @@ fn setup_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
         })?
         .clone();
 
-    let tray = TrayIconBuilder::new()
+    let mut tray_builder = TrayIconBuilder::new()
         .menu(&menu)
         .icon(icon)
         .tooltip("Bing Wallpaper Now")
-        .show_menu_on_left_click(false)
+        .show_menu_on_left_click(false);
+
+    // macOS 设置模板图标以支持深色/浅色模式自动切换
+    #[cfg(target_os = "macos")]
+    {
+        tray_builder = tray_builder.icon_as_template(true);
+    }
+
+    let tray = tray_builder
         .on_tray_icon_event(|tray, event| {
             if let TrayIconEvent::Click { button, .. } = event
                 && button == tauri::tray::MouseButton::Left
