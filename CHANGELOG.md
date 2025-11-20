@@ -2,6 +2,14 @@
 
 All notable changes to Bing Wallpaper Now will be documented in this file.
 
+## 0.4.16
+
+### Changed
+
+- 📦 **依赖更新**
+  - 更新项目依赖以包含最新的安全修复和性能改进
+  - 升级 Tauri 相关组件以保持与最新版本兼容
+
 ## 0.4.15
 
 ### Fixed
