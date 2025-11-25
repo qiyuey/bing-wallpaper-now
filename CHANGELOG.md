@@ -2,6 +2,16 @@
 
 All notable changes to Bing Wallpaper Now will be documented in this file.
 
+## 0.4.17
+
+### Added
+
+- 🔒 **图片下载哈希校验**
+  - 添加图片下载后的 MD5 哈希值校验功能，确保下载文件的完整性
+  - 自动从 Bing API 获取哈希值并在下载完成后进行校验
+  - 如果哈希值不匹配，会自动删除损坏的文件并重新下载
+  - 支持对已存在文件的哈希值验证，确保文件未被损坏
+
 ## 0.4.16
 
 ### Changed
