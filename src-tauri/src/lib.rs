@@ -166,15 +166,21 @@ async fn download_wallpaper_if_needed(
     // 构建完整的图片 URL
     let image_url = bing_api::get_wallpaper_url(&wallpaper.urlbase, "UHD");
 
-    // 下载图片
+    // 下载图片（如果提供了哈希值，则进行校验）
+    let expected_hash = if wallpaper.hsh.is_empty() {
+        None
+    } else {
+        Some(wallpaper.hsh.as_str())
+    };
     info!(
         target: "commands",
-        "开始按需下载壁纸: {} -> {}",
+        "开始按需下载壁纸: {} -> {} (哈希校验: {})",
         end_date,
-        file_path.display()
+        file_path.display(),
+        if expected_hash.is_some() { "启用" } else { "未启用" }
     );
 
-    match download_manager::download_image(&image_url, file_path).await {
+    match download_manager::download_image(&image_url, file_path, expected_hash).await {
         Ok(()) => {
             info!(target: "commands", "成功按需下载壁纸: {}", file_path.display());
             // 发送事件通知前端
@@ -309,8 +315,13 @@ async fn redownload_missing_wallpapers(
         // 构建保存路径（使用 end_date，因为文件名使用 end_date）
         let save_path = wallpaper_dir.join(format!("{}.jpg", wallpaper.end_date));
 
-        // 下载图片
-        match download_manager::download_image(&image_url, &save_path).await {
+        // 下载图片（如果提供了哈希值，则进行校验）
+        let expected_hash = if wallpaper.hsh.is_empty() {
+            None
+        } else {
+            Some(wallpaper.hsh.as_str())
+        };
+        match download_manager::download_image(&image_url, &save_path, expected_hash).await {
             Ok(()) => {
                 info!(target: "commands", "成功重新下载壁纸: {}", save_path.display());
                 // 发送事件通知前端
