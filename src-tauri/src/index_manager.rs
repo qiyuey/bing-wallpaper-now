@@ -271,7 +271,6 @@ mod tests {
             copyright_link: "https://example.com".to_string(),
             end_date: "20240102".to_string(),
             urlbase: "/th?id=OHR.TestWallpaper".to_string(),
-            hsh: "".to_string(),
         };
 
         manager
@@ -306,7 +305,6 @@ mod tests {
                 copyright_link: "https://example.com/1".to_string(),
                 end_date: "20240102".to_string(),
                 urlbase: "/th?id=OHR.Wallpaper1".to_string(),
-                hsh: "".to_string(),
             },
             LocalWallpaper {
                 title: "Wallpaper 2".to_string(),
@@ -314,7 +312,6 @@ mod tests {
                 copyright_link: "https://example.com/2".to_string(),
                 end_date: "20240103".to_string(),
                 urlbase: "/th?id=OHR.Wallpaper2".to_string(),
-                hsh: "".to_string(),
             },
         ];
 
@@ -345,7 +342,6 @@ mod tests {
             copyright_link: "https://example.com".to_string(),
             end_date: "20240102".to_string(),
             urlbase: "/th?id=OHR.PersistTest".to_string(),
-            hsh: "".to_string(),
         };
 
         // 第一个管理器实例
@@ -389,7 +385,6 @@ mod tests {
                 copyright_link: "https://example.com/1".to_string(),
                 end_date: "20240102".to_string(),
                 urlbase: "/th?id=OHR.Wallpaper1".to_string(),
-                hsh: "".to_string(),
             },
             LocalWallpaper {
                 title: "Wallpaper 2".to_string(),
@@ -397,7 +392,6 @@ mod tests {
                 copyright_link: "https://example.com/2".to_string(),
                 end_date: "20240103".to_string(),
                 urlbase: "/th?id=OHR.Wallpaper2".to_string(),
-                hsh: "".to_string(),
             },
         ];
 
@@ -449,7 +443,6 @@ mod tests {
             copyright_link: "https://example.com/zh".to_string(),
             end_date: "20240102".to_string(),
             urlbase: "/th?id=OHR.Wallpaper_ZH-CN".to_string(),
-            hsh: "".to_string(),
         };
 
         // 添加英文壁纸
@@ -459,7 +452,6 @@ mod tests {
             copyright_link: "https://example.com/en".to_string(),
             end_date: "20240102".to_string(),
             urlbase: "/th?id=OHR.Wallpaper_EN-US".to_string(),
-            hsh: "".to_string(),
         };
 
         manager
@@ -508,7 +500,6 @@ mod tests {
             copyright_link: "https://example.com".to_string(),
             end_date: "20240102".to_string(),
             urlbase: "/th?id=OHR.CacheTest".to_string(),
-            hsh: "".to_string(),
         };
 
         // 第一次加载（应该从磁盘）
@@ -549,7 +540,6 @@ mod tests {
             copyright_link: "https://example.com".to_string(),
             end_date: "20240102".to_string(),
             urlbase: "/th?id=OHR.Test".to_string(),
-            hsh: "".to_string(),
         };
 
         manager
@@ -564,7 +554,6 @@ mod tests {
             copyright_link: "https://example.com/updated".to_string(),
             end_date: "20240102".to_string(), // 相同的 end_date
             urlbase: "/th?id=OHR.TestUpdated".to_string(),
-            hsh: "".to_string(),
         };
 
         manager
@@ -622,7 +611,6 @@ mod tests {
             copyright_link: "https://example.com".to_string(),
             end_date: "20240102".to_string(),
             urlbase: "/th?id=OHR.AtomicTest".to_string(),
-            hsh: "".to_string(),
         };
 
         // 保存索引
@@ -665,7 +653,6 @@ mod tests {
             copyright_link: "https://example.com".to_string(),
             end_date: "20240102".to_string(),
             urlbase: "/th?id=OHR.JsonTest".to_string(),
-            hsh: "".to_string(),
         };
 
         manager
@@ -770,7 +757,6 @@ mod tests {
                 copyright_link: format!("https://example.com/{}", i),
                 end_date: format!("202401{:02}", i + 1),
                 urlbase: format!("/th?id=OHR.Wallpaper{}", i),
-                hsh: "".to_string(),
             })
             .collect();
 

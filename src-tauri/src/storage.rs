@@ -187,7 +187,6 @@ mod tests {
             copyright_link: "https://example.com".to_string(),
             end_date: "20250102".to_string(),
             urlbase: "/th?id=OHR.Test_ZH-CN1234567890".to_string(),
-            hsh: "".to_string(),
         };
 
         assert!(validate_wallpaper_language(&wallpaper_zh, "zh-CN"));
@@ -203,7 +202,6 @@ mod tests {
             copyright_link: "https://example.com".to_string(),
             end_date: "20250102".to_string(),
             urlbase: "/th?id=OHR.Test_EN-US1234567890".to_string(),
-            hsh: "".to_string(),
         };
 
         assert!(validate_wallpaper_language(&wallpaper_en, "en-US"));
@@ -219,7 +217,6 @@ mod tests {
             copyright_link: "https://example.com".to_string(),
             end_date: "20250102".to_string(),
             urlbase: "".to_string(),
-            hsh: "".to_string(),
         };
 
         assert!(validate_wallpaper_language(&wallpaper_empty, "zh-CN"));
@@ -235,7 +232,6 @@ mod tests {
             copyright_link: "https://example.com".to_string(),
             end_date: "20250102".to_string(),
             urlbase: "/th?id=OHR.Test1234567890".to_string(),
-            hsh: "".to_string(),
         };
 
         assert!(validate_wallpaper_language(&wallpaper_no_marker, "zh-CN"));
@@ -251,7 +247,6 @@ mod tests {
             copyright_link: "https://example.com".to_string(),
             end_date: "20250102".to_string(),
             urlbase: "/th?id=OHR.Test_ZH-CN1234567890".to_string(),
-            hsh: "".to_string(),
         };
 
         assert!(validate_wallpaper_language(&wallpaper, "unknown"));

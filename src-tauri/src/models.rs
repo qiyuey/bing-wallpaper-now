@@ -12,7 +12,6 @@ pub struct BingImageEntry {
     pub title: String,
     pub startdate: String,
     pub enddate: String,
-    pub hsh: String,
 }
 
 /// Bing API 响应结构
@@ -29,7 +28,6 @@ pub struct BingImageArchive {
 /// - copyright_link -> l
 /// - end_date -> d (保留，因为代码中广泛使用)
 /// - urlbase -> u
-/// - hsh -> h (MD5 哈希值，用于校验文件完整性，可选)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LocalWallpaper {
     #[serde(rename = "t")]
@@ -42,8 +40,6 @@ pub struct LocalWallpaper {
     pub end_date: String,
     #[serde(rename = "u", default)]
     pub urlbase: String,
-    #[serde(rename = "h", default, skip_serializing_if = "String::is_empty")]
-    pub hsh: String,
 }
 
 impl From<BingImageEntry> for LocalWallpaper {
@@ -54,7 +50,6 @@ impl From<BingImageEntry> for LocalWallpaper {
             copyright_link: entry.copyrightlink.clone(),
             end_date: entry.enddate.clone(),
             urlbase: entry.urlbase.clone(),
-            hsh: entry.hsh.clone(),
         }
     }
 }
@@ -316,7 +311,6 @@ mod tests {
             title: "Test Wallpaper".to_string(),
             startdate: "20240101".to_string(),
             enddate: "20240102".to_string(),
-            hsh: "test_hash_123".to_string(),
         };
 
         let wallpaper = LocalWallpaper::from(entry.clone());
@@ -325,7 +319,6 @@ mod tests {
         assert_eq!(wallpaper.copyright, entry.copyright);
         assert_eq!(wallpaper.copyright_link, entry.copyrightlink);
         assert_eq!(wallpaper.end_date, entry.enddate);
-        assert_eq!(wallpaper.hsh, entry.hsh);
     }
 
     #[test]
@@ -336,7 +329,6 @@ mod tests {
             copyright_link: "https://example.com".to_string(),
             end_date: "20240102".to_string(),
             urlbase: "/th?id=OHR.Test_EN-US1234567890".to_string(),
-            hsh: "test_hash_456".to_string(),
         };
 
         let json = serde_json::to_string(&wallpaper).unwrap();

@@ -22,13 +22,8 @@ static HTTP_CLIENT: LazyLock<Client> = LazyLock::new(|| {
 /// # Arguments
 /// * `url` - 图片 URL
 /// * `save_path` - 保存路径
-/// * `expected_hash` - 可选的期望 MD5 哈希值（十六进制字符串），用于校验文件完整性
-pub async fn download_image(
-    url: &str,
-    save_path: &Path,
-    expected_hash: Option<&str>,
-) -> Result<()> {
-    download_image_with_retry(url, save_path, expected_hash, 10).await
+pub async fn download_image(url: &str, save_path: &Path) -> Result<()> {
+    download_image_with_retry(url, save_path, 3).await
 }
 
 /// 带重试机制的图片下载
@@ -36,19 +31,13 @@ pub async fn download_image(
 /// # Arguments
 /// * `url` - 图片 URL
 /// * `save_path` - 保存路径
-/// * `expected_hash` - 可选的期望 MD5 哈希值（十六进制字符串），用于校验文件完整性
 /// * `max_retries` - 最大重试次数
-async fn download_image_with_retry(
-    url: &str,
-    save_path: &Path,
-    expected_hash: Option<&str>,
-    max_retries: usize,
-) -> Result<()> {
+async fn download_image_with_retry(url: &str, save_path: &Path, max_retries: usize) -> Result<()> {
     let mut attempts = 0;
     let mut last_error = None;
 
     while attempts < max_retries {
-        match download_image_internal(url, save_path, expected_hash).await {
+        match download_image_internal(url, save_path).await {
             Ok(_) => return Ok(()),
             Err(e) => {
                 attempts += 1;
@@ -90,55 +79,16 @@ async fn download_image_with_retry(
         .context(format!("Failed to download after {} attempts", max_retries)))
 }
 
-/// 计算文件的 MD5 哈希值
-///
-/// # Arguments
-/// * `file_path` - 文件路径
-///
-/// # Returns
-/// MD5 哈希值的十六进制字符串
-async fn calculate_file_hash(file_path: &Path) -> Result<String> {
-    let content = fs::read(file_path)
-        .await
-        .context("Failed to read file for hash calculation")?;
-    let hash = md5::compute(&content);
-    Ok(format!("{:x}", hash))
-}
-
 /// 内部下载实现（使用全局客户端和流式传输）
 ///
 /// # Arguments
 /// * `url` - 图片 URL
 /// * `save_path` - 保存路径
-/// * `expected_hash` - 可选的期望 MD5 哈希值（十六进制字符串），用于校验文件完整性
-async fn download_image_internal(
-    url: &str,
-    save_path: &Path,
-    expected_hash: Option<&str>,
-) -> Result<()> {
+async fn download_image_internal(url: &str, save_path: &Path) -> Result<()> {
     // 检查文件是否已存在
     if save_path.exists() {
-        // 如果提供了期望哈希值，验证已存在文件的哈希
-        if let Some(expected) = expected_hash {
-            let actual_hash = calculate_file_hash(save_path).await?;
-            if actual_hash.to_lowercase() != expected.to_lowercase() {
-                log::warn!(
-                    "已存在的文件哈希值不匹配，将重新下载: 期望={}, 实际={}, 文件={}",
-                    expected,
-                    actual_hash,
-                    save_path.display()
-                );
-                // 删除不匹配的文件，继续下载
-                if let Err(e) = fs::remove_file(save_path).await {
-                    log::warn!("删除哈希不匹配的文件失败: {}", e);
-                }
-            } else {
-                log::debug!("文件已存在且哈希值匹配，跳过下载: {}", save_path.display());
-                return Ok(());
-            }
-        } else {
-            return Ok(());
-        }
+        log::debug!("文件已存在，跳过下载: {}", save_path.display());
+        return Ok(());
     }
 
     // 创建父目录(如果不存在)
@@ -169,6 +119,8 @@ async fn download_image_internal(
         anyhow::bail!("Failed to download image: HTTP {}", response.status());
     }
 
+    let content_length = response.content_length();
+
     // 流式下载：边下载边写入磁盘，减少内存占用
     let mut stream = response.bytes_stream();
     let temp_path = save_path.with_extension("tmp");
@@ -186,24 +138,55 @@ async fn download_image_internal(
     // 确保数据写入磁盘
     file.sync_all().await.context("Failed to sync file")?;
 
-    // 如果提供了期望哈希值，校验下载的文件
-    if let Some(expected) = expected_hash {
-        let actual_hash = calculate_file_hash(&temp_path).await?;
-        if actual_hash.to_lowercase() != expected.to_lowercase() {
-            // 删除哈希不匹配的临时文件
+    // 校验 1: Content-Length (如果服务器提供了)
+    if let Some(expected_len) = content_length {
+        let metadata = file.metadata().await?;
+        if metadata.len() != expected_len {
+            // 删除不完整的文件
             let _ = fs::remove_file(&temp_path).await;
             anyhow::bail!(
-                "文件哈希值校验失败: 期望={}, 实际={}",
-                expected,
-                actual_hash
+                "文件大小不匹配: 期望={}, 实际={}",
+                expected_len,
+                metadata.len()
             );
         }
-        log::debug!(
-            "文件哈希值校验通过: {} (MD5: {})",
-            save_path.display(),
-            actual_hash
-        );
     }
+
+    // 校验 2: 图片格式有效性 (尝试解析图片头)
+    // 使用 spawn_blocking 因为 image crate 操作是阻塞的
+    let temp_path_clone = temp_path.clone();
+    let validation_result = tokio::task::spawn_blocking(move || {
+        // 使用 image crate 尝试读取图片头信息
+        match image::ImageReader::open(&temp_path_clone) {
+            Ok(reader) => match reader.with_guessed_format() {
+                Ok(reader) => match reader.into_dimensions() {
+                    Ok(_) => Ok(()),
+                    Err(e) => Err(anyhow::anyhow!("无效的图片文件(无法获取尺寸): {}", e)),
+                },
+                Err(e) => Err(anyhow::anyhow!("无法识别图片格式: {}", e)),
+            },
+            Err(e) => Err(anyhow::anyhow!("无法打开文件: {}", e)),
+        }
+    })
+    .await;
+
+    // 处理 spawn_blocking 的 JoinError (Result<Result<()>>)
+    let validation_result = match validation_result {
+        Ok(res) => res,
+        Err(e) => Err(anyhow::anyhow!("校验任务执行失败: {}", e)),
+    };
+
+    if let Err(e) = validation_result {
+        log::warn!(
+            "文件校验失败，将删除临时文件: {}, 错误: {}",
+            temp_path.display(),
+            e
+        );
+        let _ = fs::remove_file(&temp_path).await;
+        return Err(e);
+    }
+
+    log::debug!("文件校验通过: {}", temp_path.display());
 
     // 原子重命名为最终文件名
     fs::rename(&temp_path, save_path)
@@ -271,12 +254,12 @@ mod tests {
 
         // 实际下载测试（仅在显式启用时运行）
         if std::env::var("BING_TEST").ok().as_deref() == Some("1") {
-            let result = download_image(url, &save_path, None).await;
+            let result = download_image(url, &save_path).await;
             assert!(result.is_ok());
             assert!(save_path.exists());
 
             // 验证可以跳过已存在的文件
-            let result2 = download_image(url, &save_path, None).await;
+            let result2 = download_image(url, &save_path).await;
             assert!(result2.is_ok());
         }
 
@@ -392,7 +375,7 @@ mod tests {
 
         // 尝试下载到已存在的文件
         let url = "https://example.com/test.jpg";
-        let result = download_image(url, &save_path, None).await;
+        let result = download_image(url, &save_path).await;
 
         // 应该成功（跳过下载）
         assert!(result.is_ok());
@@ -449,66 +432,6 @@ mod tests {
             // 所有请求应该都失败但不会 panic
             assert!(result.is_err());
         }
-
-        // 清理
-        let _ = fs::remove_dir_all(&temp_dir).await;
-    }
-
-    #[tokio::test]
-    async fn test_hash_verification() {
-        let unique = SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
-        let temp_dir = std::env::temp_dir().join(format!("bw_hash_{unique}"));
-        fs::create_dir_all(&temp_dir).await.unwrap();
-
-        let save_path = temp_dir.join("test_hash.jpg");
-        let test_content = b"test image content for hash verification";
-
-        // 创建测试文件
-        fs::write(&save_path, test_content).await.unwrap();
-
-        // 计算正确的哈希值
-        let correct_hash = calculate_file_hash(&save_path).await.unwrap();
-
-        // 测试哈希校验通过的情况
-        let result = calculate_file_hash(&save_path).await;
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap().to_lowercase(), correct_hash.to_lowercase());
-
-        // 测试哈希校验失败的情况（使用错误的哈希值）
-        let wrong_hash = "wrong_hash_value_1234567890abcdef1234567890abcdef";
-        assert_ne!(correct_hash.to_lowercase(), wrong_hash.to_lowercase());
-
-        // 清理
-        let _ = fs::remove_dir_all(&temp_dir).await;
-    }
-
-    #[tokio::test]
-    async fn test_hash_verification_with_different_content() {
-        let unique = SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
-        let temp_dir = std::env::temp_dir().join(format!("bw_hash_diff_{unique}"));
-        fs::create_dir_all(&temp_dir).await.unwrap();
-
-        let save_path1 = temp_dir.join("test1.jpg");
-        let save_path2 = temp_dir.join("test2.jpg");
-        let content1 = b"test content 1";
-        let content2 = b"test content 2";
-
-        // 创建两个不同内容的文件
-        fs::write(&save_path1, content1).await.unwrap();
-        fs::write(&save_path2, content2).await.unwrap();
-
-        // 计算哈希值
-        let hash1 = calculate_file_hash(&save_path1).await.unwrap();
-        let hash2 = calculate_file_hash(&save_path2).await.unwrap();
-
-        // 不同内容的文件应该有不同哈希值
-        assert_ne!(hash1, hash2);
 
         // 清理
         let _ = fs::remove_dir_all(&temp_dir).await;

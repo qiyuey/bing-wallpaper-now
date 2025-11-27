@@ -40,8 +40,6 @@ tauri-plugin-single-instance = "2"
 image = { version = "0.25", features = ["png"] }
 num_cpus = "1"
 indexmap = { version = "2", features = ["serde"] }
-md5 = "0.7"
-
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6.3"
 objc2-foundation = { version = "0.3.2", features = ["NSString", "NSDictionary", "NSArray", "NSURL", "NSError", "NSNotification"] }
