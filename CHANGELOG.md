@@ -2,6 +2,22 @@
 
 All notable changes to Bing Wallpaper Now will be documented in this file.
 
+## 0.4.18
+
+### Changed
+
+- 🔧 **优化图片下载校验机制**
+  - 移除 MD5 哈希校验，改用更高效的图片格式验证方式
+  - 使用 Content-Length 校验文件大小完整性
+  - 使用图片格式解析验证文件有效性，确保下载的图片可以正常使用
+  - 简化下载逻辑，提升下载性能
+
+- 📦 **依赖更新**
+  - 更新 vitest 从 4.0.13 到 4.0.14
+  - 更新 prettier 从 3.6.2 到 3.7.1
+  - 更新 Rust 依赖 borsh、endi、winnow、tracing 等到最新版本
+  - 移除未使用的 md5 依赖
+
 ## 0.4.17
 
 ### Added
