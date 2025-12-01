@@ -2,6 +2,15 @@
 
 All notable changes to Bing Wallpaper Now will be documented in this file.
 
+## 0.4.20
+
+### Fixed
+
+- 🔧 **修复版本检查功能**
+  - 修复 GitHub API 响应反序列化问题
+  - 正确处理 `browser_download_url` 字段，即使该字段缺失也不会导致版本检查失败
+  - 使用 `skip_deserializing` 替代 `skip`，确保反序列化的健壮性
+
 ## 0.4.19
 
 ### Added
