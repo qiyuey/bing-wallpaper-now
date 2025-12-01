@@ -766,7 +766,7 @@ struct GitHubRelease {
 #[derive(Debug, Deserialize)]
 struct GitHubAsset {
     name: String,
-    #[serde(rename = "browser_download_url", skip)]
+    #[serde(rename = "browser_download_url")]
     _browser_download_url: String,
 }
 
