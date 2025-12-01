@@ -6,6 +6,11 @@
 
 1. **运行质量检查并修复所有问题**：
    - 运行 `make check` 执行所有质量检查（lint、格式检查、类型检查、Markdown lint 和测试）
+   - **禁止使用 `#[allow()]` 属性**：
+     - 在 Rust 代码中，严格禁止使用 `#[allow(...)]` 来抑制编译器警告或 clippy 警告
+     - 如果遇到警告，必须通过修复代码来解决问题，而不是使用 `#[allow()]` 来逃避
+     - 使用 `grep` 工具搜索代码库中的 `#[allow` 来检查是否存在违规使用
+     - 如果发现任何 `#[allow()` 的使用，必须移除并修复根本问题
    - 如果检查失败，根据错误类型修复：
      - **Lint 错误**：运行 `pnpm run lint:fix` 自动修复，或使用 `search_replace`/`write` 手动修复
      - **类型错误**：运行 `pnpm run typecheck` 查看详细信息，使用 `search_replace`/`write` 修复

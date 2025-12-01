@@ -122,16 +122,24 @@ async fn download_wallpaper_if_needed(
         return Err(format!("无法确定文件路径的父目录: {}", file_path.display()));
     }
 
-    // 从文件路径中提取 end_date（例如：20251031.jpg -> 20251031）
+    // 从文件路径中提取 end_date（例如：20251031.jpg 或 20251031r.jpg -> 20251031）
     // 文件名使用 end_date，因为 Bing 的 startdate 是昨天，enddate 才是今天
     let filename = file_path
         .file_name()
         .and_then(|n| n.to_str())
         .ok_or_else(|| "无法从路径中提取文件名".to_string())?;
 
-    let end_date = filename
-        .strip_suffix(".jpg")
-        .ok_or_else(|| format!("文件名格式不正确，应为 YYYYMMDD.jpg: {}", filename))?;
+    // 检查是否为竖屏壁纸（r.jpg 后缀）
+    let is_portrait = filename.ends_with("r.jpg");
+    let end_date = if is_portrait {
+        filename
+            .strip_suffix("r.jpg")
+            .ok_or_else(|| format!("文件名格式不正确，应为 YYYYMMDDr.jpg: {}", filename))?
+    } else {
+        filename
+            .strip_suffix(".jpg")
+            .ok_or_else(|| format!("文件名格式不正确，应为 YYYYMMDD.jpg: {}", filename))?
+    };
 
     // 获取当前语言设置
     let state = app.state::<AppState>();
@@ -164,7 +172,9 @@ async fn download_wallpaper_if_needed(
     }
 
     // 构建完整的图片 URL
-    let image_url = bing_api::get_wallpaper_url(&wallpaper.urlbase, "UHD");
+    // 竖屏使用 1080x1920，横屏使用 UHD
+    let resolution = if is_portrait { "1080x1920" } else { "UHD" };
+    let image_url = bing_api::get_wallpaper_url(&wallpaper.urlbase, resolution);
 
     info!(
         target: "commands",
@@ -253,7 +263,70 @@ async fn set_desktop_wallpaper(
         .map(|s| s.to_string());
 
     tauri::async_runtime::spawn(async move {
-        if let Err(e) = wallpaper_manager::set_wallpaper(&target_for_spawn) {
+        // 检测屏幕方向，获取竖屏壁纸路径
+        let screen_orientations = wallpaper_manager::get_screen_orientations();
+        let has_portrait_screen = screen_orientations.iter().any(|s| s.is_portrait);
+
+        // 从横屏路径生成竖屏路径（例如：20251031.jpg -> 20251031r.jpg）
+        let base_dir = target_for_spawn.parent().unwrap_or(Path::new(""));
+        let portrait_file = target_for_spawn
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .map(|s| base_dir.join(format!("{}r.jpg", s)));
+
+        let mut portrait_path = None;
+
+        // 处理竖屏壁纸：如果存在竖屏显示器，检查并下载竖屏壁纸
+        if has_portrait_screen && let Some(ref portrait_file_path) = portrait_file {
+            if portrait_file_path.exists() {
+                // 竖屏壁纸已存在
+                portrait_path = Some(portrait_file_path.clone());
+            } else {
+                // 如果竖屏壁纸不存在，尝试按需下载
+                info!(
+                    target: "wallpaper",
+                    "竖屏壁纸文件不存在，尝试按需下载: {}",
+                    portrait_file_path.display()
+                );
+                // 从文件路径中提取 end_date
+                let end_date = target_for_spawn
+                    .file_stem()
+                    .and_then(|s| s.to_str())
+                    .map(|s| s.to_string());
+
+                if let Some(_end_date) = end_date {
+                    // 获取壁纸元数据并下载
+                    let wallpaper_dir = base_dir.to_path_buf();
+                    info!(
+                        target: "wallpaper",
+                        "开始下载竖屏壁纸: {}",
+                        portrait_file_path.display()
+                    );
+                    if let Err(e) =
+                        download_wallpaper_if_needed(portrait_file_path, &wallpaper_dir, &app_clone)
+                            .await
+                    {
+                        warn!(target: "wallpaper", "按需下载竖屏壁纸失败: {e}，将仅设置横屏壁纸");
+                    } else {
+                        // 下载成功后，使用竖屏壁纸
+                        if portrait_file_path.exists() {
+                            info!(
+                                target: "wallpaper",
+                                "竖屏壁纸下载成功，将使用竖屏壁纸: {}",
+                                portrait_file_path.display()
+                            );
+                            portrait_path = Some(portrait_file_path.clone());
+                        } else {
+                            warn!(target: "wallpaper", "竖屏壁纸下载完成但文件不存在，将仅设置横屏壁纸");
+                        }
+                    }
+                }
+            }
+        }
+
+        if let Err(e) =
+            wallpaper_manager::set_wallpaper(&target_for_spawn, portrait_path.as_deref())
+        {
             error!(target: "wallpaper", "设置壁纸失败: {e}");
         } else {
             let state_clone = app_clone.state::<AppState>();
@@ -550,15 +623,15 @@ mod lib_tests {
             let assets = vec![
                 GitHubAsset {
                     name: "Bing.Wallpaper.Now_0.4.6_x64_zh-CN.msi".to_string(),
-                    browser_download_url: "https://example.com/test.msi".to_string(),
+                    _browser_download_url: "https://example.com/test.msi".to_string(),
                 },
                 GitHubAsset {
                     name: "Bing.Wallpaper.Now_0.4.6_x64-setup.exe".to_string(),
-                    browser_download_url: "https://example.com/test.exe".to_string(),
+                    _browser_download_url: "https://example.com/test.exe".to_string(),
                 },
                 GitHubAsset {
                     name: "test.dmg".to_string(),
-                    browser_download_url: "https://example.com/test.dmg".to_string(),
+                    _browser_download_url: "https://example.com/test.dmg".to_string(),
                 },
             ];
             assert!(has_platform_asset(&assets));
@@ -571,13 +644,13 @@ mod lib_tests {
         {
             let assets = vec![GitHubAsset {
                 name: "Bing.Wallpaper.Now_0.4.6_aarch64.dmg".to_string(),
-                browser_download_url: "https://example.com/test.dmg".to_string(),
+                _browser_download_url: "https://example.com/test.dmg".to_string(),
             }];
             assert!(has_platform_asset(&assets));
 
             let assets_false = vec![GitHubAsset {
                 name: "test.msi".to_string(),
-                browser_download_url: "https://example.com/test.msi".to_string(),
+                _browser_download_url: "https://example.com/test.msi".to_string(),
             }];
             assert!(!has_platform_asset(&assets_false));
         }
@@ -586,13 +659,13 @@ mod lib_tests {
         {
             let assets = vec![GitHubAsset {
                 name: "bing-wallpaper-now_0.4.6_amd64.deb".to_string(),
-                browser_download_url: "https://example.com/test.deb".to_string(),
+                _browser_download_url: "https://example.com/test.deb".to_string(),
             }];
             assert!(has_platform_asset(&assets));
 
             let assets_false = vec![GitHubAsset {
                 name: "test.msi".to_string(),
-                browser_download_url: "https://example.com/test.msi".to_string(),
+                _browser_download_url: "https://example.com/test.msi".to_string(),
             }];
             assert!(!has_platform_asset(&assets_false));
         }
@@ -675,6 +748,12 @@ async fn show_main_window(app: tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+/// 获取所有屏幕的方向信息
+#[tauri::command]
+async fn get_screen_orientations() -> Result<Vec<wallpaper_manager::ScreenOrientation>, String> {
+    Ok(wallpaper_manager::get_screen_orientations())
+}
+
 /// GitHub Releases API 响应结构
 #[derive(Debug, Deserialize)]
 struct GitHubRelease {
@@ -687,9 +766,8 @@ struct GitHubRelease {
 #[derive(Debug, Deserialize)]
 struct GitHubAsset {
     name: String,
-    #[serde(rename = "browser_download_url")]
-    #[allow(dead_code)]
-    browser_download_url: String,
+    #[serde(rename = "browser_download_url", skip)]
+    _browser_download_url: String,
 }
 
 /// 版本检查结果
@@ -1044,6 +1122,21 @@ async fn apply_latest_wallpaper_if_needed(app: &AppHandle, state: &AppState, wal
         }
 
         let path = storage::get_wallpaper_path(wallpaper_dir, &first.end_date);
+
+        // 检测屏幕方向，获取竖屏壁纸路径
+        let screen_orientations = wallpaper_manager::get_screen_orientations();
+        let has_portrait_screen = screen_orientations.iter().any(|s| s.is_portrait);
+        let portrait_path = if has_portrait_screen {
+            let portrait_file = wallpaper_dir.join(format!("{}r.jpg", first.end_date));
+            if portrait_file.exists() {
+                Some(portrait_file)
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
         // 检查当前壁纸是否已经是目标壁纸
         let current_path_guard = state.current_wallpaper_path.lock().await;
         let needs_set = current_path_guard
@@ -1066,7 +1159,23 @@ async fn apply_latest_wallpaper_if_needed(app: &AppHandle, state: &AppState, wal
                 }
             }
 
-            if let Err(e) = wallpaper_manager::set_wallpaper(&path) {
+            // 如果竖屏壁纸不存在，尝试按需下载
+            if let Some(ref portrait_file) = portrait_path
+                && !portrait_file.exists()
+            {
+                info!(
+                    target: "update",
+                    "竖屏壁纸文件不存在，尝试按需下载: {}",
+                    portrait_file.display()
+                );
+                if let Err(e) =
+                    download_wallpaper_if_needed(portrait_file, wallpaper_dir, app).await
+                {
+                    warn!(target: "update", "按需下载竖屏壁纸失败: {e}，将仅设置横屏壁纸");
+                }
+            }
+
+            if let Err(e) = wallpaper_manager::set_wallpaper(&path, portrait_path.as_deref()) {
                 error!(target: "update", "设置壁纸失败: {e}");
             } else {
                 let mut current_path = state.current_wallpaper_path.lock().await;
@@ -1241,6 +1350,16 @@ async fn run_update_cycle_internal(app: &AppHandle, force_update: bool) {
         .collect();
 
     let is_first_launch = existing_wallpapers.is_empty();
+
+    // 在 metadata_list 被移动之前先克隆需要的数据（用于竖屏壁纸下载）
+    let screen_orientations = wallpaper_manager::get_screen_orientations();
+    let has_portrait_screen = screen_orientations.iter().any(|s| s.is_portrait);
+    let latest_wallpaper_for_portrait = if has_portrait_screen && !metadata_list.is_empty() {
+        Some(metadata_list[0].clone())
+    } else {
+        None
+    };
+
     if !metadata_list.is_empty() {
         let count = metadata_list.len();
         if let Err(e) = storage::save_wallpapers_metadata(metadata_list, &dir, mkt).await {
@@ -1263,6 +1382,47 @@ async fn run_update_cycle_internal(app: &AppHandle, force_update: bool) {
                 }
                 info!(target: "update", "元信息已保存并通知前端，图片将按需下载");
             }
+        }
+    }
+
+    // 如果有竖屏显示器，异步下载竖屏壁纸
+    if let Some(ref latest_wallpaper) = latest_wallpaper_for_portrait
+        && !latest_wallpaper.urlbase.is_empty()
+    {
+        let portrait_file_path = dir.join(format!("{}r.jpg", latest_wallpaper.end_date));
+
+        // 如果竖屏壁纸不存在，则下载
+        if !portrait_file_path.exists() {
+            let portrait_url = bing_api::get_wallpaper_url(&latest_wallpaper.urlbase, "1080x1920");
+            let end_date = latest_wallpaper.end_date.clone();
+            info!(
+                target: "update",
+                "检测到竖屏显示器，开始下载竖屏壁纸: {}",
+                portrait_file_path.display()
+            );
+
+            // 异步下载，不阻塞主流程
+            let app_clone = app.clone();
+            let portrait_path_clone = portrait_file_path.clone();
+            tauri::async_runtime::spawn(async move {
+                match download_manager::download_image(&portrait_url, &portrait_path_clone).await {
+                    Ok(()) => {
+                        info!(
+                            target: "update",
+                            "竖屏壁纸下载成功: {}",
+                            portrait_path_clone.display()
+                        );
+                        let _ = app_clone.emit("image-downloaded", end_date);
+                    }
+                    Err(e) => {
+                        error!(
+                            target: "update",
+                            "竖屏壁纸下载失败: {}",
+                            e
+                        );
+                    }
+                }
+            });
         }
     }
 
@@ -1880,6 +2040,7 @@ pub fn run() {
             check_for_updates,
             add_ignored_update_version,
             is_version_ignored,
+            get_screen_orientations,
         ])
         .setup(|app| {
             wallpaper_manager::initialize_observer();

@@ -1,4 +1,5 @@
 use anyhow::Result;
+use serde::{Deserialize, Serialize};
 use std::path::Path;
 
 #[cfg(target_os = "windows")]
@@ -113,9 +114,30 @@ define_class!(
                 && let Some(expected) = &state.expected
             {
                 let actual = get_all_desktop_images();
+                let screen_orientations = get_screen_orientations();
 
-                // 检查是否所有显示器的壁纸都与期望一致
-                let all_match = actual.values().all(|path| path == expected);
+                // 检查是否所有显示器的壁纸都与期望一致（考虑屏幕方向）
+                let all_match = screen_orientations.iter().all(|screen| {
+                    let expected_path = if screen.is_portrait {
+                        // 尝试从横屏路径生成竖屏路径
+                        expected.parent().and_then(|p| {
+                        expected
+                            .file_stem()
+                            .and_then(|s| s.to_str())
+                            .map(|s| p.join(format!("{}r.jpg", s)))
+                        })
+                    } else {
+                        Some(expected.clone())
+                    };
+
+                    if let Some(expected_path) = expected_path {
+                        actual.get(&screen.screen_index)
+                            .map(|actual_path| actual_path == &expected_path)
+                            .unwrap_or(false)
+                    } else {
+                        !screen.is_portrait // 如果没有竖屏壁纸，跳过竖屏检查
+                    }
+                });
 
                 if all_match {
                     // 壁纸一致，跳过设置
@@ -131,8 +153,14 @@ define_class!(
 
                 // 壁纸不一致，需要重新设置
                 let path = expected.clone();
+                let portrait_path = path.parent().and_then(|p| {
+                    path.file_stem()
+                        .and_then(|s| s.to_str())
+                        .map(|s| p.join(format!("{}r.jpg", s)))
+                        .filter(|p| p.exists())
+                });
                 drop(state);
-                let _ = set_wallpaper_for_all_screens(&path);
+                let _ = set_wallpaper_for_all_screens_by_orientation(&path, portrait_path.as_deref(), &screen_orientations);
             }
         }
     }
@@ -190,8 +218,9 @@ unsafe fn setup_workspace_observer() {
 /// 设置桌面壁纸(跨平台)
 ///
 /// # Arguments
-/// * `image_path` - 壁纸图片的路径
-pub fn set_wallpaper(image_path: &Path) -> Result<()> {
+/// * `image_path` - 壁纸图片的路径（横屏版本）
+/// * `portrait_image_path` - 竖屏壁纸图片的路径（可选）
+pub fn set_wallpaper(image_path: &Path, portrait_image_path: Option<&Path>) -> Result<()> {
     if !image_path.exists() {
         anyhow::bail!("Wallpaper image does not exist: {:?}", image_path);
     }
@@ -199,7 +228,7 @@ pub fn set_wallpaper(image_path: &Path) -> Result<()> {
     // macOS 使用 NSWorkspace API 来处理多显示器和全屏场景
     #[cfg(target_os = "macos")]
     {
-        set_wallpaper_macos(image_path)
+        set_wallpaper_macos(image_path, portrait_image_path)
     }
 
     // Windows 平台实现
@@ -286,22 +315,45 @@ pub fn set_wallpaper(image_path: &Path) -> Result<()> {
 /// macOS 专用壁纸设置函数
 ///
 /// 使用 NSWorkspace API 来设置壁纸，可以正确处理全屏应用场景
-/// 遍历所有屏幕并为每个屏幕设置壁纸，并验证设置结果
+/// 遍历所有屏幕并根据屏幕方向为每个屏幕设置对应的壁纸，并验证设置结果
 #[cfg(target_os = "macos")]
-fn set_wallpaper_macos(image_path: &Path) -> Result<()> {
+fn set_wallpaper_macos(image_path: &Path, portrait_image_path: Option<&Path>) -> Result<()> {
+    // 获取屏幕方向信息
+    let screen_orientations = get_screen_orientations();
+
     // 规范化目标路径以进行准确比较
     let target_path = match image_path.canonicalize() {
         Ok(canonical) => canonical,
         Err(_) => image_path.to_path_buf(),
     };
 
+    let target_portrait_path = portrait_image_path.and_then(|p| p.canonicalize().ok());
+
     // 先检查当前所有显示器的壁纸是否已经是目标壁纸
     let current_wallpapers = get_all_desktop_images();
+
+    // 检查是否所有屏幕的壁纸都已正确设置
     let all_match = !current_wallpapers.is_empty()
-        && current_wallpapers.values().all(|path| path == &target_path);
+        && screen_orientations.iter().all(|screen| {
+            let expected_path = if screen.is_portrait {
+                target_portrait_path.as_ref()
+            } else {
+                Some(&target_path)
+            };
+
+            if let Some(expected) = expected_path {
+                current_wallpapers
+                    .get(&screen.screen_index)
+                    .map(|actual| actual == expected)
+                    .unwrap_or(false)
+            } else {
+                // 如果没有竖屏壁纸文件，跳过竖屏检查
+                !screen.is_portrait
+            }
+        });
 
     if all_match {
-        info!(target: "wallpaper", "所有显示器壁纸已是目标壁纸 {:?}，跳过设置", target_path);
+        info!(target: "wallpaper", "所有显示器壁纸已正确设置，跳过设置");
 
         // 更新状态但不重新设置
         if let Ok(mut state) = WALLPAPER_STATE.lock() {
@@ -320,8 +372,12 @@ fn set_wallpaper_macos(image_path: &Path) -> Result<()> {
         state.expected = Some(target_path.clone());
     }
 
-    // 设置壁纸
-    set_wallpaper_for_all_screens(image_path)?;
+    // 根据屏幕方向设置壁纸
+    set_wallpaper_for_all_screens_by_orientation(
+        image_path,
+        portrait_image_path,
+        &screen_orientations,
+    )?;
 
     // 验证设置结果：读取各显示器实际壁纸并记录
     let actual = get_all_desktop_images();
@@ -330,30 +386,43 @@ fn set_wallpaper_macos(image_path: &Path) -> Result<()> {
         state.actual_per_screen = actual.clone();
 
         // 检查是否所有显示器都设置成功
-        let all_success = actual.values().all(|path| path == &target_path);
+        let all_success = screen_orientations.iter().all(|screen| {
+            let expected_path = if screen.is_portrait {
+                target_portrait_path.as_ref()
+            } else {
+                Some(&target_path)
+            };
+
+            if let Some(expected) = expected_path {
+                actual
+                    .get(&screen.screen_index)
+                    .map(|actual_path| actual_path == expected)
+                    .unwrap_or(false)
+            } else {
+                // 如果没有竖屏壁纸文件，跳过竖屏检查
+                !screen.is_portrait
+            }
+        });
 
         if all_success {
-            info!(target: "wallpaper", "壁纸设置成功并已验证: {:?} (共 {} 个显示器)",
-                  target_path, actual.len());
+            info!(target: "wallpaper", "壁纸设置成功并已验证: 横屏={:?}, 竖屏={:?} (共 {} 个显示器)",
+                  target_path, target_portrait_path, actual.len());
         } else {
-            warn!(target: "wallpaper", "部分显示器壁纸设置可能失败: 期望={:?}, 实际={:?}",
-                  target_path, actual);
+            warn!(target: "wallpaper", "部分显示器壁纸设置可能失败: 期望横屏={:?}, 期望竖屏={:?}, 实际={:?}",
+                  target_path, target_portrait_path, actual);
         }
     }
 
     Ok(())
 }
 
+/// 根据屏幕方向为所有屏幕设置壁纸
 #[cfg(target_os = "macos")]
-fn set_wallpaper_for_all_screens(image_path: &Path) -> Result<()> {
-    let path_str = image_path
-        .to_str()
-        .ok_or_else(|| anyhow::anyhow!("Invalid path encoding"))?;
-
-    // 创建 NSURL
-    let ns_path = NSString::from_str(path_str);
-    let url = NSURL::fileURLWithPath(&ns_path);
-
+fn set_wallpaper_for_all_screens_by_orientation(
+    landscape_path: &Path,
+    portrait_path: Option<&Path>,
+    screen_orientations: &[ScreenOrientation],
+) -> Result<()> {
     // 获取共享的 NSWorkspace 实例和主线程标记
     // SAFETY: Tauri 在主线程上调用此函数，所有 Objective-C API 调用都是安全的
     unsafe {
@@ -375,6 +444,43 @@ fn set_wallpaper_for_all_screens(image_path: &Path) -> Result<()> {
         for i in 0..screen_count {
             let screen = screens.objectAtIndex(i);
 
+            // 根据屏幕方向选择对应的壁纸文件
+            let wallpaper_path = screen_orientations
+                .iter()
+                .find(|s| s.screen_index == i)
+                .map(|s| {
+                    if s.is_portrait {
+                        if let Some(portrait) = portrait_path {
+                            portrait.to_path_buf()
+                        } else {
+                            warn!(
+                                target: "wallpaper",
+                                "屏幕 {} 是竖屏，但竖屏壁纸不存在，将使用横屏壁纸",
+                                i
+                            );
+                            landscape_path.to_path_buf()
+                        }
+                    } else {
+                        landscape_path.to_path_buf()
+                    }
+                })
+                .unwrap_or_else(|| {
+                    warn!(
+                        target: "wallpaper",
+                        "找不到屏幕 {} 的方向信息，使用横屏壁纸",
+                        i
+                    );
+                    landscape_path.to_path_buf()
+                }); // 如果找不到屏幕信息，默认使用横屏壁纸
+
+            let path_str = wallpaper_path
+                .to_str()
+                .ok_or_else(|| anyhow::anyhow!("Invalid path encoding"))?;
+
+            // 创建 NSURL
+            let ns_path = NSString::from_str(path_str);
+            let url = NSURL::fileURLWithPath(&ns_path);
+
             // 创建空的 options dictionary
             let options = NSDictionary::new();
 
@@ -382,6 +488,17 @@ fn set_wallpaper_for_all_screens(image_path: &Path) -> Result<()> {
             match workspace.setDesktopImageURL_forScreen_options_error(&url, &screen, &options) {
                 Ok(_) => {
                     _success_count += 1;
+                    info!(
+                        target: "wallpaper",
+                        "屏幕 {} ({}) 壁纸设置成功: {:?}",
+                        i,
+                        if screen_orientations.iter().any(|s| s.screen_index == i && s.is_portrait) {
+                            "竖屏"
+                        } else {
+                            "横屏"
+                        },
+                        wallpaper_path
+                    );
                 }
                 Err(error) => {
                     let error_str = error.localizedDescription().to_string();
@@ -399,6 +516,57 @@ fn set_wallpaper_for_all_screens(image_path: &Path) -> Result<()> {
     }
 
     Ok(())
+}
+
+/// 屏幕方向信息
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScreenOrientation {
+    /// 屏幕索引
+    pub screen_index: usize,
+    /// 是否为竖屏（高度 > 宽度）
+    pub is_portrait: bool,
+    /// 屏幕宽度（像素）
+    pub width: f64,
+    /// 屏幕高度（像素）
+    pub height: f64,
+}
+
+/// 获取所有屏幕的方向信息
+#[cfg(target_os = "macos")]
+pub fn get_screen_orientations() -> Vec<ScreenOrientation> {
+    unsafe {
+        let mtm = MainThreadMarker::new_unchecked();
+        let screens = NSScreen::screens(mtm);
+        let screen_count = screens.len();
+
+        let mut result = Vec::new();
+        for i in 0..screen_count {
+            let screen = screens.objectAtIndex(i);
+            let frame = screen.frame();
+
+            // NSRect 包含 origin (x, y) 和 size (width, height)
+            // 我们需要使用 size 来获取宽度和高度
+            let width = frame.size.width;
+            let height = frame.size.height;
+
+            result.push(ScreenOrientation {
+                screen_index: i,
+                is_portrait: height > width,
+                width,
+                height,
+            });
+        }
+        result
+    }
+}
+
+/// 获取所有屏幕的方向信息（非 macOS 平台）
+#[cfg(not(target_os = "macos"))]
+pub fn get_screen_orientations() -> Vec<ScreenOrientation> {
+    // Windows 和 Linux 平台的实现
+    // 这里可以使用 wallpaper crate 或其他系统 API
+    // 暂时返回空数组，后续可以根据需要实现
+    vec![]
 }
 
 // (已移除 get_current_wallpaper 函数以消除未使用警告)
