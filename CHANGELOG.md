@@ -2,6 +2,15 @@
 
 All notable changes to Bing Wallpaper Now will be documented in this file.
 
+## 0.4.21
+
+### Fixed
+
+- 🖥️ **优化大屏幕笔记本布局显示**
+  - 修复 MacBook Pro 16 寸最大化窗口时只显示 3 列的问题
+  - 将 4K 断点从 1920px 降低至 1400px，使大屏幕笔记本能正确显示 4 列壁纸
+  - 优化响应式布局，提升大屏幕设备的显示体验
+
 ## 0.4.20
 
 ### Fixed
