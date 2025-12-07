@@ -9,15 +9,15 @@ export const BREAKPOINTS = {
   NARROW: 750,
   /** 窄窗口（751-1024px）显示2张 */
   TABLET: 1024,
-  /** 4K及以上分辨率（≥1920px）显示4张 */
-  DESKTOP_4K: 1920,
+  /** 大屏幕笔记本及以上（≥1400px）显示4张 */
+  DESKTOP_4K: 1400,
 } as const;
 
 /**
  * 每行卡片数量配置
  */
 export const CARDS_PER_ROW = {
-  /** 4K屏幕每行4张 */
+  /** 大屏幕笔记本及以上每行4张 */
   FOUR_K: 4,
   /** 桌面端每行3张 */
   DESKTOP: 3,

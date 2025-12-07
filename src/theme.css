@@ -19,7 +19,7 @@
   /* 响应式断点 */
   --breakpoint-narrow: 750px;
   --breakpoint-tablet: 1024px;
-  --breakpoint-desktop: 1920px;
+  --breakpoint-desktop: 1400px;
 
   /* 卡片尺寸 */
   --card-image-height: 240px;
