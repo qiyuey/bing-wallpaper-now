@@ -2,6 +2,13 @@
 
 All notable changes to Bing Wallpaper Now will be documented in this file.
 
+## 0.4.22
+
+### Changed
+
+- 📦 **依赖更新**
+  - 更新 vite 从 7.2.6 到 7.2.7，包含最新的构建工具改进
+
 ## 0.4.21
 
 ### Fixed
