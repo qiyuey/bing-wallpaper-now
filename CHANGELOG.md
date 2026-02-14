@@ -2,6 +2,40 @@
 
 All notable changes to Bing Wallpaper Now will be documented in this file.
 
+## 1.0.0
+
+### Added
+
+- 🌍 **Bing 市场（mkt）独立选择**
+  - 壁纸来源市场与 UI 语言解耦，用户可独立选择 Bing 壁纸市场
+  - 支持 38 个市场，覆盖亚太、欧洲、美洲、非洲四大区域
+  - 设置面板新增市场下拉选择器，按区域分组显示
+  - 当 Bing 实际返回的市场与用户选择不同时，显示 mismatch 告警提示
+
+- 🔄 **市场状态统一接口**
+  - 新增 `MarketStatus` 结构体，收敛 mkt 相关状态为单一语义清晰的接口
+  - 持久化 `last_actual_mkt`，解决重启后因 mkt 不匹配导致读不到壁纸的问题
+
+### Changed
+
+- 🏗️ **架构升级至 1.0**
+  - 索引版本从 v4 升级至 v5，`wallpapers_by_language` 重命名为 `mkt`
+  - 自动迁移 v4 索引，备份旧文件为 `index.json.v4.bak`
+  - Node.js 最低版本提升至 25
+
+- 🔧 **代码质量改进**
+  - 改进 App 组件和 index manager 的错误处理
+  - 优化代码格式和结构
+
+### Testing
+
+- ✅ **大幅提升测试覆盖率**
+  - 前端测试从 163 个增长至 201 个（+23%），覆盖率从 89% 提升至 93%
+  - 后端测试从 76 个增长至 115 个（+51%）
+  - 新增 `taglines.ts`、`layout.ts` 测试文件，实现 100% 覆盖
+  - 新增 `WallpaperIndex` 全方法单测、`get_market_groups` 结构验证、`can_skip_api_request` 逻辑测试
+  - 补充 ThemeContext、I18nContext、useBingWallpapers 等模块的边界用例
+
 ## 0.4.22
 
 ### Changed
