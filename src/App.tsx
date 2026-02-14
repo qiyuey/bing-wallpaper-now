@@ -28,6 +28,7 @@ function App() {
     setDesktopWallpaper,
     forceUpdate,
     lastUpdateTime,
+    effectiveMktLabel,
   } = useBingWallpapers();
 
   const { t, actualLanguage } = useI18n();
@@ -285,7 +286,11 @@ function App() {
     try {
       await forceUpdate(true);
     } catch (err) {
-      console.warn("Force update failed:", err);
+      console.error("Force update failed:", err);
+      await showSystemNotification(
+        t("wallpaperError"),
+        String(err),
+      );
     }
   };
 
@@ -298,7 +303,11 @@ function App() {
       await forceUpdate(true);
       // 更新完成后会通过 wallpaper-updated 事件自动刷新列表
     } catch (err) {
-      console.warn("Language change refresh failed:", err);
+      console.error("Language change refresh failed:", err);
+      await showSystemNotification(
+        t("wallpaperError"),
+        String(err),
+      );
     }
   };
 
@@ -375,6 +384,12 @@ function App() {
             {lastUpdateTime && (
               <div className="last-update">
                 {t("lastUpdate")}: {lastUpdateTime}
+                {effectiveMktLabel && (
+                  <>
+                    {" · "}
+                    {t("currentMarket")}: {effectiveMktLabel}
+                  </>
+                )}
               </div>
             )}
           </div>

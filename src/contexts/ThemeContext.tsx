@@ -49,7 +49,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
           throw new Error("settings unavailable");
         }
 
-        const savedTheme = (settings.theme || "system") as Theme;
+        const savedTheme = (settings.theme ?? "system") as Theme;
         setThemeState(savedTheme);
 
         const resolvedTheme =

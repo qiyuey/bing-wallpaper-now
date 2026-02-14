@@ -4,6 +4,8 @@ import { listen } from "@tauri-apps/api/event";
 import {
   LocalWallpaper,
   LocalWallpaperRaw,
+  MarketGroup,
+  MarketStatus,
   normalizeWallpapers,
 } from "../types";
 import { createSafeUnlisten } from "../utils/eventListener";
@@ -21,6 +23,10 @@ export function useBingWallpapers() {
   const [error, setError] = useState<string | null>(null);
 
   const [lastUpdateTime, setLastUpdateTime] = useState<string | null>(null);
+  const [effectiveMkt, setEffectiveMkt] = useState<string | null>(null);
+  const [mktLabelMap, setMktLabelMap] = useState<Map<string, string>>(
+    new Map(),
+  );
 
   /**
    * 获取本地壁纸列表
@@ -65,12 +71,22 @@ export function useBingWallpapers() {
   }, []);
 
   /**
-   * 后端状态轮询：最后更新时间
+   * 后端状态轮询：最后更新时间 + 当前生效的 mkt
    */
   const pollStatus = useCallback(async () => {
     try {
       const last = await invoke<string | null>("get_last_update_time");
       setLastUpdateTime((prev) => (prev === last ? prev : last));
+    } catch {
+      // 忽略错误，防止抖动
+    }
+    try {
+      const status = await invoke<MarketStatus>("get_market_status");
+      if (status?.effective_mkt) {
+        setEffectiveMkt((prev) =>
+          prev === status.effective_mkt ? prev : status.effective_mkt,
+        );
+      }
     } catch {
       // 忽略错误，防止抖动
     }
@@ -105,10 +121,23 @@ export function useBingWallpapers() {
     [fetchLocalWallpapers, pollStatus],
   );
 
-  // 初始加载：只加载本地，并获取一次状态（初始加载显示 loading）
+  // 初始加载：加载本地壁纸、轮询状态、获取市场列表
   useEffect(() => {
     fetchLocalWallpapers(true);
     pollStatus();
+    invoke<MarketGroup[]>("get_supported_mkts")
+      .then((groups) => {
+        const map = new Map<string, string>();
+        for (const group of groups) {
+          for (const market of group.markets) {
+            map.set(market.code, market.label);
+          }
+        }
+        setMktLabelMap(map);
+      })
+      .catch((err) => {
+        console.error("Failed to load supported mkts:", err);
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -219,11 +248,18 @@ export function useBingWallpapers() {
     };
   }, [pollStatus]);
 
+  // 派生值：mkt code → 显示名称（如 "zh-CN" → "中国大陆"）
+  const effectiveMktLabel =
+    effectiveMkt && mktLabelMap.size > 0
+      ? (mktLabelMap.get(effectiveMkt) ?? null)
+      : null;
+
   return {
     localWallpapers,
     loading,
     error,
     lastUpdateTime,
+    effectiveMktLabel,
     fetchLocalWallpapers,
     setDesktopWallpaper,
     forceUpdate,

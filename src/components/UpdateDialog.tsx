@@ -1,6 +1,7 @@
 import { useI18n } from "../i18n/I18nContext";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { invoke } from "@tauri-apps/api/core";
+import { showSystemNotification } from "../utils/notification";
 
 interface UpdateDialogProps {
   version: string;
@@ -23,7 +24,7 @@ export function UpdateDialog({
       onClose();
     } catch (err) {
       console.error("Failed to open release URL:", err);
-      // 错误时也关闭对话框，避免用户困惑
+      await showSystemNotification(t("error"), String(err));
       onClose();
     }
   };
@@ -35,6 +36,7 @@ export function UpdateDialog({
       onClose();
     } catch (err) {
       console.error("Failed to ignore version:", err);
+      await showSystemNotification(t("error"), String(err));
       onClose();
     }
   };

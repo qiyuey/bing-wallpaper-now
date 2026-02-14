@@ -11,7 +11,7 @@
 
 ## Prerequisites
 
-- **Node.js**: 24+ (LTS)
+- **Node.js**: 25+
 - **Rust**: 1.80+ (Edition 2024)
 - **pnpm**: 10.19.0 (specified in `packageManager` field)
 

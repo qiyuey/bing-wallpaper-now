@@ -25,10 +25,10 @@ export interface LocalWallpaper {
  */
 export function normalizeWallpaper(raw: LocalWallpaperRaw): LocalWallpaper {
   return {
-    title: raw.t || "",
-    copyright: raw.c || "",
-    copyright_link: raw.l || "",
-    end_date: raw.d || "",
+    title: raw.t,
+    copyright: raw.c,
+    copyright_link: raw.l,
+    end_date: raw.d,
     urlbase: raw.u,
   };
 }

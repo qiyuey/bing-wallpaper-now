@@ -79,6 +79,21 @@ describe("App", () => {
       if (cmd === "get_last_update_time") {
         return Promise.resolve(null);
       }
+      if (cmd === "get_market_status") {
+        return Promise.resolve({
+          requested_mkt: "zh-CN",
+          effective_mkt: "zh-CN",
+          is_mismatch: false,
+        });
+      }
+      if (cmd === "get_supported_mkts") {
+        return Promise.resolve([
+          {
+            region: "asia_pacific",
+            markets: [{ code: "zh-CN", label: "中国大陆" }],
+          },
+        ]);
+      }
       return Promise.resolve([]);
     });
     // Mock event listener
@@ -235,6 +250,13 @@ describe("App", () => {
           mkt: "zh-CN",
         });
       }
+      if (cmd === "get_market_status") {
+        return Promise.resolve({
+          requested_mkt: "zh-CN",
+          effective_mkt: "zh-CN",
+          is_mismatch: false,
+        });
+      }
       return Promise.resolve(null);
     });
 
@@ -242,6 +264,56 @@ describe("App", () => {
 
     await waitFor(() => {
       expect(screen.getByText(/上次更新:/)).toBeInTheDocument();
+    });
+  });
+
+  it("should display effective mkt label after update time", async () => {
+    const mockTime = "2024-01-01 12:00:00";
+    vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "get_last_update_time") {
+        return Promise.resolve(mockTime);
+      }
+      if (cmd === "get_wallpaper_directory") {
+        return Promise.resolve("/path/to/wallpapers");
+      }
+      if (cmd === "get_local_wallpapers") {
+        return Promise.resolve(mockWallpapersRaw);
+      }
+      if (cmd === "get_settings") {
+        return Promise.resolve({
+          auto_update: true,
+          save_directory: null,
+          launch_at_startup: false,
+          language: "zh-CN",
+          resolved_language: "zh-CN",
+          mkt: "ja-JP",
+        });
+      }
+      if (cmd === "get_market_status") {
+        return Promise.resolve({
+          requested_mkt: "ja-JP",
+          effective_mkt: "ja-JP",
+          is_mismatch: false,
+        });
+      }
+      if (cmd === "get_supported_mkts") {
+        return Promise.resolve([
+          {
+            region: "asia_pacific",
+            markets: [
+              { code: "ja-JP", label: "日本" },
+              { code: "zh-CN", label: "中国大陆" },
+            ],
+          },
+        ]);
+      }
+      return Promise.resolve(null);
+    });
+
+    renderWithTheme(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/日本/)).toBeInTheDocument();
     });
   });
 
@@ -452,8 +524,8 @@ describe("App", () => {
   });
 
   it("should handle force update error gracefully", async () => {
-    const consoleWarnSpy = vi
-      .spyOn(console, "warn")
+    const consoleErrorSpy = vi
+      .spyOn(console, "error")
       .mockImplementation(() => {});
 
     vi.mocked(invoke).mockImplementation((cmd: string) => {
@@ -489,13 +561,13 @@ describe("App", () => {
     fireEvent.click(refreshButton);
 
     await waitFor(() => {
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
         "Force update failed:",
         expect.any(Error),
       );
     });
 
-    consoleWarnSpy.mockRestore();
+    consoleErrorSpy.mockRestore();
   });
 
   it("should handle open folder error", async () => {

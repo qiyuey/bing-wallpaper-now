@@ -77,6 +77,7 @@ export const translations = {
 
     // 状态
     lastUpdate: "上次更新",
+    currentMarket: "市场",
     refresh: "更新",
 
     // 版本检查
@@ -175,6 +176,7 @@ export const translations = {
 
     // 状态
     lastUpdate: "Last Update",
+    currentMarket: "Market",
     refresh: "Refresh",
 
     // 版本检查

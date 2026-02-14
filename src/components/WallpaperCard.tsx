@@ -4,6 +4,7 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useI18n } from "../i18n/I18nContext";
+import { showSystemNotification } from "../utils/notification";
 
 interface WallpaperCardProps {
   wallpaper: LocalWallpaper;
@@ -74,9 +75,10 @@ export const WallpaperCard = memo(
           await openUrl(wallpaper.copyright_link);
         } catch (err) {
           console.error("Failed to open link:", err);
+          await showSystemNotification(t("error"), String(err));
         }
       }
-    }, [wallpaper.copyright_link]);
+    }, [wallpaper.copyright_link, t]);
 
     const handleSetWallpaper = useCallback(() => {
       onSetWallpaper(wallpaper);
@@ -112,8 +114,8 @@ export const WallpaperCard = memo(
 
     // 解析标题和副标题（使用 useMemo 缓存结果）
     const { title, subtitle } = useMemo(() => {
-      const title = wallpaper.title || "";
-      const copyright = wallpaper.copyright || "";
+      const title = wallpaper.title;
+      const copyright = wallpaper.copyright;
 
       // 从 copyright 中提取括号外的内容作为副标题
       const match = copyright.match(/^([^(]+?)(?:\s*\(([^)]+)\))?$/);

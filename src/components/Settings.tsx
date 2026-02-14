@@ -138,7 +138,7 @@ export function Settings({
       const selected = await open({
         directory: true,
         multiple: false,
-        defaultPath: settings.save_directory || defaultDir,
+        defaultPath: settings.save_directory ?? defaultDir,
         title: t("selectDirectory"),
       });
 

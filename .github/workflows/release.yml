@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: "24"
+  NODE_VERSION: "25"
   RUST_BACKTRACE: short
   CARGO_INCREMENTAL: 0
   # Faster compile (trade a little optimization time for speed)

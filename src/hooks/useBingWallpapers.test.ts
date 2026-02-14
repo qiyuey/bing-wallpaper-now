@@ -159,6 +159,13 @@ describe("useBingWallpapers", () => {
       if (cmd === "get_last_update_time") {
         return Promise.resolve(mockTime);
       }
+      if (cmd === "get_market_status") {
+        return Promise.resolve({
+          requested_mkt: "zh-CN",
+          effective_mkt: "zh-CN",
+          is_mismatch: false,
+        });
+      }
       return Promise.resolve([]);
     });
 
@@ -166,6 +173,33 @@ describe("useBingWallpapers", () => {
 
     await waitFor(() => {
       expect(result.current.lastUpdateTime).toBe(mockTime);
+    });
+  });
+
+  it("should fetch effectiveMktLabel from backend with label", async () => {
+    vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "get_market_status") {
+        return Promise.resolve({
+          requested_mkt: "en-US",
+          effective_mkt: "en-US",
+          is_mismatch: false,
+        });
+      }
+      if (cmd === "get_supported_mkts") {
+        return Promise.resolve([
+          {
+            region: "americas",
+            markets: [{ code: "en-US", label: "United States" }],
+          },
+        ]);
+      }
+      return Promise.resolve([]);
+    });
+
+    const { result } = renderHook(() => useBingWallpapers());
+
+    await waitFor(() => {
+      expect(result.current.effectiveMktLabel).toBe("United States");
     });
   });
 
