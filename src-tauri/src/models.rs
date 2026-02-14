@@ -944,11 +944,13 @@ mod tests {
 
     #[test]
     fn test_app_runtime_state_serialization() {
-        let mut state = AppRuntimeState::default();
-        state.last_successful_update = Some("2024-01-01T12:00:00+08:00".to_string());
-        state.last_actual_mkt = Some("zh-CN".to_string());
-        state.autostart_notification_shown = true;
-        state.ignored_update_version = Some("1.0.0".to_string());
+        let state = AppRuntimeState {
+            last_successful_update: Some("2024-01-01T12:00:00+08:00".to_string()),
+            last_actual_mkt: Some("zh-CN".to_string()),
+            autostart_notification_shown: true,
+            ignored_update_version: Some("1.0.0".to_string()),
+            ..Default::default()
+        };
 
         let json = serde_json::to_string(&state).unwrap();
         let deserialized: AppRuntimeState = serde_json::from_str(&json).unwrap();
