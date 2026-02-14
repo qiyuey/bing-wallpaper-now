@@ -69,7 +69,9 @@ describe("layout", () => {
 
       // At TABLET boundary
       expect(getCardsPerRow(BREAKPOINTS.TABLET)).toBe(CARDS_PER_ROW.NARROW);
-      expect(getCardsPerRow(BREAKPOINTS.TABLET + 1)).toBe(CARDS_PER_ROW.DESKTOP);
+      expect(getCardsPerRow(BREAKPOINTS.TABLET + 1)).toBe(
+        CARDS_PER_ROW.DESKTOP,
+      );
 
       // At DESKTOP_4K boundary
       expect(getCardsPerRow(BREAKPOINTS.DESKTOP_4K - 1)).toBe(

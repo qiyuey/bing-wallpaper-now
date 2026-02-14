@@ -294,10 +294,7 @@ mod tests {
     // ─── can_skip_api_request 纯逻辑路径测试 ───
 
     /// 辅助函数：创建默认的 AppRuntimeState
-    fn make_state(
-        last_check: Option<String>,
-        last_update: Option<String>,
-    ) -> AppRuntimeState {
+    fn make_state(last_check: Option<String>, last_update: Option<String>) -> AppRuntimeState {
         AppRuntimeState {
             last_successful_update: last_update,
             last_check_time: last_check,
@@ -333,7 +330,10 @@ mod tests {
         let state = make_state(Some(old_time), None);
         let dir = std::env::temp_dir();
         let result = can_skip_api_request(&state, &dir, "zh-CN").await;
-        assert!(!result, "Should not skip when last check was over 5 minutes ago");
+        assert!(
+            !result,
+            "Should not skip when last check was over 5 minutes ago"
+        );
     }
 
     #[tokio::test]
@@ -344,7 +344,10 @@ mod tests {
         let state = make_state(Some(yesterday_late), None);
         let dir = std::env::temp_dir();
         let result = can_skip_api_request(&state, &dir, "zh-CN").await;
-        assert!(!result, "Should not skip when last check was on a different day");
+        assert!(
+            !result,
+            "Should not skip when last check was on a different day"
+        );
     }
 
     #[tokio::test]
@@ -354,6 +357,9 @@ mod tests {
         let state = make_state(Some(future_time), None);
         let dir = std::env::temp_dir();
         let result = can_skip_api_request(&state, &dir, "zh-CN").await;
-        assert!(!result, "Should not skip when system time has gone backwards");
+        assert!(
+            !result,
+            "Should not skip when system time has gone backwards"
+        );
     }
 }

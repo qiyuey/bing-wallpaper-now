@@ -276,7 +276,7 @@ describe("useBingWallpapers", () => {
       value: "visible",
       writable: true,
     });
-    document.dispatchEvent(new Event("visibilitychange"));
+    document.dispatchEvent(new globalThis.Event("visibilitychange"));
 
     // Wait for any async operations
     await vi.advanceTimersByTimeAsync(100);
@@ -321,7 +321,7 @@ describe("useBingWallpapers", () => {
     vi.advanceTimersByTime(11000);
 
     // Fire focus event
-    window.dispatchEvent(new Event("focus"));
+    window.dispatchEvent(new globalThis.Event("focus"));
 
     // Wait for any async operations
     await vi.advanceTimersByTimeAsync(100);
