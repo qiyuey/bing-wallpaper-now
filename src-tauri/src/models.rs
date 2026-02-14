@@ -585,4 +585,404 @@ mod tests {
             "Missing mkt should default to empty string"
         );
     }
+
+    // ─── WallpaperIndex 方法测试 ───
+
+    /// 辅助函数：创建一个 LocalWallpaper
+    fn make_wallpaper(end_date: &str, title: &str) -> LocalWallpaper {
+        LocalWallpaper {
+            title: title.to_string(),
+            copyright: format!("Copyright for {}", title),
+            copyright_link: "https://example.com".to_string(),
+            end_date: end_date.to_string(),
+            urlbase: format!("/th?id=OHR.{}", title),
+        }
+    }
+
+    #[test]
+    fn test_wallpaper_index_new() {
+        let index = WallpaperIndex::new();
+        assert_eq!(index.version, WallpaperIndex::VERSION);
+        assert!(index.mkt.is_empty());
+    }
+
+    #[test]
+    fn test_wallpaper_index_default() {
+        let index = WallpaperIndex::default();
+        assert_eq!(index.version, WallpaperIndex::VERSION);
+        assert!(index.mkt.is_empty());
+    }
+
+    #[test]
+    fn test_get_wallpapers_for_mkt_empty() {
+        let index = WallpaperIndex::new();
+        let wallpapers = index.get_wallpapers_for_mkt("zh-CN");
+        assert!(wallpapers.is_empty());
+    }
+
+    #[test]
+    fn test_get_wallpapers_for_mkt_nonexistent() {
+        let mut index = WallpaperIndex::new();
+        index.upsert_wallpapers_for_mkt(
+            "zh-CN",
+            vec![make_wallpaper("20240102", "Test")],
+        );
+        // 查询不存在的 mkt 应返回空
+        let wallpapers = index.get_wallpapers_for_mkt("en-US");
+        assert!(wallpapers.is_empty());
+    }
+
+    #[test]
+    fn test_get_wallpapers_for_mkt_returns_sorted_desc() {
+        let mut index = WallpaperIndex::new();
+        index.upsert_wallpapers_for_mkt(
+            "zh-CN",
+            vec![
+                make_wallpaper("20240101", "Old"),
+                make_wallpaper("20240103", "New"),
+                make_wallpaper("20240102", "Mid"),
+            ],
+        );
+
+        let wallpapers = index.get_wallpapers_for_mkt("zh-CN");
+        assert_eq!(wallpapers.len(), 3);
+        assert_eq!(wallpapers[0].end_date, "20240103"); // 最新在前
+        assert_eq!(wallpapers[1].end_date, "20240102");
+        assert_eq!(wallpapers[2].end_date, "20240101");
+    }
+
+    #[test]
+    fn test_upsert_wallpapers_for_mkt_empty_vec() {
+        let mut index = WallpaperIndex::new();
+        index.upsert_wallpapers_for_mkt("zh-CN", vec![]);
+        // 空插入不应创建 mkt 条目
+        assert!(index.mkt.is_empty());
+    }
+
+    #[test]
+    fn test_upsert_wallpapers_for_mkt_dedup_by_end_date() {
+        let mut index = WallpaperIndex::new();
+        index.upsert_wallpapers_for_mkt(
+            "zh-CN",
+            vec![
+                make_wallpaper("20240102", "First"),
+                make_wallpaper("20240102", "Second"), // 同一 end_date
+            ],
+        );
+
+        let wallpapers = index.get_wallpapers_for_mkt("zh-CN");
+        assert_eq!(wallpapers.len(), 1);
+        // 后插入的应覆盖先插入的
+        assert_eq!(wallpapers[0].title, "Second");
+    }
+
+    #[test]
+    fn test_upsert_wallpapers_for_mkt_update_existing() {
+        let mut index = WallpaperIndex::new();
+        index.upsert_wallpapers_for_mkt(
+            "zh-CN",
+            vec![make_wallpaper("20240102", "Original")],
+        );
+
+        // 更新同一 end_date 的壁纸
+        index.upsert_wallpapers_for_mkt(
+            "zh-CN",
+            vec![make_wallpaper("20240102", "Updated")],
+        );
+
+        let wallpapers = index.get_wallpapers_for_mkt("zh-CN");
+        assert_eq!(wallpapers.len(), 1);
+        assert_eq!(wallpapers[0].title, "Updated");
+    }
+
+    #[test]
+    fn test_upsert_wallpapers_for_mkt_sorts_mkt_keys() {
+        let mut index = WallpaperIndex::new();
+        index.upsert_wallpapers_for_mkt(
+            "zh-CN",
+            vec![make_wallpaper("20240102", "ZH")],
+        );
+        index.upsert_wallpapers_for_mkt(
+            "en-US",
+            vec![make_wallpaper("20240102", "EN")],
+        );
+
+        let keys: Vec<&String> = index.mkt.keys().collect();
+        // 外层 mkt 应按字典序排列
+        assert_eq!(keys, vec!["en-US", "zh-CN"]);
+    }
+
+    #[test]
+    fn test_sort_all() {
+        let mut index = WallpaperIndex::new();
+
+        // 先插入 zh-CN 再插入 en-US
+        index.upsert_wallpapers_for_mkt(
+            "zh-CN",
+            vec![
+                make_wallpaper("20240101", "Old"),
+                make_wallpaper("20240103", "New"),
+            ],
+        );
+        index.upsert_wallpapers_for_mkt(
+            "en-US",
+            vec![
+                make_wallpaper("20240101", "Old EN"),
+                make_wallpaper("20240102", "Mid EN"),
+            ],
+        );
+
+        // sort_all 应对每个 mkt 内按日期降序，外层按 mkt 字典序
+        index.sort_all();
+
+        let keys: Vec<&String> = index.mkt.keys().collect();
+        assert_eq!(keys, vec!["en-US", "zh-CN"]);
+
+        // 验证 zh-CN 内部顺序
+        let zh_dates: Vec<&String> = index.mkt["zh-CN"].keys().collect();
+        assert_eq!(zh_dates, vec!["20240103", "20240101"]);
+
+        // 验证 en-US 内部顺序
+        let en_dates: Vec<&String> = index.mkt["en-US"].keys().collect();
+        assert_eq!(en_dates, vec!["20240102", "20240101"]);
+    }
+
+    #[test]
+    fn test_get_all_wallpapers_unique_single_mkt() {
+        let mut index = WallpaperIndex::new();
+        index.upsert_wallpapers_for_mkt(
+            "zh-CN",
+            vec![
+                make_wallpaper("20240101", "Day1"),
+                make_wallpaper("20240102", "Day2"),
+                make_wallpaper("20240103", "Day3"),
+            ],
+        );
+
+        let unique = index.get_all_wallpapers_unique();
+        assert_eq!(unique.len(), 3);
+        // 应按 end_date 降序排列
+        assert_eq!(unique[0].end_date, "20240103");
+        assert_eq!(unique[1].end_date, "20240102");
+        assert_eq!(unique[2].end_date, "20240101");
+    }
+
+    #[test]
+    fn test_get_all_wallpapers_unique_cross_mkt_dedup() {
+        let mut index = WallpaperIndex::new();
+        index.upsert_wallpapers_for_mkt(
+            "zh-CN",
+            vec![
+                make_wallpaper("20240101", "ZH Day1"),
+                make_wallpaper("20240102", "ZH Day2"),
+            ],
+        );
+        index.upsert_wallpapers_for_mkt(
+            "en-US",
+            vec![
+                make_wallpaper("20240102", "EN Day2"), // 与 zh-CN 同一天
+                make_wallpaper("20240103", "EN Day3"),
+            ],
+        );
+
+        let unique = index.get_all_wallpapers_unique();
+        // 应只有 3 个唯一的 end_date
+        assert_eq!(unique.len(), 3);
+
+        // 20240102 的壁纸应来自字典序靠前的 mkt (en-US < zh-CN)
+        let day2 = unique.iter().find(|w| w.end_date == "20240102").unwrap();
+        assert_eq!(day2.title, "EN Day2");
+    }
+
+    #[test]
+    fn test_get_all_wallpapers_unique_empty() {
+        let index = WallpaperIndex::new();
+        let unique = index.get_all_wallpapers_unique();
+        assert!(unique.is_empty());
+    }
+
+    #[test]
+    fn test_limit_index_size_no_op_when_under_limit() {
+        let mut index = WallpaperIndex::new();
+        index.upsert_wallpapers_for_mkt(
+            "zh-CN",
+            vec![
+                make_wallpaper("20240101", "Day1"),
+                make_wallpaper("20240102", "Day2"),
+            ],
+        );
+
+        index.limit_index_size(10);
+
+        // 不超过限制，应保持不变
+        let wallpapers = index.get_wallpapers_for_mkt("zh-CN");
+        assert_eq!(wallpapers.len(), 2);
+    }
+
+    #[test]
+    fn test_limit_index_size_exact_limit() {
+        let mut index = WallpaperIndex::new();
+        index.upsert_wallpapers_for_mkt(
+            "zh-CN",
+            vec![
+                make_wallpaper("20240101", "Day1"),
+                make_wallpaper("20240102", "Day2"),
+            ],
+        );
+
+        index.limit_index_size(2);
+
+        // 恰好等于限制，应保持不变
+        let wallpapers = index.get_wallpapers_for_mkt("zh-CN");
+        assert_eq!(wallpapers.len(), 2);
+    }
+
+    #[test]
+    fn test_limit_index_size_removes_oldest() {
+        let mut index = WallpaperIndex::new();
+        index.upsert_wallpapers_for_mkt(
+            "zh-CN",
+            vec![
+                make_wallpaper("20240101", "Day1"),
+                make_wallpaper("20240102", "Day2"),
+                make_wallpaper("20240103", "Day3"),
+                make_wallpaper("20240104", "Day4"),
+            ],
+        );
+
+        index.limit_index_size(2);
+
+        let wallpapers = index.get_wallpapers_for_mkt("zh-CN");
+        assert_eq!(wallpapers.len(), 2);
+        // 应保留最新的两个
+        assert_eq!(wallpapers[0].end_date, "20240104");
+        assert_eq!(wallpapers[1].end_date, "20240103");
+    }
+
+    #[test]
+    fn test_limit_index_size_cross_mkt() {
+        let mut index = WallpaperIndex::new();
+        index.upsert_wallpapers_for_mkt(
+            "zh-CN",
+            vec![
+                make_wallpaper("20240101", "ZH Old"),
+                make_wallpaper("20240103", "ZH New"),
+            ],
+        );
+        index.upsert_wallpapers_for_mkt(
+            "en-US",
+            vec![
+                make_wallpaper("20240101", "EN Old"),
+                make_wallpaper("20240102", "EN Mid"),
+            ],
+        );
+
+        // 唯一日期共 3 个：20240101, 20240102, 20240103
+        // 保留最新 2 个（20240103, 20240102），删除 20240101
+        index.limit_index_size(2);
+
+        let zh = index.get_wallpapers_for_mkt("zh-CN");
+        let en = index.get_wallpapers_for_mkt("en-US");
+
+        // zh-CN: 只保留 20240103（20240101 被删除）
+        assert_eq!(zh.len(), 1);
+        assert_eq!(zh[0].end_date, "20240103");
+
+        // en-US: 只保留 20240102（20240101 被删除）
+        assert_eq!(en.len(), 1);
+        assert_eq!(en[0].end_date, "20240102");
+    }
+
+    #[test]
+    fn test_limit_index_size_removes_empty_mkt() {
+        let mut index = WallpaperIndex::new();
+        index.upsert_wallpapers_for_mkt(
+            "zh-CN",
+            vec![make_wallpaper("20240103", "ZH New")],
+        );
+        index.upsert_wallpapers_for_mkt(
+            "en-US",
+            vec![make_wallpaper("20240101", "EN Old")],
+        );
+
+        // 唯一日期: 20240103, 20240101，保留最新 1 个
+        index.limit_index_size(1);
+
+        // en-US 的壁纸全部被删除，应被移除
+        assert!(!index.mkt.contains_key("en-US"));
+        // zh-CN 保留
+        assert_eq!(index.get_wallpapers_for_mkt("zh-CN").len(), 1);
+    }
+
+    #[test]
+    fn test_limit_index_size_empty_index() {
+        let mut index = WallpaperIndex::new();
+        index.limit_index_size(5);
+        assert!(index.mkt.is_empty());
+    }
+
+    #[test]
+    fn test_wallpaper_index_serialization_roundtrip() {
+        let mut index = WallpaperIndex::new();
+        index.upsert_wallpapers_for_mkt(
+            "zh-CN",
+            vec![make_wallpaper("20240102", "Test")],
+        );
+
+        let json = serde_json::to_string(&index).unwrap();
+        let deserialized: WallpaperIndex = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(deserialized.version, index.version);
+        assert_eq!(deserialized.mkt.len(), 1);
+        let wallpapers = deserialized.get_wallpapers_for_mkt("zh-CN");
+        assert_eq!(wallpapers.len(), 1);
+        assert_eq!(wallpapers[0].title, "Test");
+    }
+
+    #[test]
+    fn test_market_status_serialization() {
+        let status = MarketStatus {
+            requested_mkt: "en-US".to_string(),
+            effective_mkt: "zh-CN".to_string(),
+            is_mismatch: true,
+        };
+
+        let json = serde_json::to_string(&status).unwrap();
+        let deserialized: MarketStatus = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(deserialized.requested_mkt, "en-US");
+        assert_eq!(deserialized.effective_mkt, "zh-CN");
+        assert!(deserialized.is_mismatch);
+    }
+
+    #[test]
+    fn test_app_runtime_state_default() {
+        let state = AppRuntimeState::default();
+        assert!(state.last_successful_update.is_none());
+        assert!(state.last_check_time.is_none());
+        assert!(state.manually_set_latest_wallpapers.is_empty());
+        assert!(state.ignored_update_version.is_none());
+        assert!(!state.autostart_notification_shown);
+        assert!(state.last_actual_mkt.is_none());
+    }
+
+    #[test]
+    fn test_app_runtime_state_serialization() {
+        let mut state = AppRuntimeState::default();
+        state.last_successful_update = Some("2024-01-01T12:00:00+08:00".to_string());
+        state.last_actual_mkt = Some("zh-CN".to_string());
+        state.autostart_notification_shown = true;
+        state.ignored_update_version = Some("1.0.0".to_string());
+
+        let json = serde_json::to_string(&state).unwrap();
+        let deserialized: AppRuntimeState = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(
+            deserialized.last_successful_update,
+            Some("2024-01-01T12:00:00+08:00".to_string())
+        );
+        assert_eq!(deserialized.last_actual_mkt, Some("zh-CN".to_string()));
+        assert!(deserialized.autostart_notification_shown);
+        assert_eq!(deserialized.ignored_update_version, Some("1.0.0".to_string()));
+    }
 }

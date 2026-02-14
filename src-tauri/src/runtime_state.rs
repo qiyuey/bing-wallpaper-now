@@ -290,4 +290,70 @@ mod tests {
         // Future date should be considered "already updated today"
         assert!(!should_update_today(&state));
     }
+
+    // ─── can_skip_api_request 纯逻辑路径测试 ───
+
+    /// 辅助函数：创建默认的 AppRuntimeState
+    fn make_state(
+        last_check: Option<String>,
+        last_update: Option<String>,
+    ) -> AppRuntimeState {
+        AppRuntimeState {
+            last_successful_update: last_update,
+            last_check_time: last_check,
+            manually_set_latest_wallpapers: std::collections::HashMap::new(),
+            ignored_update_version: None,
+            autostart_notification_shown: false,
+            last_actual_mkt: None,
+        }
+    }
+
+    #[tokio::test]
+    async fn test_can_skip_no_last_check_time() {
+        // 没有 last_check_time 时，不应跳过
+        let state = make_state(None, None);
+        let dir = std::env::temp_dir();
+        let result = can_skip_api_request(&state, &dir, "zh-CN").await;
+        assert!(!result, "Should not skip when no last_check_time");
+    }
+
+    #[tokio::test]
+    async fn test_can_skip_invalid_last_check_time() {
+        // last_check_time 格式无效时，不应跳过
+        let state = make_state(Some("invalid-time".to_string()), None);
+        let dir = std::env::temp_dir();
+        let result = can_skip_api_request(&state, &dir, "zh-CN").await;
+        assert!(!result, "Should not skip when last_check_time is invalid");
+    }
+
+    #[tokio::test]
+    async fn test_can_skip_old_check_time() {
+        // 上次检查超过 5 分钟，不应跳过
+        let old_time = (Local::now() - Duration::minutes(10)).to_rfc3339();
+        let state = make_state(Some(old_time), None);
+        let dir = std::env::temp_dir();
+        let result = can_skip_api_request(&state, &dir, "zh-CN").await;
+        assert!(!result, "Should not skip when last check was over 5 minutes ago");
+    }
+
+    #[tokio::test]
+    async fn test_can_skip_cross_day() {
+        // 跨天场景：即使不足 5 分钟，也不应跳过
+        // 模拟上次检查在昨天 23:59
+        let yesterday_late = (Local::now() - Duration::days(1)).to_rfc3339();
+        let state = make_state(Some(yesterday_late), None);
+        let dir = std::env::temp_dir();
+        let result = can_skip_api_request(&state, &dir, "zh-CN").await;
+        assert!(!result, "Should not skip when last check was on a different day");
+    }
+
+    #[tokio::test]
+    async fn test_can_skip_time_regression() {
+        // 系统时间回退场景
+        let future_time = (Local::now() + Duration::hours(1)).to_rfc3339();
+        let state = make_state(Some(future_time), None);
+        let dir = std::env::temp_dir();
+        let result = can_skip_api_request(&state, &dir, "zh-CN").await;
+        assert!(!result, "Should not skip when system time has gone backwards");
+    }
 }

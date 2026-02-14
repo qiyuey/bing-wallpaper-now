@@ -493,4 +493,144 @@ mod tests {
             "SUPPORTED_MKTS contains duplicates"
         );
     }
+
+    // ─── detect_system_language 测试 ───
+
+    #[test]
+    fn test_detect_system_language_returns_valid() {
+        // 不管系统语言如何，结果应是 zh-CN 或 en-US
+        let result = detect_system_language();
+        assert!(
+            result == "zh-CN" || result == "en-US",
+            "detect_system_language should return zh-CN or en-US, got: {}",
+            result
+        );
+    }
+
+    // ─── get_market_groups 测试 ───
+
+    #[test]
+    fn test_get_market_groups_structure() {
+        let groups = get_market_groups();
+
+        // 应有 4 个区域分组
+        assert_eq!(groups.len(), 4);
+
+        // 验证区域 ID
+        let regions: Vec<&str> = groups.iter().map(|g| g.region).collect();
+        assert!(regions.contains(&"asia_pacific"));
+        assert!(regions.contains(&"europe"));
+        assert!(regions.contains(&"americas"));
+        assert!(regions.contains(&"africa"));
+    }
+
+    #[test]
+    fn test_get_market_groups_contains_all_supported_mkts() {
+        let groups = get_market_groups();
+
+        // 收集所有 market group 中的 code
+        let group_codes: Vec<&str> = groups
+            .iter()
+            .flat_map(|g| g.markets.iter().map(|m| m.code))
+            .collect();
+
+        // 每个 SUPPORTED_MKTS 中的 mkt 都应在 market groups 中
+        for &mkt in SUPPORTED_MKTS {
+            assert!(
+                group_codes.contains(&mkt),
+                "SUPPORTED_MKTS contains {} but it's not in any market group",
+                mkt
+            );
+        }
+
+        // market groups 中的每个 code 都应在 SUPPORTED_MKTS 中
+        for code in &group_codes {
+            assert!(
+                SUPPORTED_MKTS.contains(code),
+                "Market group contains {} but it's not in SUPPORTED_MKTS",
+                code
+            );
+        }
+    }
+
+    #[test]
+    fn test_get_market_groups_no_duplicate_codes() {
+        let groups = get_market_groups();
+
+        let codes: Vec<&str> = groups
+            .iter()
+            .flat_map(|g| g.markets.iter().map(|m| m.code))
+            .collect();
+
+        let mut sorted = codes.clone();
+        sorted.sort();
+        sorted.dedup();
+        assert_eq!(
+            sorted.len(),
+            codes.len(),
+            "Market groups contain duplicate codes"
+        );
+    }
+
+    #[test]
+    fn test_get_market_groups_non_empty_labels() {
+        let groups = get_market_groups();
+
+        for group in &groups {
+            assert!(!group.region.is_empty(), "Group region should not be empty");
+            assert!(
+                !group.markets.is_empty(),
+                "Group {} should have at least one market",
+                group.region
+            );
+            for market in &group.markets {
+                assert!(
+                    !market.label.is_empty(),
+                    "Market {} should have a non-empty label",
+                    market.code
+                );
+                assert!(
+                    !market.code.is_empty(),
+                    "Market should have a non-empty code"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_get_market_groups_code_format() {
+        let groups = get_market_groups();
+
+        for group in &groups {
+            for market in &group.markets {
+                // 每个 code 应符合 xx-YY 格式
+                assert!(
+                    market.code.contains('-'),
+                    "Market code {} should contain '-'",
+                    market.code
+                );
+                let parts: Vec<&str> = market.code.split('-').collect();
+                assert_eq!(
+                    parts.len(),
+                    2,
+                    "Market code {} should have exactly 2 parts",
+                    market.code
+                );
+                // 语言部分应为小写
+                assert_eq!(
+                    parts[0],
+                    parts[0].to_lowercase(),
+                    "Language part of {} should be lowercase",
+                    market.code
+                );
+                // 国家部分应为大写
+                assert_eq!(
+                    parts[1],
+                    parts[1].to_uppercase(),
+                    "Country part of {} should be uppercase",
+                    market.code
+                );
+            }
+        }
+    }
 }

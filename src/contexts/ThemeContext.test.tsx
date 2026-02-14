@@ -339,6 +339,119 @@ describe("ThemeContext", () => {
     consoleErrorSpy.mockRestore();
   });
 
+  it("should resolve system theme to dark when system prefers dark", async () => {
+    // Override matchMedia to return dark preference
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      value: vi.fn().mockImplementation((query: string) => ({
+        matches: true, // Dark mode
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    });
+
+    const { result } = renderHook(() => useTheme(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.theme).toBe("system");
+      expect(result.current.actualTheme).toBe("dark");
+    });
+  });
+
+  it("should handle invalid settings object from backend", async () => {
+    const consoleErrorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+
+    vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "get_settings") {
+        return Promise.resolve(null); // Invalid settings
+      }
+      return Promise.resolve(null);
+    });
+
+    const { result } = renderHook(() => useTheme(), { wrapper });
+
+    await waitFor(() => {
+      expect(consoleErrorSpy).toHaveBeenCalled();
+    });
+
+    // Should fallback to system theme
+    expect(result.current.theme).toBe("system");
+
+    consoleErrorSpy.mockRestore();
+  });
+
+  it("should update theme when system theme changes and theme is system", async () => {
+    // Override matchMedia with a captured handler approach
+    let capturedHandler: ((e: { matches: boolean }) => void) | null = null;
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      value: vi.fn().mockImplementation((query: string) => ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(
+          (event: string, handler: (e: { matches: boolean }) => void) => {
+            if (event === "change") {
+              capturedHandler = handler;
+            }
+          },
+        ),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    });
+
+    const { result } = renderHook(() => useTheme(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.theme).toBe("system");
+      expect(result.current.actualTheme).toBe("light");
+    });
+
+    expect(capturedHandler).not.toBeNull();
+
+    // Simulate system theme changing to dark
+    act(() => {
+      capturedHandler!({ matches: true });
+    });
+
+    expect(result.current.actualTheme).toBe("dark");
+    expect(document.documentElement.setAttribute).toHaveBeenCalledWith(
+      "data-theme",
+      "dark",
+    );
+  });
+
+  it("should apply theme to UI without saving to backend via applyThemeToUI", async () => {
+    const { result } = renderHook(() => useTheme(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.theme).toBe("system");
+    });
+
+    const invokeCallsBefore = vi.mocked(invoke).mock.calls.length;
+
+    act(() => {
+      result.current.applyThemeToUI("dark");
+    });
+
+    expect(result.current.theme).toBe("dark");
+    expect(result.current.actualTheme).toBe("dark");
+
+    // applyThemeToUI should NOT call invoke (no backend save)
+    const invokeCallsAfter = vi.mocked(invoke).mock.calls.length;
+    expect(invokeCallsAfter).toBe(invokeCallsBefore);
+  });
+
   it("should cycle through all theme options", async () => {
     const { result } = renderHook(() => useTheme(), { wrapper });
 

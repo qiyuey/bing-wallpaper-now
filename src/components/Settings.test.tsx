@@ -306,7 +306,7 @@ describe("Settings", () => {
     });
   });
 
-  it("should toggle theme selection", async () => {
+  it("should toggle theme selection to light", async () => {
     renderWithTheme(<Settings onClose={mockOnClose} />);
 
     // Wait for component to render
@@ -320,6 +320,25 @@ describe("Settings", () => {
       expect(mockUpdateSettings).toHaveBeenCalledWith(
         expect.objectContaining({
           theme: "light",
+        }),
+      );
+    });
+  });
+
+  it("should toggle theme selection to dark", async () => {
+    renderWithTheme(<Settings onClose={mockOnClose} />);
+
+    // Wait for component to render
+    await screen.findByText(/选择文件夹/i, {}, { timeout: 3000 });
+
+    // Find and click dark theme radio
+    const darkThemeRadio = screen.getByLabelText(/深色/i) as HTMLInputElement; // eslint-disable-line no-undef
+    fireEvent.click(darkThemeRadio);
+
+    await waitFor(() => {
+      expect(mockUpdateSettings).toHaveBeenCalledWith(
+        expect.objectContaining({
+          theme: "dark",
         }),
       );
     });

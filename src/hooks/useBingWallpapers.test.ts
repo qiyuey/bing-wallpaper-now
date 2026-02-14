@@ -237,6 +237,100 @@ describe("useBingWallpapers", () => {
     ]);
   });
 
+  it("should poll status when page becomes visible", async () => {
+    vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "get_local_wallpapers") {
+        return Promise.resolve([]);
+      }
+      if (cmd === "get_last_update_time") {
+        return Promise.resolve(null);
+      }
+      if (cmd === "get_update_in_progress") {
+        return Promise.resolve(false);
+      }
+      if (cmd === "get_market_status") {
+        return Promise.resolve({
+          requested_mkt: "zh-CN",
+          effective_mkt: "zh-CN",
+          is_mismatch: false,
+        });
+      }
+      return Promise.resolve(undefined);
+    });
+
+    const { result } = renderHook(() => useBingWallpapers());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    const callsBefore = vi.mocked(invoke).mock.calls.length;
+
+    // Simulate visibility change to "visible" after some time
+    // First make the time gap > 10s so pollWhenActive triggers
+    vi.useFakeTimers();
+    vi.advanceTimersByTime(11000);
+
+    // Fire visibilitychange event
+    Object.defineProperty(document, "visibilityState", {
+      value: "visible",
+      writable: true,
+    });
+    document.dispatchEvent(new Event("visibilitychange"));
+
+    // Wait for any async operations
+    await vi.advanceTimersByTimeAsync(100);
+    vi.useRealTimers();
+
+    const callsAfter = vi.mocked(invoke).mock.calls.length;
+    // Should have made additional invoke calls for polling
+    expect(callsAfter).toBeGreaterThan(callsBefore);
+  });
+
+  it("should poll status when window gains focus", async () => {
+    vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "get_local_wallpapers") {
+        return Promise.resolve([]);
+      }
+      if (cmd === "get_last_update_time") {
+        return Promise.resolve(null);
+      }
+      if (cmd === "get_update_in_progress") {
+        return Promise.resolve(false);
+      }
+      if (cmd === "get_market_status") {
+        return Promise.resolve({
+          requested_mkt: "zh-CN",
+          effective_mkt: "zh-CN",
+          is_mismatch: false,
+        });
+      }
+      return Promise.resolve(undefined);
+    });
+
+    const { result } = renderHook(() => useBingWallpapers());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    const callsBefore = vi.mocked(invoke).mock.calls.length;
+
+    // Simulate time passing > 10s so pollWhenActive triggers
+    vi.useFakeTimers();
+    vi.advanceTimersByTime(11000);
+
+    // Fire focus event
+    window.dispatchEvent(new Event("focus"));
+
+    // Wait for any async operations
+    await vi.advanceTimersByTimeAsync(100);
+    vi.useRealTimers();
+
+    const callsAfter = vi.mocked(invoke).mock.calls.length;
+    expect(callsAfter).toBeGreaterThan(callsBefore);
+  });
+
   it("should not update state if wallpapers data hasn't changed", async () => {
     const mockWallpapersRaw: LocalWallpaperRaw[] = [
       {

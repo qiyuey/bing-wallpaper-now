@@ -107,4 +107,102 @@ describe("I18nContext", () => {
 
     consoleErrorSpy.mockRestore();
   });
+
+  it("should throw error when useI18n is used outside I18nProvider", () => {
+    // Suppress console.error for this test since React will log the error
+    const consoleErrorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+
+    function BadConsumer() {
+      useI18n();
+      return null;
+    }
+
+    expect(() => {
+      render(<BadConsumer />);
+    }).toThrow("useI18n must be used within I18nProvider");
+
+    consoleErrorSpy.mockRestore();
+  });
+
+  it("should fallback to provided lang when backend returns invalid language", async () => {
+    vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "get_settings") {
+        const callCount = vi.mocked(invoke).mock.calls.length;
+        if (callCount <= 1) {
+          return Promise.resolve(buildSettings("zh-CN", "zh-CN"));
+        }
+        // Return settings with an invalid language value
+        return Promise.resolve({
+          auto_update: true,
+          save_directory: null,
+          launch_at_startup: false,
+          theme: "system",
+          language: "fr-FR", // invalid
+          resolved_language: "zh-CN",
+          mkt: "zh-CN",
+        });
+      }
+      return Promise.resolve(undefined);
+    });
+
+    render(
+      <I18nProvider>
+        <TestConsumer />
+      </I18nProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("language")).toHaveTextContent("zh-CN");
+    });
+
+    // After setLanguage with invalid backend response, should fallback
+    fireEvent.click(screen.getByText("set-en"));
+
+    await waitFor(() => {
+      // Language should be set to "en-US" (the provided lang) since backend value is invalid
+      expect(screen.getByTestId("language")).toHaveTextContent("en-US");
+    });
+  });
+
+  it("should fallback to resolved preference when backend returns invalid resolved_language", async () => {
+    vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "get_settings") {
+        const callCount = vi.mocked(invoke).mock.calls.length;
+        if (callCount <= 1) {
+          return Promise.resolve(buildSettings("zh-CN", "zh-CN"));
+        }
+        // Return settings with valid language but invalid resolved_language
+        return Promise.resolve({
+          auto_update: true,
+          save_directory: null,
+          launch_at_startup: false,
+          theme: "system",
+          language: "en-US",
+          resolved_language: "fr-FR", // invalid
+          mkt: "zh-CN",
+        });
+      }
+      return Promise.resolve(undefined);
+    });
+
+    render(
+      <I18nProvider>
+        <TestConsumer />
+      </I18nProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("language")).toHaveTextContent("zh-CN");
+    });
+
+    fireEvent.click(screen.getByText("set-en"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("language")).toHaveTextContent("en-US");
+      // actual-language should fallback to resolved preference for "en-US"
+      expect(screen.getByTestId("actual-language")).toHaveTextContent("en-US");
+    });
+  });
 });

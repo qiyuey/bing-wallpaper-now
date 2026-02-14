@@ -350,4 +350,68 @@ mod tests {
         let url = get_wallpaper_url(urlbase, "UHD");
         assert!(url.starts_with(BING_BASE_URL));
     }
+
+    // ─── subtract_one_day 边界用例 ───
+
+    #[test]
+    fn test_subtract_one_day_year_boundary() {
+        // 跨年边界
+        assert_eq!(subtract_one_day("20250101"), "20241231");
+        assert_eq!(subtract_one_day("20210101"), "20201231");
+    }
+
+    #[test]
+    fn test_subtract_one_day_month_boundaries() {
+        // 各月份首日
+        assert_eq!(subtract_one_day("20240301"), "20240229"); // 闰年 2 月
+        assert_eq!(subtract_one_day("20230301"), "20230228"); // 非闰年 2 月
+        assert_eq!(subtract_one_day("20240401"), "20240331");
+        assert_eq!(subtract_one_day("20240501"), "20240430");
+        assert_eq!(subtract_one_day("20240601"), "20240531");
+        assert_eq!(subtract_one_day("20240701"), "20240630");
+        assert_eq!(subtract_one_day("20240801"), "20240731");
+        assert_eq!(subtract_one_day("20240901"), "20240831");
+        assert_eq!(subtract_one_day("20241001"), "20240930");
+        assert_eq!(subtract_one_day("20241101"), "20241031");
+        assert_eq!(subtract_one_day("20241201"), "20241130");
+    }
+
+    #[test]
+    fn test_subtract_one_day_normal_day() {
+        assert_eq!(subtract_one_day("20240215"), "20240214");
+        assert_eq!(subtract_one_day("20240630"), "20240629");
+    }
+
+    // ─── BingFetchResult 结构测试 ───
+
+    #[test]
+    fn test_bing_fetch_result_fields() {
+        let result = BingFetchResult {
+            images: vec![BingImageEntry {
+                url: "https://www.bing.com/test.jpg".to_string(),
+                urlbase: "/th?id=OHR.Test".to_string(),
+                copyright: "Test (Author)".to_string(),
+                copyrightlink: "https://www.bing.com/search?q=test&mkt=zh-cn".to_string(),
+                title: "Test Title".to_string(),
+                startdate: "20240101".to_string(),
+                enddate: "20240102".to_string(),
+            }],
+            actual_mkt: Some("zh-CN".to_string()),
+        };
+
+        assert_eq!(result.images.len(), 1);
+        assert_eq!(result.actual_mkt, Some("zh-CN".to_string()));
+        assert_eq!(result.images[0].title, "Test Title");
+    }
+
+    #[test]
+    fn test_bing_fetch_result_empty() {
+        let result = BingFetchResult {
+            images: vec![],
+            actual_mkt: None,
+        };
+
+        assert!(result.images.is_empty());
+        assert!(result.actual_mkt.is_none());
+    }
 }
