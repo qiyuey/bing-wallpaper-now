@@ -74,8 +74,7 @@ impl IndexManager {
         let index = match self.load_from_disk().await {
             Ok(index) => {
                 let mkt_count = index.mkt.len();
-                let total_wallpapers: usize =
-                    index.mkt.values().map(|m| m.len()).sum();
+                let total_wallpapers: usize = index.mkt.values().map(|m| m.len()).sum();
                 log::info!(
                     "成功加载索引文件，包含 {} 个 mkt，共 {} 张壁纸，路径: {}",
                     mkt_count,
@@ -131,9 +130,7 @@ impl IndexManager {
         if file_version == WallpaperIndex::VERSION {
             // 当前版本，直接反序列化
             let mut index: WallpaperIndex = serde_json::from_value(json_value)
-                .with_context(|| {
-                    format!("Failed to deserialize index file: {}", path.display())
-                })?;
+                .with_context(|| format!("Failed to deserialize index file: {}", path.display()))?;
             index.sort_all();
             log::debug!("索引文件加载成功，版本: v{}", index.version);
             return Ok(index);
@@ -160,9 +157,12 @@ impl IndexManager {
             log::info!("已备份旧索引文件: {}", backup_path.display());
 
             // 2. 反序列化（serde alias 自动兼容 wallpapers_by_language → mkt）
-            let mut index: WallpaperIndex = serde_json::from_value(json_value)
-                .with_context(|| {
-                    format!("Failed to deserialize v{file_version} index: {}", path.display())
+            let mut index: WallpaperIndex =
+                serde_json::from_value(json_value).with_context(|| {
+                    format!(
+                        "Failed to deserialize v{file_version} index: {}",
+                        path.display()
+                    )
                 })?;
 
             // 3. 升级版本号
@@ -257,8 +257,7 @@ impl IndexManager {
     /// * `language` - 语言代码（如 "zh-CN", "en-US"）
     pub async fn get_all_wallpapers(&self, language: &str) -> Result<Vec<LocalWallpaper>> {
         let index = self.load_index().await?;
-        let available_mkts: Vec<String> =
-            index.mkt.keys().cloned().collect();
+        let available_mkts: Vec<String> = index.mkt.keys().cloned().collect();
         let wallpapers = index.get_wallpapers_for_mkt(language);
 
         log::debug!(
@@ -567,10 +566,7 @@ mod tests {
         let index2 = manager.load_index().await.unwrap();
 
         // 两次加载应该返回相同的数据
-        assert_eq!(
-            index1.mkt.len(),
-            index2.mkt.len()
-        );
+        assert_eq!(index1.mkt.len(), index2.mkt.len());
 
         // 清理
         let _ = fs::remove_dir_all(&temp_dir).await;
@@ -747,9 +743,7 @@ mod tests {
         // JSON 格式应该是：{"zh-CN": {"20240102": {...}}}
         // 所以 "20240102" 应该是 key
         let parsed: serde_json::Value = serde_json::from_str(&json_content).unwrap();
-        let zh_cn_map = parsed["mkt"]["zh-CN"]
-            .as_object()
-            .unwrap();
+        let zh_cn_map = parsed["mkt"]["zh-CN"].as_object().unwrap();
 
         // 验证 key 是 end_date
         assert!(
@@ -759,7 +753,8 @@ mod tests {
 
         // 验证版本号
         assert_eq!(
-            parsed["version"], WallpaperIndex::VERSION,
+            parsed["version"],
+            WallpaperIndex::VERSION,
             "版本号应该是 v{}",
             WallpaperIndex::VERSION
         );

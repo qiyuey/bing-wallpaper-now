@@ -116,18 +116,11 @@ impl WallpaperIndex {
 
     /// 批量添加或更新指定 mkt 的壁纸
     /// 插入时会按日期降序排序，确保 JSON 序列化时保持顺序
-    pub fn upsert_wallpapers_for_mkt(
-        &mut self,
-        mkt: &str,
-        wallpapers: Vec<LocalWallpaper>,
-    ) {
+    pub fn upsert_wallpapers_for_mkt(&mut self, mkt: &str, wallpapers: Vec<LocalWallpaper>) {
         if wallpapers.is_empty() {
             return;
         }
-        let mkt_map = self
-            .mkt
-            .entry(mkt.to_string())
-            .or_default();
+        let mkt_map = self.mkt.entry(mkt.to_string()).or_default();
 
         // 先插入所有壁纸
         for wallpaper in wallpapers {

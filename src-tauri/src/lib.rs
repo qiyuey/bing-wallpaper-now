@@ -470,33 +470,32 @@ async fn get_local_wallpapers(
 
     // Index key fallback：如果 effective_mkt 对应的壁纸为空，
     // 尝试从 index.json 中查找可用的 mkt key 做兜底（复用全局缓存）
-    if wallpapers.is_empty() {
-        if let Ok(available_keys) = storage::get_available_mkt_keys(&wallpaper_dir).await
-            && !available_keys.is_empty()
-        {
-            // 优先级：settings.mkt -> resolved_language -> 排序后的第一个可用 key（稳定）
-            let fallback_mkt = if available_keys.contains(&settings_mkt) {
-                settings_mkt.clone()
-            } else if available_keys.contains(&resolved_language) {
-                resolved_language.clone()
-            } else {
-                available_keys[0].clone()
-            };
+    if wallpapers.is_empty()
+        && let Ok(available_keys) = storage::get_available_mkt_keys(&wallpaper_dir).await
+        && !available_keys.is_empty()
+    {
+        // 优先级：settings.mkt -> resolved_language -> 排序后的第一个可用 key（稳定）
+        let fallback_mkt = if available_keys.contains(&settings_mkt) {
+            settings_mkt.clone()
+        } else if available_keys.contains(&resolved_language) {
+            resolved_language.clone()
+        } else {
+            available_keys[0].clone()
+        };
 
-            if fallback_mkt != mkt {
-                warn!(
-                    target: "commands",
-                    "mkt fallback: effective_mkt={} 无数据，回退到 index 中可用的 mkt={}（可用 keys: {:?}）",
-                    mkt, fallback_mkt, available_keys
-                );
-                wallpapers = storage::get_local_wallpapers(&wallpaper_dir, &fallback_mkt)
-                    .await
-                    .map_err(|e| {
-                        error!(target: "commands", "fallback 获取本地壁纸列表失败: {}", e);
-                        e.to_string()
-                    })?;
-                actual_read_mkt = fallback_mkt;
-            }
+        if fallback_mkt != mkt {
+            warn!(
+                target: "commands",
+                "mkt fallback: effective_mkt={} 无数据，回退到 index 中可用的 mkt={}（可用 keys: {:?}）",
+                mkt, fallback_mkt, available_keys
+            );
+            wallpapers = storage::get_local_wallpapers(&wallpaper_dir, &fallback_mkt)
+                .await
+                .map_err(|e| {
+                    error!(target: "commands", "fallback 获取本地壁纸列表失败: {}", e);
+                    e.to_string()
+                })?;
+            actual_read_mkt = fallback_mkt;
         }
     }
 

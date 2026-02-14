@@ -87,60 +87,172 @@ pub fn get_market_groups() -> Vec<MarketGroup> {
         MarketGroup {
             region: "asia_pacific",
             markets: vec![
-                MarketOption { code: "zh-CN", label: "中国大陆" },
-                MarketOption { code: "zh-TW", label: "台灣" },
-                MarketOption { code: "zh-HK", label: "香港" },
-                MarketOption { code: "ja-JP", label: "日本" },
-                MarketOption { code: "ko-KR", label: "한국" },
-                MarketOption { code: "en-AU", label: "Australia" },
-                MarketOption { code: "en-NZ", label: "New Zealand" },
-                MarketOption { code: "en-IN", label: "India" },
-                MarketOption { code: "en-ID", label: "Indonesia" },
-                MarketOption { code: "en-MY", label: "Malaysia" },
-                MarketOption { code: "en-PH", label: "Philippines" },
+                MarketOption {
+                    code: "zh-CN",
+                    label: "中国大陆",
+                },
+                MarketOption {
+                    code: "zh-TW",
+                    label: "台灣",
+                },
+                MarketOption {
+                    code: "zh-HK",
+                    label: "香港",
+                },
+                MarketOption {
+                    code: "ja-JP",
+                    label: "日本",
+                },
+                MarketOption {
+                    code: "ko-KR",
+                    label: "한국",
+                },
+                MarketOption {
+                    code: "en-AU",
+                    label: "Australia",
+                },
+                MarketOption {
+                    code: "en-NZ",
+                    label: "New Zealand",
+                },
+                MarketOption {
+                    code: "en-IN",
+                    label: "India",
+                },
+                MarketOption {
+                    code: "en-ID",
+                    label: "Indonesia",
+                },
+                MarketOption {
+                    code: "en-MY",
+                    label: "Malaysia",
+                },
+                MarketOption {
+                    code: "en-PH",
+                    label: "Philippines",
+                },
             ],
         },
         MarketGroup {
             region: "europe",
             markets: vec![
-                MarketOption { code: "en-GB", label: "United Kingdom" },
-                MarketOption { code: "de-DE", label: "Deutschland" },
-                MarketOption { code: "de-AT", label: "Österreich" },
-                MarketOption { code: "de-CH", label: "Schweiz" },
-                MarketOption { code: "fr-FR", label: "France" },
-                MarketOption { code: "fr-BE", label: "Belgique - FR" },
-                MarketOption { code: "fr-CH", label: "Suisse - FR" },
-                MarketOption { code: "it-IT", label: "Italia" },
-                MarketOption { code: "es-ES", label: "España" },
-                MarketOption { code: "nl-NL", label: "Nederland" },
-                MarketOption { code: "nl-BE", label: "België - NL" },
-                MarketOption { code: "pl-PL", label: "Polska" },
-                MarketOption { code: "ru-RU", label: "Россия" },
-                MarketOption { code: "sv-SE", label: "Sverige" },
-                MarketOption { code: "da-DK", label: "Danmark" },
-                MarketOption { code: "fi-FI", label: "Suomi" },
-                MarketOption { code: "no-NO", label: "Norge" },
-                MarketOption { code: "tr-TR", label: "Türkiye" },
+                MarketOption {
+                    code: "en-GB",
+                    label: "United Kingdom",
+                },
+                MarketOption {
+                    code: "de-DE",
+                    label: "Deutschland",
+                },
+                MarketOption {
+                    code: "de-AT",
+                    label: "Österreich",
+                },
+                MarketOption {
+                    code: "de-CH",
+                    label: "Schweiz",
+                },
+                MarketOption {
+                    code: "fr-FR",
+                    label: "France",
+                },
+                MarketOption {
+                    code: "fr-BE",
+                    label: "Belgique - FR",
+                },
+                MarketOption {
+                    code: "fr-CH",
+                    label: "Suisse - FR",
+                },
+                MarketOption {
+                    code: "it-IT",
+                    label: "Italia",
+                },
+                MarketOption {
+                    code: "es-ES",
+                    label: "España",
+                },
+                MarketOption {
+                    code: "nl-NL",
+                    label: "Nederland",
+                },
+                MarketOption {
+                    code: "nl-BE",
+                    label: "België - NL",
+                },
+                MarketOption {
+                    code: "pl-PL",
+                    label: "Polska",
+                },
+                MarketOption {
+                    code: "ru-RU",
+                    label: "Россия",
+                },
+                MarketOption {
+                    code: "sv-SE",
+                    label: "Sverige",
+                },
+                MarketOption {
+                    code: "da-DK",
+                    label: "Danmark",
+                },
+                MarketOption {
+                    code: "fi-FI",
+                    label: "Suomi",
+                },
+                MarketOption {
+                    code: "no-NO",
+                    label: "Norge",
+                },
+                MarketOption {
+                    code: "tr-TR",
+                    label: "Türkiye",
+                },
             ],
         },
         MarketGroup {
             region: "americas",
             markets: vec![
-                MarketOption { code: "en-US", label: "United States" },
-                MarketOption { code: "en-CA", label: "Canada - EN" },
-                MarketOption { code: "fr-CA", label: "Canada - FR" },
-                MarketOption { code: "pt-BR", label: "Brasil" },
-                MarketOption { code: "es-MX", label: "México" },
-                MarketOption { code: "es-AR", label: "Argentina" },
-                MarketOption { code: "es-CL", label: "Chile" },
-                MarketOption { code: "es-US", label: "Estados Unidos - ES" },
+                MarketOption {
+                    code: "en-US",
+                    label: "United States",
+                },
+                MarketOption {
+                    code: "en-CA",
+                    label: "Canada - EN",
+                },
+                MarketOption {
+                    code: "fr-CA",
+                    label: "Canada - FR",
+                },
+                MarketOption {
+                    code: "pt-BR",
+                    label: "Brasil",
+                },
+                MarketOption {
+                    code: "es-MX",
+                    label: "México",
+                },
+                MarketOption {
+                    code: "es-AR",
+                    label: "Argentina",
+                },
+                MarketOption {
+                    code: "es-CL",
+                    label: "Chile",
+                },
+                MarketOption {
+                    code: "es-US",
+                    label: "Estados Unidos - ES",
+                },
             ],
         },
         MarketGroup {
             region: "africa",
-            markets: vec![
-                MarketOption { code: "en-ZA", label: "South Africa" },
-            ],
+            markets: vec![MarketOption {
+                code: "en-ZA",
+                label: "South Africa",
+            }],
         },
     ]
 }
