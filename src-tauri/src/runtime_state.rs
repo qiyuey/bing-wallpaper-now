@@ -208,6 +208,7 @@ mod tests {
             manually_set_latest_wallpapers: std::collections::HashMap::new(),
             ignored_update_version: None,
             autostart_notification_shown: false,
+            last_actual_mkt: None,
         };
 
         assert!(should_update_today(&state));
@@ -222,6 +223,7 @@ mod tests {
             manually_set_latest_wallpapers: std::collections::HashMap::new(),
             ignored_update_version: None,
             autostart_notification_shown: false,
+            last_actual_mkt: None,
         };
 
         assert!(should_update_today(&state));
@@ -235,6 +237,7 @@ mod tests {
             manually_set_latest_wallpapers: std::collections::HashMap::new(),
             ignored_update_version: None,
             autostart_notification_shown: false,
+            last_actual_mkt: None,
         };
 
         assert!(!should_update_today(&state));
@@ -248,6 +251,7 @@ mod tests {
             manually_set_latest_wallpapers: std::collections::HashMap::new(),
             ignored_update_version: None,
             autostart_notification_shown: false,
+            last_actual_mkt: None,
         };
 
         // Should return true when timestamp is invalid
@@ -263,6 +267,7 @@ mod tests {
             manually_set_latest_wallpapers: std::collections::HashMap::new(),
             ignored_update_version: None,
             autostart_notification_shown: false,
+            last_actual_mkt: None,
         };
 
         assert!(should_update_today(&state));
@@ -279,6 +284,7 @@ mod tests {
             manually_set_latest_wallpapers: std::collections::HashMap::new(),
             ignored_update_version: None,
             autostart_notification_shown: false,
+            last_actual_mkt: None,
         };
 
         // Future date should be considered "already updated today"

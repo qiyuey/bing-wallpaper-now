@@ -40,10 +40,13 @@ export function useSettings() {
           save_directory: newSettings.save_directory,
           launch_at_startup: newSettings.launch_at_startup,
           theme: newSettings.theme,
-          language: newSettings.language || "auto",
+          language: newSettings.language,
+          mkt: newSettings.mkt,
         },
       });
-      setSettings(newSettings);
+      // 从后端重新获取设置（含 resolved_language 等后端计算字段），确保前端状态完全一致
+      const refreshed = await invoke<AppSettings>("get_settings");
+      setSettings(refreshed);
     } catch (err) {
       console.error("updateSettings error:", err);
       setError(err as string);

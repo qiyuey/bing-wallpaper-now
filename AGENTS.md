@@ -21,6 +21,11 @@ Bing Wallpaper Now is a cross-platform desktop application that automatically
 fetches and sets Bing daily wallpapers. Built with Tauri 2.0, it combines a
 React/TypeScript frontend with a Rust backend.
 
+The app distinguishes between:
+
+- UI language (`language` / `resolved_language`) for localization
+- Bing wallpaper market (`mkt`) for content source selection
+
 **Tech Stack:**
 
 - Frontend: React 19, TypeScript, Vite
@@ -59,9 +64,9 @@ make check                  # Run all quality checks
 bash scripts/check-quality.sh  # Same as above
 
 # Version management
-make patch                  # Bump patch version (0.3.5 -> 0.3.6-0)
-make minor                  # Bump minor version (0.3.5 -> 0.4.0-0)
-make major                  # Bump major version (0.3.5 -> 1.0.0-0)
+make patch                  # Bump patch version (1.0.0-0 -> 1.0.1-0)
+make minor                  # Bump minor version (1.0.0-0 -> 1.1.0-0)
+make major                  # Bump major version (1.0.0-0 -> 2.0.0-0)
 make release                # Release current dev version and tag
 ```
 
@@ -83,9 +88,14 @@ bing-wallpaper-now/
 ├── src-tauri/                   # Backend (Rust + Tauri)
 │   ├── src/
 │   │   ├── bing_api.rs         # Bing API integration
+│   │   ├── index_manager.rs    # Local metadata index management
 │   │   ├── wallpaper_manager.rs # Wallpaper setting logic
 │   │   ├── download_manager.rs  # Image download & caching
+│   │   ├── settings_store.rs   # Persistent app settings store
+│   │   ├── runtime_state.rs    # Runtime state persistence
 │   │   ├── storage.rs          # File storage management
+│   │   ├── models.rs           # Shared data models
+│   │   ├── utils.rs            # Language/mkt helper utilities
 │   │   └── lib.rs              # Main Rust entry point
 │   ├── Cargo.toml              # Rust dependencies
 │   └── tauri.conf.json         # Tauri configuration
@@ -157,12 +167,23 @@ When adding new plugin functionality, ensure proper permissions are configured.
 
 Rust functions exposed to frontend via `#[tauri::command]` macro:
 
-- `get_wallpapers()` - Fetch wallpapers from Bing API
-- `set_wallpaper(path: String)` - Set desktop wallpaper
-- `download_wallpaper(url: String)` - Download wallpaper to disk
+- `get_local_wallpapers()` - Read local wallpaper metadata list
+- `set_desktop_wallpaper(file_path: String)` - Set desktop wallpaper (with on-demand download if needed)
+- `force_update()` - Trigger one update cycle immediately
+- `get_settings()` / `update_settings(new_settings)` - Read/update app settings
 - `get_wallpaper_directory()` - Get current wallpaper save directory
-- `open_wallpaper_folder()` - Open folder in system file manager
+- `get_default_wallpaper_directory()` - Get default save directory
+- `get_last_update_time()` / `get_update_in_progress()` - Query update status
+- `check_for_updates()` - Check app release updates
 - See `src-tauri/src/lib.rs` for complete list
+
+### Settings & mkt mismatch behavior
+
+- `AppSettings.language`: user preference (`auto` / `zh-CN` / `en-US`)
+- `AppSettings.resolved_language`: resolved UI language for rendering
+- `AppSettings.mkt`: Bing market code (independent from UI language)
+- Backend emits `mkt-mismatch` when Bing actual market differs from requested `mkt`
+- Runtime state persists `last_actual_mkt` to keep read/write index keys consistent across restarts
 
 ### Platform-Specific Code
 
@@ -177,7 +198,7 @@ Rust functions exposed to frontend via `#[tauri::command]` macro:
 1. After a release, create a new development version:
 
    ```bash
-   make patch  # Creates version like 0.3.6-0
+   make patch  # Creates version like 1.0.1-0
    ```
 
 2. Develop features, commit changes regularly
@@ -196,8 +217,8 @@ Rust functions exposed to frontend via `#[tauri::command]` macro:
 
 ### Version Format
 
-- **Development**: `X.Y.Z-0` (e.g., `0.3.5-0`)
-- **Release**: `X.Y.Z` (e.g., `0.3.5`)
+- **Development**: `X.Y.Z-0` (e.g., `1.0.0-0`)
+- **Release**: `X.Y.Z` (e.g., `1.0.0`)
 - Version is synchronized across:
   - `package.json`
   - `src-tauri/Cargo.toml`
@@ -261,6 +282,11 @@ Response contains:
 - `url` - Partial URL path (needs to be prefixed with `https://www.bing.com`)
 - `copyright` - Image attribution
 - `title` - Image title
+
+Notes:
+
+- `mkt` in request may be ignored by Bing in some regions
+- Use actual returned market (`actual_mkt`, parsed from response link) for metadata indexing
 
 ## Security & Privacy
 

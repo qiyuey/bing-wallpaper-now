@@ -72,6 +72,8 @@ describe("App", () => {
           save_directory: null,
           launch_at_startup: false,
           language: "zh-CN",
+          resolved_language: "zh-CN",
+          mkt: "zh-CN",
         });
       }
       if (cmd === "get_last_update_time") {
@@ -99,27 +101,29 @@ describe("App", () => {
   it("should render action buttons in header", async () => {
     renderWithTheme(<App />);
 
-    // Check for buttons by their title attributes
+    // Check for buttons by their aria-label attributes
     await waitFor(() => {
-      expect(screen.getByTitle("更新")).toBeInTheDocument();
+      expect(screen.getByLabelText("更新")).toBeInTheDocument();
     });
-    expect(screen.getByTitle("打开目录")).toBeInTheDocument();
-    expect(screen.getByTitle("设置")).toBeInTheDocument();
+    expect(screen.getByLabelText("打开目录")).toBeInTheDocument();
+    expect(screen.getByLabelText("设置")).toBeInTheDocument();
   });
 
   it("should open settings modal when settings button is clicked", async () => {
     renderWithTheme(<App />);
 
     await waitFor(() => {
-      expect(screen.getByTitle("设置")).toBeInTheDocument();
+      expect(screen.getByLabelText("设置")).toBeInTheDocument();
     });
 
-    const settingsButton = screen.getByTitle("设置");
+    const settingsButton = screen.getByLabelText("设置");
     fireEvent.click(settingsButton);
 
-    // Settings modal should appear
+    // Settings modal should appear (check for heading or loading text)
     await waitFor(() => {
-      expect(screen.getByText(/设置|加载设置中.../i)).toBeInTheDocument();
+      const heading = screen.queryByRole("heading", { name: /设置/i });
+      const loading = screen.queryByText(/加载设置中.../i);
+      expect(heading || loading).toBeInTheDocument();
     });
   });
 
@@ -127,10 +131,10 @@ describe("App", () => {
     renderWithTheme(<App />);
 
     await waitFor(() => {
-      expect(screen.getByTitle("更新")).toBeInTheDocument();
+      expect(screen.getByLabelText("更新")).toBeInTheDocument();
     });
 
-    const refreshButton = screen.getByTitle("更新");
+    const refreshButton = screen.getByLabelText("更新");
     fireEvent.click(refreshButton);
 
     await waitFor(() => {
@@ -160,6 +164,8 @@ describe("App", () => {
           save_directory: null,
           launch_at_startup: false,
           language: "zh-CN",
+          resolved_language: "zh-CN",
+          mkt: "zh-CN",
         });
       }
       return Promise.resolve(null);
@@ -168,10 +174,10 @@ describe("App", () => {
     renderWithTheme(<App />);
 
     await waitFor(() => {
-      expect(screen.getByTitle("打开目录")).toBeInTheDocument();
+      expect(screen.getByLabelText("打开目录")).toBeInTheDocument();
     });
 
-    const folderButton = screen.getByTitle("打开目录");
+    const folderButton = screen.getByLabelText("打开目录");
     fireEvent.click(folderButton);
 
     await waitFor(() => {
@@ -193,6 +199,8 @@ describe("App", () => {
           save_directory: null,
           launch_at_startup: false,
           language: "zh-CN",
+          resolved_language: "zh-CN",
+          mkt: "zh-CN",
         });
       }
       return Promise.resolve(null);
@@ -223,6 +231,8 @@ describe("App", () => {
           save_directory: null,
           launch_at_startup: false,
           language: "zh-CN",
+          resolved_language: "zh-CN",
+          mkt: "zh-CN",
         });
       }
       return Promise.resolve(null);
@@ -266,9 +276,11 @@ describe("App", () => {
       });
     }
 
-    // Settings should open
+    // Settings should open (check for heading or loading text)
     await waitFor(() => {
-      expect(screen.getByText(/设置|加载设置中.../i)).toBeInTheDocument();
+      const heading = screen.queryByRole("heading", { name: /设置/i });
+      const loading = screen.queryByText(/加载设置中.../i);
+      expect(heading || loading).toBeInTheDocument();
     });
   });
 
@@ -304,6 +316,8 @@ describe("App", () => {
           save_directory: null,
           launch_at_startup: false,
           language: "zh-CN",
+          resolved_language: "zh-CN",
+          mkt: "zh-CN",
         });
       }
       if (cmd === "get_last_update_time") {
@@ -345,6 +359,8 @@ describe("App", () => {
           save_directory: null,
           launch_at_startup: false,
           language: "zh-CN",
+          resolved_language: "zh-CN",
+          mkt: "zh-CN",
         });
       }
       return Promise.resolve(null);
@@ -362,17 +378,19 @@ describe("App", () => {
     renderWithTheme(<App />);
 
     await waitFor(() => {
-      expect(screen.getByTitle("设置")).toBeInTheDocument();
+      expect(screen.getByLabelText("设置")).toBeInTheDocument();
     });
 
     // Open settings
-    const settingsButton = screen.getByTitle("设置");
+    const settingsButton = screen.getByLabelText("设置");
     fireEvent.click(settingsButton);
 
-    // Wait for settings to appear
+    // Wait for settings to appear (check for heading or loading text)
     await waitFor(
       () => {
-        expect(screen.getByText(/设置|加载设置中.../i)).toBeInTheDocument();
+        const heading = screen.queryByRole("heading", { name: /设置/i });
+        const loading = screen.queryByText(/加载设置中.../i);
+        expect(heading || loading).toBeInTheDocument();
       },
       { timeout: 3000 },
     );
@@ -381,12 +399,12 @@ describe("App", () => {
     const closeButton = await screen.findByText("×", {}, { timeout: 3000 });
     fireEvent.click(closeButton);
 
-    // Settings should close (may take a moment for modal to unmount)
+    // Settings should close (modal heading should be gone)
     await waitFor(
       () => {
-        const settingsTexts = screen.queryAllByText(/设置/);
-        // Should only have the settings button left, not the modal
-        expect(settingsTexts.length).toBeLessThanOrEqual(1);
+        expect(
+          screen.queryByRole("heading", { name: /设置/i }),
+        ).not.toBeInTheDocument();
       },
       { timeout: 3000 },
     );
@@ -411,6 +429,8 @@ describe("App", () => {
           save_directory: null,
           launch_at_startup: false,
           language: "zh-CN",
+          resolved_language: "zh-CN",
+          mkt: "zh-CN",
         });
       }
       if (cmd === "get_last_update_time") {
@@ -452,6 +472,8 @@ describe("App", () => {
           save_directory: null,
           launch_at_startup: false,
           language: "zh-CN",
+          resolved_language: "zh-CN",
+          mkt: "zh-CN",
         });
       }
       return Promise.resolve(null);
@@ -460,10 +482,10 @@ describe("App", () => {
     renderWithTheme(<App />);
 
     await waitFor(() => {
-      expect(screen.getByTitle("更新")).toBeInTheDocument();
+      expect(screen.getByLabelText("更新")).toBeInTheDocument();
     });
 
-    const refreshButton = screen.getByTitle("更新");
+    const refreshButton = screen.getByLabelText("更新");
     fireEvent.click(refreshButton);
 
     await waitFor(() => {
@@ -497,6 +519,8 @@ describe("App", () => {
           save_directory: null,
           launch_at_startup: false,
           language: "zh-CN",
+          resolved_language: "zh-CN",
+          mkt: "zh-CN",
         });
       }
       if (cmd === "get_last_update_time") {
@@ -509,10 +533,10 @@ describe("App", () => {
 
     // Wait for component to be ready
     await waitFor(() => {
-      expect(screen.getByTitle("打开目录")).toBeInTheDocument();
+      expect(screen.getByLabelText("打开目录")).toBeInTheDocument();
     });
 
-    const folderButton = screen.getByTitle("打开目录");
+    const folderButton = screen.getByLabelText("打开目录");
     fireEvent.click(folderButton);
 
     await waitFor(
@@ -576,6 +600,8 @@ describe("App", () => {
           save_directory: null,
           launch_at_startup: false,
           language: "zh-CN",
+          resolved_language: "zh-CN",
+          mkt: "zh-CN",
         });
       }
       if (cmd === "get_last_update_time") {
@@ -588,10 +614,10 @@ describe("App", () => {
 
     // Wait for component to be ready
     await waitFor(() => {
-      expect(screen.getByTitle("打开目录")).toBeInTheDocument();
+      expect(screen.getByLabelText("打开目录")).toBeInTheDocument();
     });
 
-    const folderButton = screen.getByTitle("打开目录");
+    const folderButton = screen.getByLabelText("打开目录");
     fireEvent.click(folderButton);
 
     await waitFor(
@@ -644,6 +670,8 @@ describe("App", () => {
             save_directory: null,
             launch_at_startup: false,
             language: "zh-CN",
+            resolved_language: "zh-CN",
+            mkt: "zh-CN",
           });
         }
         if (cmd === "get_last_update_time") {
@@ -700,6 +728,8 @@ describe("App", () => {
             save_directory: null,
             launch_at_startup: false,
             language: "zh-CN",
+            resolved_language: "zh-CN",
+            mkt: "zh-CN",
           });
         }
         if (cmd === "get_last_update_time") {
@@ -753,6 +783,8 @@ describe("App", () => {
             save_directory: null,
             launch_at_startup: false,
             language: "zh-CN",
+            resolved_language: "zh-CN",
+            mkt: "zh-CN",
           });
         }
         if (cmd === "get_last_update_time") {
@@ -805,6 +837,8 @@ describe("App", () => {
             save_directory: null,
             launch_at_startup: false,
             language: "zh-CN",
+            resolved_language: "zh-CN",
+            mkt: "zh-CN",
           });
         }
         if (cmd === "get_last_update_time") {
@@ -848,6 +882,8 @@ describe("App", () => {
             save_directory: null,
             launch_at_startup: false,
             language: "zh-CN",
+            resolved_language: "zh-CN",
+            mkt: "zh-CN",
           });
         }
         if (cmd === "get_last_update_time") {
@@ -891,6 +927,8 @@ describe("App", () => {
             save_directory: null,
             launch_at_startup: false,
             language: "zh-CN",
+            resolved_language: "zh-CN",
+            mkt: "zh-CN",
           });
         }
         if (cmd === "get_last_update_time") {
@@ -944,7 +982,11 @@ describe("App", () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByText(/设置|Settings/i)).toBeInTheDocument();
+        const heading = screen.queryByRole("heading", {
+          name: /设置|Settings/i,
+        });
+        const loading = screen.queryByText(/加载设置中.../i);
+        expect(heading || loading).toBeInTheDocument();
       });
     });
 
@@ -963,7 +1005,11 @@ describe("App", () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByText(/设置|Settings/i)).toBeInTheDocument();
+        const heading = screen.queryByRole("heading", {
+          name: /设置|Settings/i,
+        });
+        const loading = screen.queryByText(/加载设置中.../i);
+        expect(heading || loading).toBeInTheDocument();
       });
     });
 
@@ -975,11 +1021,15 @@ describe("App", () => {
       });
 
       // Open settings first
-      const settingsButton = screen.getByTitle(/设置|Settings/i);
+      const settingsButton = screen.getByLabelText(/设置|Settings/i);
       fireEvent.click(settingsButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/设置|Settings/i)).toBeInTheDocument();
+        const heading = screen.queryByRole("heading", {
+          name: /设置|Settings/i,
+        });
+        const loading = screen.queryByText(/加载设置中.../i);
+        expect(heading || loading).toBeInTheDocument();
       });
 
       // Press Esc to close
@@ -988,7 +1038,9 @@ describe("App", () => {
       });
 
       await waitFor(() => {
-        expect(screen.queryByText(/设置|Settings/i)).not.toBeInTheDocument();
+        expect(
+          screen.queryByRole("heading", { name: /设置|Settings/i }),
+        ).not.toBeInTheDocument();
       });
     });
 
@@ -1077,6 +1129,8 @@ describe("App", () => {
             save_directory: null,
             launch_at_startup: false,
             language: "zh-CN",
+            resolved_language: "zh-CN",
+            mkt: "zh-CN",
           });
         }
         if (cmd === "get_last_update_time") {

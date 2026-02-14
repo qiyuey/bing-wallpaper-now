@@ -76,6 +76,38 @@ export function getWallpaperFilePath(
 }
 
 /**
+ * 市场选项（单个市场）
+ */
+export interface MarketOption {
+  /** 市场代码（如 "zh-CN"） */
+  code: string;
+  /** 显示名称（如 "中国大陆"） */
+  label: string;
+}
+
+/**
+ * 市场分组（按区域，由后端统一提供）
+ */
+export interface MarketGroup {
+  /** 区域 ID（用于 i18n，如 "asia_pacific"） */
+  region: string;
+  /** 该区域下的市场列表 */
+  markets: MarketOption[];
+}
+
+/**
+ * Market 状态（由后端统一计算）
+ */
+export interface MarketStatus {
+  /** 用户设置的 mkt */
+  requested_mkt: string;
+  /** 实际生效的 mkt（可能被 Bing 重定向） */
+  effective_mkt: string;
+  /** 是否存在 mismatch */
+  is_mismatch: boolean;
+}
+
+/**
  * 应用设置
  */
 export interface AppSettings {
@@ -83,5 +115,7 @@ export interface AppSettings {
   save_directory: string | null;
   launch_at_startup: boolean;
   theme: string; // "light" | "dark" | "system" - 必需字段，与 Rust 端保持一致
-  language: string; // "auto" | "zh-CN" | "en-US" - 必需字段，Rust 端有默认值 "auto"
+  language: string; // "auto" | "zh-CN" | "en-US" - 用户的语言偏好（可以是 "auto"）
+  resolved_language: string; // "zh-CN" | "en-US" - 后端解析后的实际语言，前端 i18n 应使用此字段
+  mkt: string; // Bing API 市场代码（如 "zh-CN", "en-US", "ja-JP"），与 UI 语言独立
 }

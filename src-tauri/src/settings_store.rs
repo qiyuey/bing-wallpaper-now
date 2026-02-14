@@ -18,8 +18,14 @@ pub fn load_settings(app: &AppHandle) -> anyhow::Result<AppSettings> {
 
     match store.get(SETTINGS_KEY) {
         Some(value) => {
-            let settings: AppSettings = serde_json::from_value(value.clone())
+            let mut settings: AppSettings = serde_json::from_value(value.clone())
                 .map_err(|e| anyhow::anyhow!("Failed to deserialize settings: {}", e))?;
+
+            // 归一化语言设置：非中文/英文的值一律走系统语言检测
+            settings.normalize_language();
+            // 先计算 resolved_language，再归一化 mkt（mkt 回退依赖 resolved_language）
+            settings.compute_resolved_language();
+            settings.normalize_mkt();
 
             Ok(settings)
         }

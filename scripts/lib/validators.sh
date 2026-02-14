@@ -245,7 +245,7 @@ validate_typescript_types() {
     local pkg_manager="${1:-}"
 
     if [[ -z "$pkg_manager" ]]; then
-        pkg_manager=$(project_detect_package_manager 2>/dev/null || echo "npm")
+        pkg_manager=$(project_detect_package_manager 2>/dev/null || echo "pnpm")
     fi
 
     if type print_info &>/dev/null; then
@@ -273,7 +273,7 @@ validate_eslint() {
     local pkg_manager="${1:-}"
 
     if [[ -z "$pkg_manager" ]]; then
-        pkg_manager=$(project_detect_package_manager 2>/dev/null || echo "npm")
+        pkg_manager=$(project_detect_package_manager 2>/dev/null || echo "pnpm")
     fi
 
     if type print_info &>/dev/null; then
@@ -302,7 +302,7 @@ validate_prettier() {
     local pkg_manager="${1:-}"
 
     if [[ -z "$pkg_manager" ]]; then
-        pkg_manager=$(project_detect_package_manager 2>/dev/null || echo "npm")
+        pkg_manager=$(project_detect_package_manager 2>/dev/null || echo "pnpm")
     fi
 
     if type print_info &>/dev/null; then
@@ -331,7 +331,7 @@ validate_frontend_tests() {
     local pkg_manager="${1:-}"
 
     if [[ -z "$pkg_manager" ]]; then
-        pkg_manager=$(project_detect_package_manager 2>/dev/null || echo "npm")
+        pkg_manager=$(project_detect_package_manager 2>/dev/null || echo "pnpm")
     fi
 
     if type print_info &>/dev/null; then
@@ -359,7 +359,7 @@ validate_markdown_lint() {
     local pkg_manager="${1:-}"
 
     if [[ -z "$pkg_manager" ]]; then
-        pkg_manager=$(project_detect_package_manager 2>/dev/null || echo "npm")
+        pkg_manager=$(project_detect_package_manager 2>/dev/null || echo "pnpm")
     fi
 
     if type print_info &>/dev/null; then
@@ -389,7 +389,7 @@ validate_all_quality_checks() {
     local failed=0
 
     if [[ -z "$pkg_manager" ]]; then
-        pkg_manager=$(project_detect_package_manager 2>/dev/null || echo "npm")
+        pkg_manager=$(project_detect_package_manager 2>/dev/null || echo "pnpm")
     fi
 
     # Initialize counters if ui.sh is loaded

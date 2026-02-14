@@ -12,7 +12,7 @@ mod wallpaper_manager;
 use chrono::{DateTime, Duration as ChronoDuration, Local, TimeZone, Timelike};
 use log::{error, info, warn};
 
-use models::{AppRuntimeState, AppSettings, LocalWallpaper};
+use models::{AppRuntimeState, AppSettings, LocalWallpaper, MarketStatus};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -37,9 +37,53 @@ struct AppState {
     auto_update_handle: Arc<Mutex<tauri::async_runtime::JoinHandle<()>>>,
     update_in_progress: Arc<Mutex<bool>>,
     tray_icon: Arc<Mutex<Option<TrayIcon>>>,
+    /// Bing API 最近一次返回的实际 mkt（可能与 settings.mkt 不同）
+    ///
+    /// 当中国 Bing 强制返回 zh-CN 时，此字段会存储 "zh-CN"，
+    /// 确保后续读取壁纸时使用与写入一致的 mkt key。
+    /// 用户更改 mkt 设置时应清空此字段。
+    last_actual_mkt: Arc<Mutex<Option<String>>>,
 }
 
 // (removed) fetch_bing_images command; image retrieval now handled by background auto-update logic.
+
+/// 获取有效的 mkt（用于读取壁纸索引）
+///
+/// 优先使用 `last_actual_mkt`（最近一次 Bing API 返回的实际 mkt），
+/// 否则回退到用户设置的 `settings.mkt`。
+///
+/// 这确保了写入和读取使用同一个 mkt key：
+/// - 写入时用 actual_mkt（来自 Bing API 响应）
+/// - 读取时也用 actual_mkt（通过此函数）
+async fn get_effective_mkt(state: &AppState) -> String {
+    // 优先使用 last_actual_mkt
+    if let Some(actual) = state.last_actual_mkt.lock().await.as_ref() {
+        return actual.clone();
+    }
+    // 回退到用户设置的 mkt
+    state.settings.lock().await.mkt.clone()
+}
+
+/// 获取按区域分组的市场列表（前端动态渲染下拉选项）
+#[tauri::command]
+fn get_supported_mkts() -> Vec<utils::MarketGroup> {
+    utils::get_market_groups()
+}
+
+/// 获取当前 market 状态
+///
+/// 前端通过此命令主动拉取 mkt 状态，而非依赖事件推送。
+/// `effective_mkt` 与 `get_effective_mkt()` 返回值完全一致，确保单一 truth source。
+#[tauri::command]
+async fn get_market_status(state: tauri::State<'_, AppState>) -> Result<MarketStatus, String> {
+    let requested = state.settings.lock().await.mkt.clone();
+    let effective = get_effective_mkt(&state).await;
+    Ok(MarketStatus {
+        is_mismatch: requested != effective,
+        requested_mkt: requested,
+        effective_mkt: effective,
+    })
+}
 
 /// 设置自启动通知标志（如果尚未设置）
 ///
@@ -141,14 +185,12 @@ async fn download_wallpaper_if_needed(
             .ok_or_else(|| format!("文件名格式不正确，应为 YYYYMMDD.jpg: {}", filename))?
     };
 
-    // 获取当前语言设置
-    let state = app.state::<AppState>();
-    let settings = state.settings.lock().await;
-    let language = utils::get_bing_market_code(&settings.language);
-    drop(settings);
+    // 使用 effective_mkt 读取壁纸（与写入一致）
+    let app_state = app.state::<AppState>();
+    let mkt = get_effective_mkt(&app_state).await;
 
     // 查找对应的壁纸元数据（使用 end_date 作为 key）
-    let wallpapers = storage::get_local_wallpapers(wallpaper_dir, language)
+    let wallpapers = storage::get_local_wallpapers(wallpaper_dir, &mkt)
         .await
         .map_err(|e| format!("获取壁纸列表失败: {}", e))?;
 
@@ -247,13 +289,11 @@ async fn set_desktop_wallpaper(
     // 异步执行设置壁纸，避免阻塞 UI
     let target_for_spawn = target_can.clone();
     let app_clone = app.clone();
-    // 获取当前语言和壁纸目录，用于记录手动设置时的最新壁纸
-    let (language, wallpaper_dir_for_record) = {
-        let settings = state.settings.lock().await;
-        let lang = utils::get_bing_market_code(&settings.language).to_string();
-        drop(settings);
+    // 获取当前 effective_mkt 和壁纸目录，用于记录手动设置时的最新壁纸
+    let (mkt_code, wallpaper_dir_for_record) = {
+        let mkt = get_effective_mkt(&state).await;
         let dir = state.wallpaper_directory.lock().await.clone();
-        (lang, dir)
+        (mkt, dir)
     };
     // 从文件路径中提取 end_date（例如：20251031.jpg -> 20251031）
     let set_end_date = path
@@ -334,24 +374,24 @@ async fn set_desktop_wallpaper(
             *current_path = Some(target_for_spawn.clone());
             drop(current_path);
 
-            // 记录用户手动设置时的最新壁纸（按语言隔离）
-            // 获取当前语言的最新壁纸的 end_date，记录到运行时状态
+            // 记录用户手动设置时的最新壁纸（按 mkt 隔离）
+            // 获取当前 mkt 的最新壁纸的 end_date，记录到运行时状态
             if let Some(set_end_date) = set_end_date
                 && let Ok(latest_wallpapers) =
-                    storage::get_local_wallpapers(&wallpaper_dir_for_record, &language).await
+                    storage::get_local_wallpapers(&wallpaper_dir_for_record, &mkt_code).await
                 && let Some(latest) = latest_wallpapers.first()
             {
                 let mut runtime_state =
                     runtime_state::load_runtime_state(&app_clone).unwrap_or_default();
                 runtime_state
                     .manually_set_latest_wallpapers
-                    .insert(language.clone(), latest.end_date.clone());
+                    .insert(mkt_code.clone(), latest.end_date.clone());
                 if let Err(e) = runtime_state::save_runtime_state(&app_clone, &runtime_state) {
                     warn!(target: "wallpaper", "保存手动设置记录失败: {e}");
                 } else {
                     info!(target: "wallpaper", 
-                        "已记录用户手动设置时的最新壁纸：语言={}, 设置壁纸={}, 当时最新壁纸={}", 
-                        language, set_end_date, latest.end_date);
+                        "已记录用户手动设置时的最新壁纸：mkt={}, 设置壁纸={}, 当时最新壁纸={}", 
+                        mkt_code, set_end_date, latest.end_date);
                 }
             }
         }
@@ -400,46 +440,120 @@ async fn get_local_wallpapers(
     state: tauri::State<'_, AppState>,
     app: tauri::AppHandle,
 ) -> Result<Vec<LocalWallpaper>, String> {
-    let wallpaper_dir = state.wallpaper_directory.lock().await;
-    let settings = state.settings.lock().await;
+    // 提前 clone 并释放锁，避免长时间持有 wallpaper_directory 锁
+    let wallpaper_dir = state.wallpaper_directory.lock().await.clone();
 
-    // 获取当前语言的市场代码
-    let language = utils::get_bing_market_code(&settings.language);
+    // 使用 effective_mkt 读取壁纸（与写入一致）
+    let mkt = get_effective_mkt(&state).await;
+    // requested_mkt 用于 mismatch 判断（与 MarketStatus 语义保持一致）
+    let (settings_mkt, resolved_language) = {
+        let settings = state.settings.lock().await;
+        (settings.mkt.clone(), settings.resolved_language.clone())
+    };
 
     info!(
         target: "commands",
-        "获取本地壁纸列表，语言设置: {} -> {}, 目录: {}",
-        settings.language,
-        language,
+        "获取本地壁纸列表，mkt: {}, 目录: {}",
+        mkt,
         wallpaper_dir.display()
     );
 
-    let wallpapers = storage::get_local_wallpapers(&wallpaper_dir, language)
+    let mut wallpapers = storage::get_local_wallpapers(&wallpaper_dir, &mkt)
         .await
         .map_err(|e| {
             error!(target: "commands", "获取本地壁纸列表失败: {}", e);
             e.to_string()
         })?;
 
+    // 记录实际使用的 mkt（可能被 fallback 替换）
+    let mut actual_read_mkt = mkt.clone();
+
+    // Index key fallback：如果 effective_mkt 对应的壁纸为空，
+    // 尝试从 index.json 中查找可用的 mkt key 做兜底（复用全局缓存）
+    if wallpapers.is_empty() {
+        if let Ok(available_keys) = storage::get_available_mkt_keys(&wallpaper_dir).await
+            && !available_keys.is_empty()
+        {
+            // 优先级：settings.mkt -> resolved_language -> 排序后的第一个可用 key（稳定）
+            let fallback_mkt = if available_keys.contains(&settings_mkt) {
+                settings_mkt.clone()
+            } else if available_keys.contains(&resolved_language) {
+                resolved_language.clone()
+            } else {
+                available_keys[0].clone()
+            };
+
+            if fallback_mkt != mkt {
+                warn!(
+                    target: "commands",
+                    "mkt fallback: effective_mkt={} 无数据，回退到 index 中可用的 mkt={}（可用 keys: {:?}）",
+                    mkt, fallback_mkt, available_keys
+                );
+                wallpapers = storage::get_local_wallpapers(&wallpaper_dir, &fallback_mkt)
+                    .await
+                    .map_err(|e| {
+                        error!(target: "commands", "fallback 获取本地壁纸列表失败: {}", e);
+                        e.to_string()
+                    })?;
+                actual_read_mkt = fallback_mkt;
+            }
+        }
+    }
+
+    // 同步本次读取结果对应的 effective_mkt，避免 fallback 后后续按需下载仍使用旧 key。
+    // 仅在状态变化时写入（内存 + 持久化），并边沿触发 mkt 状态事件。
+    let old_effective = {
+        let guard = state.last_actual_mkt.lock().await;
+        guard.clone().unwrap_or_else(|| settings_mkt.clone())
+    };
+    let old_mismatch = old_effective != settings_mkt;
+    let new_mismatch = actual_read_mkt != settings_mkt;
+    let new_actual_mkt = if new_mismatch {
+        Some(actual_read_mkt.clone())
+    } else {
+        None
+    };
+
+    if old_effective != actual_read_mkt {
+        *state.last_actual_mkt.lock().await = new_actual_mkt.clone();
+
+        if let Ok(mut runtime_state) = runtime_state::load_runtime_state(&app) {
+            runtime_state.last_actual_mkt = new_actual_mkt;
+            if let Err(e) = runtime_state::save_runtime_state(&app, &runtime_state) {
+                warn!(target: "commands", "持久化同步 last_actual_mkt 失败: {}", e);
+            }
+        }
+    }
+
+    if new_mismatch != old_mismatch {
+        let status = MarketStatus {
+            requested_mkt: settings_mkt.clone(),
+            effective_mkt: actual_read_mkt.clone(),
+            is_mismatch: new_mismatch,
+        };
+        if let Err(e) = app.emit("mkt-status-changed", &status) {
+            warn!(target: "commands", "发送 mkt-status-changed 事件失败: {}", e);
+        }
+    }
+
     info!(
         target: "commands",
-        "成功获取 {} 张本地壁纸（语言: {}）",
+        "成功获取 {} 张本地壁纸（mkt: {}）",
         wallpapers.len(),
-        language
+        actual_read_mkt
     );
 
-    // 如果当前语言的索引为空，触发一次更新（异步，不阻塞返回）
+    // 如果当前 mkt 的索引仍为空（fallback 也无数据），触发一次更新（异步，不阻塞返回）
     // 但只有在没有更新正在进行时才触发，避免重复更新
     if wallpapers.is_empty() {
         warn!(
             target: "commands",
-            "当前语言 ({}) 的壁纸列表为空，将触发异步更新",
-            language
+            "当前 mkt ({}) 的壁纸列表为空（fallback 后仍无数据），将触发异步更新",
+            actual_read_mkt
         );
         let app_clone = app.clone();
-        let language_str = language.to_string();
         tauri::async_runtime::spawn(async move {
-            let _ = try_trigger_update_if_empty(&app_clone, &language_str).await;
+            let _ = try_trigger_update_if_empty(&app_clone, &actual_read_mkt).await;
         });
     }
 
@@ -499,6 +613,10 @@ async fn get_settings(
     // 更新设置中的自启动状态为系统实际状态
     settings.launch_at_startup = is_enabled;
 
+    // 计算 resolved_language 和归一化 mkt（在写回之前，确保 AppState 也是 normalize 后的值）
+    settings.compute_resolved_language();
+    settings.normalize_mkt();
+
     // 将同步后的设置写回 AppState
     {
         let mut app_settings = state.settings.lock().await;
@@ -519,8 +637,15 @@ async fn update_settings(
 ) -> Result<(), String> {
     let mut settings = state.settings.lock().await;
 
-    // 在更新设置之前，先保存旧的语言设置
+    // 归一化语言设置和 mkt
+    let mut new_settings = new_settings;
+    new_settings.normalize_language();
+    new_settings.compute_resolved_language();
+    new_settings.normalize_mkt();
+
+    // 在更新设置之前，先保存旧设置用于后续比较
     let old_language = settings.language.clone();
+    let old_mkt = settings.mkt.clone();
 
     // 只在自启动状态改变时才调用系统 API，避免不必要的系统提示
     let autostart_manager = app.autolaunch();
@@ -568,6 +693,19 @@ async fn update_settings(
         .settings_tx
         .send(new_settings.clone())
         .map_err(|e| format!("广播设置失败: {e}"))?;
+
+    // 如果 mkt 设置改变，清空 last_actual_mkt（内存 + 持久化）
+    if new_settings.mkt != old_mkt {
+        info!(target: "settings", "mkt 从 {} 切换到 {}，清空 last_actual_mkt", old_mkt, new_settings.mkt);
+        *state.last_actual_mkt.lock().await = None;
+        // 同步持久化
+        if let Ok(mut runtime_state) = runtime_state::load_runtime_state(&app) {
+            runtime_state.last_actual_mkt = None;
+            if let Err(e) = runtime_state::save_runtime_state(&app, &runtime_state) {
+                warn!(target: "settings", "持久化清空 last_actual_mkt 失败: {}", e);
+            }
+        }
+    }
 
     // 如果语言设置改变，更新托盘菜单
     if new_settings.language != old_language {
@@ -985,19 +1123,19 @@ async fn run_update_cycle(app: &AppHandle) {
     run_update_cycle_internal(app, false).await;
 }
 
-/// 检查指定语言的索引是否为空，如果为空且没有更新正在进行，则触发强制更新
+/// 检查指定 mkt 的索引是否为空，如果为空且没有更新正在进行，则触发强制更新
 ///
-/// 这个函数用于处理首次启动或语言切换时索引为空的情况。
+/// 这个函数用于处理首次启动时索引为空的情况。
 /// 通过先检查索引，再检查更新标志，避免不必要的锁竞争。
 /// run_update_cycle_internal 内部有并发保护，会确保只有一个更新真正执行。
 ///
 /// # Arguments
 /// * `app` - Tauri app handle
-/// * `language` - 语言代码（用于日志和索引检查）
+/// * `mkt` - 市场代码（用于日志和索引检查）
 ///
 /// # Returns
 /// `true` 如果成功触发更新，`false` 如果索引不为空或更新已在进行中
-async fn try_trigger_update_if_empty(app: &AppHandle, language: &str) -> bool {
+async fn try_trigger_update_if_empty(app: &AppHandle, mkt: &str) -> bool {
     let state = app.state::<AppState>();
 
     // 先快速检查索引（不需要持有 update_in_progress 锁）
@@ -1006,7 +1144,7 @@ async fn try_trigger_update_if_empty(app: &AppHandle, language: &str) -> bool {
         dir.clone()
     };
 
-    let existing_wallpapers = storage::get_local_wallpapers(&wallpaper_dir, language)
+    let existing_wallpapers = storage::get_local_wallpapers(&wallpaper_dir, mkt)
         .await
         .unwrap_or_default();
 
@@ -1026,8 +1164,8 @@ async fn try_trigger_update_if_empty(app: &AppHandle, language: &str) -> bool {
     if is_updating {
         info!(
             target: "commands",
-            "当前语言 ({}) 的索引为空，但已有更新在进行中，跳过触发",
-            language
+            "当前 mkt ({}) 的索引为空，但已有更新在进行中，跳过触发",
+            mkt
         );
         return false;
     }
@@ -1035,13 +1173,13 @@ async fn try_trigger_update_if_empty(app: &AppHandle, language: &str) -> bool {
     // 启动更新任务
     // run_update_cycle_internal 内部有并发保护，会确保只有一个更新真正执行
     let app_clone = app.clone();
-    let language_clone = language.to_string();
+    let mkt_clone = mkt.to_string();
 
     tauri::async_runtime::spawn(async move {
         info!(
             target: "commands",
-            "当前语言 ({}) 的索引为空，触发更新",
-            language_clone
+            "当前 mkt ({}) 的索引为空，触发更新",
+            mkt_clone
         );
         run_update_cycle_internal(&app_clone, true).await;
     });
@@ -1061,15 +1199,14 @@ async fn try_trigger_update_if_empty(app: &AppHandle, language: &str) -> bool {
 async fn check_and_trigger_update_if_needed(app: &AppHandle) -> bool {
     let state = app.state::<AppState>();
 
-    // 获取当前语言和壁纸目录
-    let (wallpaper_dir, language) = {
+    // 获取当前 effective_mkt 和壁纸目录
+    let (wallpaper_dir, mkt) = {
         let dir = state.wallpaper_directory.lock().await.clone();
-        let settings = state.settings.lock().await;
-        let lang = utils::get_bing_market_code(&settings.language).to_string();
-        (dir, lang)
+        let mkt = get_effective_mkt(&state).await;
+        (dir, mkt)
     };
 
-    let existing_wallpapers = storage::get_local_wallpapers(&wallpaper_dir, &language)
+    let existing_wallpapers = storage::get_local_wallpapers(&wallpaper_dir, &mkt)
         .await
         .unwrap_or_default();
 
@@ -1087,21 +1224,14 @@ async fn check_and_trigger_update_if_needed(app: &AppHandle) -> bool {
 /// 应用最新壁纸（如果需要）
 /// 只有在 auto_update 设置开启时才会自动应用
 async fn apply_latest_wallpaper_if_needed(app: &AppHandle, state: &AppState, wallpaper_dir: &Path) {
-    // 一次性获取所有需要的设置，减少锁获取次数
-    let (should_apply, language) = {
-        let settings = state.settings.lock().await;
-        (
-            settings.auto_update,
-            utils::get_bing_market_code(&settings.language).to_string(),
-        )
-    };
-
+    // 一次性获取 auto_update，然后读 effective_mkt（减少锁间设置变化的窗口）
+    let should_apply = state.settings.lock().await.auto_update;
     if !should_apply {
-        // 未开启自动应用，跳过
         return;
     }
+    let mkt = get_effective_mkt(state).await;
 
-    let latest_wallpapers = storage::get_local_wallpapers(wallpaper_dir, &language)
+    let latest_wallpapers = storage::get_local_wallpapers(wallpaper_dir, &mkt)
         .await
         .unwrap_or_default();
     if let Some(first) = latest_wallpapers.first() {
@@ -1109,13 +1239,13 @@ async fn apply_latest_wallpaper_if_needed(app: &AppHandle, state: &AppState, wal
         let runtime_state = runtime_state::load_runtime_state(app).unwrap_or_default();
         if runtime_state
             .manually_set_latest_wallpapers
-            .get(&language)
+            .get(&mkt)
             .is_some_and(|manually_set_end_date| manually_set_end_date == &first.end_date)
         {
             info!(
                 target: "update",
-                "跳过自动应用：当前语言 ({}) 的最新壁纸 ({}) 和用户手动设置时的最新壁纸相同",
-                language,
+                "跳过自动应用：当前 mkt ({}) 的最新壁纸 ({}) 和用户手动设置时的最新壁纸相同",
+                mkt,
                 first.end_date
             );
             return;
@@ -1188,8 +1318,8 @@ async fn apply_latest_wallpaper_if_needed(app: &AppHandle, state: &AppState, wal
 }
 
 /// 带重试的 Bing 图片获取
-async fn fetch_bing_images_with_retry(mkt: &str) -> Option<Vec<models::BingImageEntry>> {
-    let mut images_opt = None;
+async fn fetch_bing_images_with_retry(mkt: &str) -> Option<bing_api::BingFetchResult> {
+    let mut result_opt = None;
     const MAX_RETRIES: u32 = 3;
     const MAX_BACKOFF_SECS: u64 = 16; // 最大延迟 16 秒
 
@@ -1200,8 +1330,8 @@ async fn fetch_bing_images_with_retry(mkt: &str) -> Option<Vec<models::BingImage
 
         match bing_api::fetch_bing_images(8, 0, mkt).await {
             Ok(v) => {
-                info!(target: "update", "Bing API 请求成功（第 {} 次尝试）: 获取到 {} 张图片", attempt + 1, v.len());
-                images_opt = Some(v);
+                info!(target: "update", "Bing API 请求成功（第 {} 次尝试）: 获取到 {} 张图片, actual_mkt={:?}", attempt + 1, v.images.len(), v.actual_mkt);
+                result_opt = Some(v);
                 break;
             }
             Err(e) => {
@@ -1227,16 +1357,16 @@ async fn fetch_bing_images_with_retry(mkt: &str) -> Option<Vec<models::BingImage
         }
     }
 
-    match &images_opt {
-        Some(images) => {
-            info!(target: "update", "Bing API 获取完成: 成功获取 {} 张图片", images.len());
+    match &result_opt {
+        Some(result) => {
+            info!(target: "update", "Bing API 获取完成: 成功获取 {} 张图片", result.images.len());
         }
         None => {
             error!(target: "update", "Bing API 获取失败: 所有重试均失败");
         }
     }
 
-    images_opt
+    result_opt
 }
 
 /// 内部更新循环实现
@@ -1255,11 +1385,6 @@ async fn run_update_cycle_internal(app: &AppHandle, force_update: bool) {
 
     // 取消 scopeguard，改为在所有返回路径手动重置，在函数末尾统一释放
 
-    let settings_snapshot = {
-        let s = state.settings.lock().await;
-        s.clone()
-    };
-
     // 注意：即使 auto_update 关闭，也要获取新壁纸（只获取不自动应用）
     // 自动应用由 apply_latest_wallpaper_if_needed 函数根据 auto_update 设置决定
 
@@ -1268,12 +1393,14 @@ async fn run_update_cycle_internal(app: &AppHandle, force_update: bool) {
         d.clone()
     };
 
-    // 获取语言设置，用于 Bing API 请求和索引存储
-    let mkt = utils::get_bing_market_code(&settings_snapshot.language);
+    // request_mkt: 用户设置的 mkt，用于 Bing API 请求
+    let request_mkt = state.settings.lock().await.mkt.clone();
+    // read_mkt: 用于读取本地壁纸（如果之前发生过 mkt 重定向，会使用 actual_mkt）
+    let read_mkt = get_effective_mkt(&state).await;
 
     // 优化：在开始时读取一次本地壁纸列表，后续复用
     // 用于判断是否首次启动（首次启动时 existing_wallpapers 为空）
-    let existing_wallpapers = storage::get_local_wallpapers(&dir, mkt)
+    let existing_wallpapers = storage::get_local_wallpapers(&dir, &read_mkt)
         .await
         .unwrap_or_default();
 
@@ -1283,7 +1410,7 @@ async fn run_update_cycle_internal(app: &AppHandle, force_update: bool) {
         let runtime_state = runtime_state::load_runtime_state(app).unwrap_or_default();
 
         // 优化：API 请求缓存 - 如果距离上次 API 请求不足 5 分钟，且本地有今日壁纸，跳过 API 请求
-        if runtime_state::can_skip_api_request(&runtime_state, &dir, mkt).await {
+        if runtime_state::can_skip_api_request(&runtime_state, &dir, &read_mkt).await {
             info!(target: "update", "使用缓存策略跳过 API 请求，直接使用本地壁纸");
             apply_latest_wallpaper_if_needed(app, &state, &dir).await;
             // 重置标志并返回
@@ -1295,7 +1422,7 @@ async fn run_update_cycle_internal(app: &AppHandle, force_update: bool) {
         // 检查是否需要更新
         if !runtime_state::should_update_today(&runtime_state) {
             // 今天已经更新过，再检查本地是否真的有今日壁纸
-            if runtime_state::has_today_wallpaper(&dir, mkt).await {
+            if runtime_state::has_today_wallpaper(&dir, &read_mkt).await {
                 info!(target: "update", "跳过更新：今天已更新且本地有今日壁纸");
                 apply_latest_wallpaper_if_needed(app, &state, &dir).await;
                 // 启动时跳过更新，不需要通知前端（前端会自己初始化加载）
@@ -1322,8 +1449,8 @@ async fn run_update_cycle_internal(app: &AppHandle, force_update: bool) {
         return;
     }
 
-    // 带重试的 Bing 图片获取
-    let images = match fetch_bing_images_with_retry(mkt).await {
+    // 带重试的 Bing 图片获取（使用用户设置的 mkt 发起请求）
+    let fetch_result = match fetch_bing_images_with_retry(&request_mkt).await {
         Some(v) => v,
         None => {
             error!(target: "update", "多次重试仍失败，跳过本次循环");
@@ -1332,6 +1459,67 @@ async fn run_update_cycle_internal(app: &AppHandle, force_update: bool) {
             return;
         }
     };
+
+    let images = fetch_result.images;
+    // 使用 actual_mkt 保存元数据，确保 index.json 中的 key 准确
+    // 例如：用户选了 en-US 但中国 Bing 强制返回 zh-CN，元数据应存在 zh-CN 下
+    let save_mkt = fetch_result
+        .actual_mkt
+        .as_deref()
+        .unwrap_or(&request_mkt)
+        .to_string();
+
+    // 更新 last_actual_mkt（内存 + 持久化），确保后续读取路径与写入一致
+    // 使用边沿触发：仅在 mismatch 状态发生变化时（false→true / true→false）才发事件
+    {
+        // 显式计算旧 mismatch 状态：直接比较旧的 effective_mkt 与 request_mkt
+        // 不依赖 last_actual_mkt.is_some() 的隐含语义，即使 update_settings 未清空也能正确判断
+        let old_effective = {
+            let guard = state.last_actual_mkt.lock().await;
+            guard.clone().unwrap_or_else(|| request_mkt.clone())
+        };
+        let old_mismatch = old_effective != request_mkt;
+        let new_mismatch = save_mkt != request_mkt;
+
+        let new_actual_mkt = if new_mismatch {
+            info!(
+                target: "update",
+                "mkt 不一致：请求={}, 实际={}, 将使用实际 mkt 保存元数据",
+                request_mkt, save_mkt
+            );
+            Some(save_mkt.clone())
+        } else {
+            None
+        };
+
+        // 更新内存状态
+        *state.last_actual_mkt.lock().await = new_actual_mkt.clone();
+
+        // 持久化到 runtime_state（重启后不丢失）
+        if let Ok(mut runtime_state) = runtime_state::load_runtime_state(app) {
+            runtime_state.last_actual_mkt = new_actual_mkt;
+            if let Err(e) = runtime_state::save_runtime_state(app, &runtime_state) {
+                warn!(target: "update", "持久化 last_actual_mkt 失败: {}", e);
+            }
+        }
+
+        // 边沿触发：仅在 mismatch 状态变化时发送事件，避免重复通知
+        if new_mismatch != old_mismatch {
+            let status = MarketStatus {
+                requested_mkt: request_mkt.clone(),
+                effective_mkt: save_mkt.clone(),
+                is_mismatch: new_mismatch,
+            };
+            if let Err(e) = app.emit("mkt-status-changed", &status) {
+                warn!(target: "update", "发送 mkt-status-changed 事件失败: {}", e);
+            }
+            info!(
+                target: "update",
+                "mkt 状态变化：mismatch {} → {}",
+                old_mismatch, new_mismatch
+            );
+        }
+    }
 
     // 优化：按需下载策略
     // JPG 文件不区分语言，理论上应该一次下载之后不再需要重新下载
@@ -1362,7 +1550,7 @@ async fn run_update_cycle_internal(app: &AppHandle, force_update: bool) {
 
     if !metadata_list.is_empty() {
         let count = metadata_list.len();
-        if let Err(e) = storage::save_wallpapers_metadata(metadata_list, &dir, mkt).await {
+        if let Err(e) = storage::save_wallpapers_metadata(metadata_list, &dir, &save_mkt).await {
             if is_first_launch {
                 error!(target: "update", "保存元数据失败: {e}");
             } else {
@@ -1610,10 +1798,12 @@ fn start_auto_update_task(app: AppHandle) {
     });
 }
 
-/// 根据语言获取托盘菜单文本
-fn get_tray_menu_texts(language: &str) -> (&str, &str, &str, &str, &str, &str, &str) {
-    match language {
-        "zh-CN" => (
+/// 根据 resolved_language 获取托盘菜单文本
+///
+/// 传入值应为 "zh-CN" 或 "en-US"（已在设置加载时归一化）
+fn get_tray_menu_texts(resolved_language: &str) -> (&str, &str, &str, &str, &str, &str, &str) {
+    if resolved_language == "zh-CN" {
+        (
             "显示窗口",
             "更新壁纸",
             "打开保存目录",
@@ -1621,8 +1811,9 @@ fn get_tray_menu_texts(language: &str) -> (&str, &str, &str, &str, &str, &str, &
             "关于",
             "检查更新",
             "退出",
-        ),
-        "en-US" => (
+        )
+    } else {
+        (
             "Show Window",
             "Refresh Wallpaper",
             "Open Save Directory",
@@ -1630,32 +1821,7 @@ fn get_tray_menu_texts(language: &str) -> (&str, &str, &str, &str, &str, &str, &
             "About",
             "Check for Updates",
             "Quit",
-        ),
-        _ => {
-            // 自动模式：使用系统语言检测
-            let detected_lang = utils::detect_system_language();
-            if detected_lang == "zh-CN" {
-                (
-                    "显示窗口",
-                    "更新壁纸",
-                    "打开保存目录",
-                    "打开设置",
-                    "关于",
-                    "检查更新",
-                    "退出",
-                )
-            } else {
-                (
-                    "Show Window",
-                    "Refresh Wallpaper",
-                    "Open Save Directory",
-                    "Open Settings",
-                    "About",
-                    "Check for Updates",
-                    "Quit",
-                )
-            }
-        }
+        )
     }
 }
 
@@ -1671,11 +1837,11 @@ async fn update_tray_menu(app: &tauri::AppHandle) -> tauri::Result<()> {
     };
 
     if let Some(tray) = tray_icon_opt {
-        // 获取当前语言设置
+        // 获取 resolved_language（已归一化为 "zh-CN" 或 "en-US"）
         let language = {
             let state = app.state::<AppState>();
             let settings = state.settings.lock().await;
-            settings.language.clone()
+            settings.resolved_language.clone()
         };
 
         info!(target: "tray", "更新托盘菜单，使用语言: {}", language);
@@ -1728,18 +1894,21 @@ async fn update_tray_menu(app: &tauri::AppHandle) -> tauri::Result<()> {
 fn setup_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
     info!(target: "tray", "开始设置托盘菜单");
 
-    // 获取当前语言设置（同步方式，仅在初始化时使用）
+    // 获取 resolved_language（同步方式，仅在初始化时使用）
     let language = {
-        // 尝试从 AppState 获取，如果失败则使用默认值
         if let Some(state) = app.try_state::<AppState>() {
-            // 使用 try_lock 避免阻塞，如果失败则使用默认值
             if let Ok(settings) = state.settings.try_lock() {
-                settings.language.clone()
+                if settings.resolved_language.is_empty() {
+                    // resolved_language 未计算时（理论上不应发生），回退到系统检测
+                    utils::detect_system_language().to_string()
+                } else {
+                    settings.resolved_language.clone()
+                }
             } else {
-                "auto".to_string()
+                utils::detect_system_language().to_string()
             }
         } else {
-            "auto".to_string()
+            utils::detect_system_language().to_string()
         }
     };
 
@@ -1997,6 +2166,7 @@ pub fn run() {
         auto_update_handle: Arc::new(Mutex::new(tauri::async_runtime::spawn(async {}))),
         update_in_progress: Arc::new(Mutex::new(false)),
         tray_icon: Arc::new(Mutex::new(None)),
+        last_actual_mkt: Arc::new(Mutex::new(None)),
     };
 
     tauri::Builder::default()
@@ -2041,6 +2211,8 @@ pub fn run() {
             add_ignored_update_version,
             is_version_ignored,
             get_screen_orientations,
+            get_market_status,
+            get_supported_mkts,
         ])
         .setup(|app| {
             wallpaper_manager::initialize_observer();
@@ -2144,6 +2316,15 @@ pub fn run() {
                         *last_update = Some(dt.with_timezone(&Local));
                     });
                     info!(target: "startup", "从持久化状态恢复上次更新时间: {}", last_update_str);
+                }
+
+                // 从持久化 runtime_state 恢复 last_actual_mkt
+                // 解决重启后因 settings.mkt 与 index.json 中实际 key 不一致导致的短暂空白
+                if let Some(ref actual_mkt) = runtime_state.last_actual_mkt {
+                    tauri::async_runtime::block_on(async {
+                        *state.last_actual_mkt.lock().await = Some(actual_mkt.clone());
+                    });
+                    info!(target: "startup", "从持久化状态恢复 last_actual_mkt: {}", actual_mkt);
                 }
             }
 

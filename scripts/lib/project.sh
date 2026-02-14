@@ -54,19 +54,19 @@ project_file_exists() {
 # Package Manager Detection
 # ============================================================================
 
-# Detect available package manager (pnpm or npm)
-# Returns: "pnpm" or "npm"
+# Detect package manager (pnpm only, npm is not supported)
+# Returns: "pnpm"
 # Usage: PKG_MANAGER=$(project_detect_package_manager)
 project_detect_package_manager() {
     if command -v pnpm &> /dev/null; then
         echo "pnpm"
-    elif command -v npm &> /dev/null; then
-        echo "npm"
     else
         if type print_error &>/dev/null; then
-            print_error "Neither pnpm nor npm found"
+            print_error "pnpm is required but not found"
+            print_info "Install via: corepack enable && corepack prepare pnpm@latest --activate"
         else
-            echo "Error: Neither pnpm nor npm found" >&2
+            echo "Error: pnpm is required but not found" >&2
+            echo "Install via: corepack enable && corepack prepare pnpm@latest --activate" >&2
         fi
         exit 1
     fi

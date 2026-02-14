@@ -1,10 +1,14 @@
-import { useState, useEffect } from "react";
-import { AppSettings } from "../types";
+import { useState, useEffect, useCallback } from "react";
+import { AppSettings, MarketStatus, MarketGroup } from "../types";
 import { useSettings } from "../hooks/useSettings";
 import { useTheme, Theme } from "../contexts/ThemeContext";
 import { useI18n } from "../i18n/I18nContext";
 import { showSystemNotification } from "../utils/notification";
 import { open } from "@tauri-apps/plugin-dialog";
+import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
+import { createSafeUnlisten } from "../utils/eventListener";
+import { EVENTS } from "../config/ui";
 
 interface SettingsProps {
   onClose: () => void;
@@ -23,6 +27,11 @@ export function Settings({
   const { t, setLanguage } = useI18n();
 
   const [defaultDir, setDefaultDir] = useState<string>("");
+  const [marketGroups, setMarketGroups] = useState<MarketGroup[]>([]);
+  const [marketStatus, setMarketStatus] = useState<MarketStatus | null>(null);
+  // dismiss 只控制当前打开的 Settings 面板内是否隐藏警告，
+  // 下次重新打开 Settings 会重新 pull，如果仍然 mismatch 则重新显示
+  const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
     getDefaultDirectory()
@@ -34,6 +43,63 @@ export function Settings({
         console.error("Failed to get default directory:", err);
       });
   }, [getDefaultDirectory]);
+
+  // 从后端拉取 MarketStatus
+  const fetchMarketStatus = useCallback(async () => {
+    try {
+      const status = await invoke<MarketStatus>("get_market_status");
+      setMarketStatus(status);
+      setDismissed(false); // 重新拉取时重置 dismiss 状态
+    } catch (err) {
+      console.error("Failed to fetch market status:", err);
+    }
+  }, []);
+
+  // Settings 打开时从后端加载市场列表和 mkt 状态
+  useEffect(() => {
+    fetchMarketStatus();
+    invoke<MarketGroup[]>("get_supported_mkts")
+      .then(setMarketGroups)
+      .catch((err) => console.error("Failed to load market groups:", err));
+  }, [fetchMarketStatus]);
+
+  // 监听 mkt-status-changed 事件，收到后重新 pull
+  useEffect(() => {
+    let mounted = true;
+    let unlisten: (() => void) | undefined;
+
+    (async () => {
+      try {
+        const unlistenFn = await listen(EVENTS.MKT_STATUS_CHANGED, () => {
+          if (mounted) {
+            fetchMarketStatus();
+          }
+        });
+        const safeUnlisten = createSafeUnlisten(unlistenFn);
+
+        if (mounted) {
+          unlisten = safeUnlisten;
+        } else {
+          safeUnlisten();
+        }
+      } catch (e) {
+        console.error("Failed to bind mkt-status-changed event:", e);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+      unlisten?.();
+    };
+  }, [fetchMarketStatus]);
+
+  // 后端 region ID → 翻译 key 映射
+  const regionI18nKey: Record<string, Parameters<typeof t>[0]> = {
+    asia_pacific: "marketRegionAsiaPacific",
+    europe: "marketRegionEurope",
+    americas: "marketRegionAmericas",
+    africa: "marketRegionAfrica",
+  };
 
   const handleChange = async (
     field: keyof AppSettings,
@@ -49,10 +115,9 @@ export function Settings({
       if (field === "theme" && typeof value === "string") {
         applyThemeToUI(value as Theme);
       }
-      // 如果是语言变化，立即更新 i18n context
+      // 如果是语言变化，先同步 i18n context 再触发壁纸刷新
       if (field === "language" && typeof value === "string") {
-        setLanguage(value as "auto" | "zh-CN" | "en-US");
-        // 语言变化时，触发重新获取壁纸数据（以获取新语言的标题和描述）
+        await setLanguage(value as "auto" | "zh-CN" | "en-US");
         if (onLanguageChange) {
           onLanguageChange();
         }
@@ -207,6 +272,55 @@ export function Settings({
                 <span>{t("languageEnUS")}</span>
               </label>
             </div>
+          </div>
+
+          <div className="settings-section">
+            <label className="settings-label">
+              {t("market")}:
+              <span className="settings-hint">{t("marketHint")}</span>
+            </label>
+            <select
+              className="settings-select"
+              value={settings?.mkt ?? "zh-CN"}
+              onChange={async (e) => {
+                // 先等待保存完成，再触发壁纸刷新，避免刷新时仍读到旧 mkt
+                await handleChange("mkt", e.target.value);
+                // mkt 变更后主动刷新 MarketStatus（清除旧的 mismatch 警告）
+                await fetchMarketStatus();
+                if (onLanguageChange) {
+                  onLanguageChange();
+                }
+              }}
+            >
+              {marketGroups.map((group) => (
+                <optgroup
+                  key={group.region}
+                  label={t(regionI18nKey[group.region] ?? "market")}
+                >
+                  {group.markets.map((m) => (
+                    <option key={m.code} value={m.code}>
+                      {m.label} ({m.code})
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+            {marketStatus?.is_mismatch && !dismissed && (
+              <div className="settings-mkt-warning">
+                <span>
+                  {t("marketMismatchWarning")
+                    .replace("{actualMkt}", marketStatus.effective_mkt)
+                    .replace("{requestedMkt}", marketStatus.requested_mkt)}
+                </span>
+                <button
+                  className="btn-dismiss"
+                  onClick={() => setDismissed(true)}
+                  aria-label="dismiss"
+                >
+                  ×
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="settings-section">

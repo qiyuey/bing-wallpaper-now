@@ -40,7 +40,6 @@ function App() {
     version: string;
     releaseUrl: string;
   } | null>(null);
-
   // 获取壁纸目录
   useEffect(() => {
     invoke<string>("get_wallpaper_directory")
@@ -394,7 +393,7 @@ function App() {
           <button
             onClick={handleRefresh}
             className="btn btn-icon"
-            title={t("refresh")}
+            aria-label={t("refresh")}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -406,11 +405,12 @@ function App() {
             >
               <path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16" />
             </svg>
+            <span className="btn-tooltip">{t("refresh")}</span>
           </button>
           <button
             onClick={handleOpenFolder}
             className="btn btn-icon"
-            title={t("openFolder")}
+            aria-label={t("openFolder")}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -422,12 +422,13 @@ function App() {
             >
               <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
             </svg>
+            <span className="btn-tooltip">{t("openFolder")}</span>
           </button>
 
           <button
             onClick={() => setShowSettings(true)}
             className="btn btn-icon"
-            title={t("settings")}
+            aria-label={t("settings")}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -439,6 +440,7 @@ function App() {
             >
               <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
             </svg>
+            <span className="btn-tooltip">{t("settings")}</span>
           </button>
         </div>
       </header>

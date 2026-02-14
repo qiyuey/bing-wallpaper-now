@@ -12,7 +12,9 @@ describe("useSettings", () => {
     save_directory: "C:\\Users\\Test\\Wallpapers",
     launch_at_startup: false,
     theme: "system",
-    language: "auto",
+    language: "zh-CN",
+    resolved_language: "zh-CN",
+    mkt: "zh-CN",
   };
 
   beforeEach(() => {
@@ -82,13 +84,14 @@ describe("useSettings", () => {
       auto_update: false,
     };
 
-    // For update call, we only need it to resolve
+    // update_settings 成功后，get_settings 应返回更新后的设置
     vi.mocked(invoke).mockImplementation((cmd: string) => {
       if (cmd === "update_settings") {
         return Promise.resolve(undefined);
       }
       if (cmd === "get_settings") {
-        return Promise.resolve(mockSettings);
+        // 模拟后端：update 后 get_settings 返回更新后的值
+        return Promise.resolve(updatedSettings);
       }
       return Promise.resolve(undefined);
     });
@@ -105,6 +108,7 @@ describe("useSettings", () => {
         launch_at_startup: updatedSettings.launch_at_startup,
         theme: updatedSettings.theme,
         language: updatedSettings.language,
+        mkt: updatedSettings.mkt,
       },
     });
 

@@ -7,18 +7,20 @@
 #   make release          # Release official version
 #
 # Requirements:
-# - Node.js >= 22 LTS
+# - Node.js >= 24 LTS
 # - Rust 1.80+ (Edition 2024)
-# - pnpm (recommended) or npm
+# - pnpm 10+ (required, npm is not supported)
 
 # ============================================================================
 # Configuration Variables
 # ============================================================================
 
-# Package manager
+# Package manager (pnpm only, npm is not supported)
 PKG_MANAGER := pnpm
+
+# Verify pnpm is available
 ifeq ($(shell command -v pnpm 2> /dev/null),)
-	PKG_MANAGER := npm
+$(error pnpm is required but not found. Install it via: corepack enable && corepack prepare pnpm@latest --activate)
 endif
 
 # Paths

@@ -12,6 +12,9 @@ describe("ThemeContext", () => {
     auto_update: true,
     save_directory: null,
     launch_at_startup: false,
+    language: "zh-CN",
+    resolved_language: "zh-CN",
+    mkt: "zh-CN",
   };
 
   let matchMediaMock: {

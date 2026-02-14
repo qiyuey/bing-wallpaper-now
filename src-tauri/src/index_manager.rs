@@ -61,8 +61,8 @@ impl IndexManager {
             let cache = self.cache.lock().await;
             if let Some(index) = cache.as_ref() {
                 log::debug!(
-                    "使用缓存的索引，包含 {} 种语言，路径: {}",
-                    index.wallpapers_by_language.len(),
+                    "使用缓存的索引，包含 {} 个 mkt，路径: {}",
+                    index.mkt.len(),
                     index_path.display()
                 );
                 return Ok(index.clone());
@@ -73,12 +73,12 @@ impl IndexManager {
         log::debug!("从磁盘加载索引，路径: {}", index_path.display());
         let index = match self.load_from_disk().await {
             Ok(index) => {
-                let lang_count = index.wallpapers_by_language.len();
+                let mkt_count = index.mkt.len();
                 let total_wallpapers: usize =
-                    index.wallpapers_by_language.values().map(|m| m.len()).sum();
+                    index.mkt.values().map(|m| m.len()).sum();
                 log::info!(
-                    "成功加载索引文件，包含 {} 种语言，共 {} 张壁纸，路径: {}",
-                    lang_count,
+                    "成功加载索引文件，包含 {} 个 mkt，共 {} 张壁纸，路径: {}",
+                    mkt_count,
                     total_wallpapers,
                     index_path.display()
                 );
@@ -122,31 +122,72 @@ impl IndexManager {
         let json_value: serde_json::Value = serde_json::from_str(&contents)
             .with_context(|| format!("Failed to parse JSON: {}", path.display()))?;
 
-        // 检查版本号，如果不是 v4，直接返回空索引
+        // 检查版本号
         let file_version = json_value
             .get("version")
             .and_then(|v| v.as_u64())
             .unwrap_or(0) as u32;
 
-        if file_version != WallpaperIndex::VERSION {
-            log::warn!(
-                "索引版本不匹配 (期望: {}, 实际: {}), 返回空索引，路径: {}",
-                WallpaperIndex::VERSION,
-                file_version,
-                path.display()
-            );
-            return Ok(WallpaperIndex::default());
+        if file_version == WallpaperIndex::VERSION {
+            // 当前版本，直接反序列化
+            let mut index: WallpaperIndex = serde_json::from_value(json_value)
+                .with_context(|| {
+                    format!("Failed to deserialize index file: {}", path.display())
+                })?;
+            index.sort_all();
+            log::debug!("索引文件加载成功，版本: v{}", index.version);
+            return Ok(index);
         }
 
-        // 版本匹配，反序列化为 WallpaperIndex
-        let mut index: WallpaperIndex = serde_json::from_value(json_value)
-            .with_context(|| format!("Failed to deserialize index file: {}", path.display()))?;
+        if file_version == WallpaperIndex::MIGRATE_FROM_VERSION {
+            // v4 → v5 迁移：wallpapers_by_language → mkt
+            log::info!(
+                "检测到 v{} 索引，开始迁移到 v{}，路径: {}",
+                file_version,
+                WallpaperIndex::VERSION,
+                path.display()
+            );
 
-        // 对加载的索引进行排序，确保顺序（按日期降序）
-        index.sort_all();
+            // 1. 备份旧文件
+            let backup_path = path.with_extension(format!("json.v{file_version}.bak"));
+            fs::copy(&path, &backup_path).await.with_context(|| {
+                format!(
+                    "Failed to backup index file: {} → {}",
+                    path.display(),
+                    backup_path.display()
+                )
+            })?;
+            log::info!("已备份旧索引文件: {}", backup_path.display());
 
-        log::debug!("索引文件加载成功，版本: {}", index.version);
-        Ok(index)
+            // 2. 反序列化（serde alias 自动兼容 wallpapers_by_language → mkt）
+            let mut index: WallpaperIndex = serde_json::from_value(json_value)
+                .with_context(|| {
+                    format!("Failed to deserialize v{file_version} index: {}", path.display())
+                })?;
+
+            // 3. 升级版本号
+            index.version = WallpaperIndex::VERSION;
+            index.sort_all();
+
+            // 4. 回写新格式
+            self.save_index(&index).await?;
+            log::info!(
+                "索引迁移完成 v{} → v{}，路径: {}",
+                file_version,
+                WallpaperIndex::VERSION,
+                path.display()
+            );
+            return Ok(index);
+        }
+
+        // 不支持的旧版本，返回空索引
+        log::warn!(
+            "索引版本不支持 (当前: v{}, 文件: v{}), 返回空索引，路径: {}",
+            WallpaperIndex::VERSION,
+            file_version,
+            path.display()
+        );
+        Ok(WallpaperIndex::default())
     }
 
     /// 保存索引到磁盘
@@ -200,7 +241,7 @@ impl IndexManager {
         }
 
         let mut index = self.load_index().await?;
-        index.upsert_wallpapers_for_language(language, wallpapers);
+        index.upsert_wallpapers_for_mkt(language, wallpapers);
 
         // 限制索引数量，防止 JSON 文件过大
         index.limit_index_size(MAX_INDEX_COUNT);
@@ -216,18 +257,31 @@ impl IndexManager {
     /// * `language` - 语言代码（如 "zh-CN", "en-US"）
     pub async fn get_all_wallpapers(&self, language: &str) -> Result<Vec<LocalWallpaper>> {
         let index = self.load_index().await?;
-        let available_languages: Vec<String> =
-            index.wallpapers_by_language.keys().cloned().collect();
-        let wallpapers = index.get_wallpapers_for_language(language);
+        let available_mkts: Vec<String> =
+            index.mkt.keys().cloned().collect();
+        let wallpapers = index.get_wallpapers_for_mkt(language);
 
         log::debug!(
-            "获取壁纸列表，语言: {}, 找到 {} 张壁纸，可用语言: {:?}",
+            "获取壁纸列表，mkt: {}, 找到 {} 张壁纸，可用 mkt: {:?}",
             language,
             wallpapers.len(),
-            available_languages
+            available_mkts
         );
 
         Ok(wallpapers)
+    }
+
+    /// 获取 index.json 中所有可用的 mkt key
+    ///
+    /// 用于 fallback 场景：当 effective_mkt 对应的壁纸列表为空时，
+    /// 可从可用 key 中选择最匹配的 mkt。
+    pub async fn get_available_mkt_keys(&self) -> Result<Vec<String>> {
+        let index = self.load_index().await?;
+        let mut keys: Vec<String> = index.mkt.keys().cloned().collect();
+        // 排序确保返回顺序稳定，避免上层 fallback 使用时出现随机行为。
+        keys.sort();
+        log::debug!("index.json 可用 mkt keys: {:?}", keys);
+        Ok(keys)
     }
 }
 
@@ -402,7 +456,7 @@ mod tests {
 
         // 验证索引文件使用 end_date 作为 key
         let index = manager.load_index().await.unwrap();
-        let zh_cn_wallpapers = index.wallpapers_by_language.get("zh-CN").unwrap();
+        let zh_cn_wallpapers = index.mkt.get("zh-CN").unwrap();
 
         // 应该能用 end_date 作为 key 找到壁纸
         assert!(zh_cn_wallpapers.contains_key("20240102"));
@@ -466,9 +520,9 @@ mod tests {
 
         // 验证多语言存储
         let index = manager.load_index().await.unwrap();
-        assert_eq!(index.wallpapers_by_language.len(), 2);
-        assert!(index.wallpapers_by_language.contains_key("zh-CN"));
-        assert!(index.wallpapers_by_language.contains_key("en-US"));
+        assert_eq!(index.mkt.len(), 2);
+        assert!(index.mkt.contains_key("zh-CN"));
+        assert!(index.mkt.contains_key("en-US"));
 
         // 验证每个语言都有正确的壁纸
         let zh_wallpapers = manager.get_all_wallpapers("zh-CN").await.unwrap();
@@ -514,8 +568,8 @@ mod tests {
 
         // 两次加载应该返回相同的数据
         assert_eq!(
-            index1.wallpapers_by_language.len(),
-            index2.wallpapers_by_language.len()
+            index1.mkt.len(),
+            index2.mkt.len()
         );
 
         // 清理
@@ -628,7 +682,7 @@ mod tests {
 
         // 验证可以正确加载
         let index = manager.load_index().await.unwrap();
-        assert_eq!(index.wallpapers_by_language.len(), 1);
+        assert_eq!(index.mkt.len(), 1);
 
         // 清理
         let _ = fs::remove_dir_all(&temp_dir).await;
@@ -688,12 +742,12 @@ mod tests {
             "JSON 应该是紧凑格式，不应该包含缩进"
         );
 
-        // 验证 JSON 内容使用 end_date 作为 key（在 wallpapers_by_language 中）
+        // 验证 JSON 内容使用 end_date 作为 key（在 mkt 中）
         // 注意：这里要检查的是内层 key，不是字段名
         // JSON 格式应该是：{"zh-CN": {"20240102": {...}}}
         // 所以 "20240102" 应该是 key
         let parsed: serde_json::Value = serde_json::from_str(&json_content).unwrap();
-        let zh_cn_map = parsed["wallpapers_by_language"]["zh-CN"]
+        let zh_cn_map = parsed["mkt"]["zh-CN"]
             .as_object()
             .unwrap();
 
@@ -704,7 +758,85 @@ mod tests {
         );
 
         // 验证版本号
-        assert_eq!(parsed["version"], 4, "版本号应该是 4");
+        assert_eq!(
+            parsed["version"], WallpaperIndex::VERSION,
+            "版本号应该是 v{}",
+            WallpaperIndex::VERSION
+        );
+
+        // 清理
+        let _ = fs::remove_dir_all(&temp_dir).await;
+    }
+
+    #[tokio::test]
+    async fn test_index_manager_migrate_v4_to_v5() {
+        let unique = SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let temp_dir = std::env::temp_dir().join(format!("bw_index_migrate_{unique}"));
+        fs::create_dir_all(&temp_dir).await.unwrap();
+
+        let index_path = temp_dir.join("index.json");
+        let backup_path = temp_dir.join("index.json.v4.bak");
+
+        // 写入 v4 格式的 index.json（使用 wallpapers_by_language 字段名）
+        // 注意：LocalWallpaper 的 serde 短字段名是 t/c/l/d/u
+        let v4_json = r#"{"version":4,"last_updated":"2025-02-14T00:00:00Z","wallpapers_by_language":{"zh-CN":{"20250214":{"t":"Test","c":"Copyright","l":"https://example.com","d":"20250214","u":"/th?id=OHR.Test"}}}}"#;
+        fs::write(&index_path, v4_json).await.unwrap();
+
+        // 加载索引 —— 应触发 v4 → v5 迁移
+        let manager = IndexManager::new(temp_dir.clone());
+        let index = manager.load_index().await.unwrap();
+
+        // 验证数据被正确加载
+        assert_eq!(index.mkt.len(), 1);
+        assert!(index.mkt.contains_key("zh-CN"));
+        let zh_wallpapers = index.mkt.get("zh-CN").unwrap();
+        assert!(zh_wallpapers.contains_key("20250214"));
+
+        // 验证版本号已升级到 v5
+        assert_eq!(
+            index.version,
+            WallpaperIndex::VERSION,
+            "迁移后版本号应为 v{}",
+            WallpaperIndex::VERSION
+        );
+
+        // 验证备份文件已创建
+        assert!(
+            backup_path.exists(),
+            "应创建备份文件: {}",
+            backup_path.display()
+        );
+        let backup_content = fs::read_to_string(&backup_path).await.unwrap();
+        assert!(
+            backup_content.contains("wallpapers_by_language"),
+            "备份文件应保留原始 v4 内容"
+        );
+        assert!(
+            backup_content.contains("\"version\":4"),
+            "备份文件应保留 v4 版本号"
+        );
+
+        // 验证磁盘上的 JSON 已迁移为新字段名 "mkt"
+        let migrated_json = fs::read_to_string(&index_path).await.unwrap();
+        assert!(
+            migrated_json.contains("\"mkt\""),
+            "迁移后应使用 mkt 字段名，实际内容: {}",
+            migrated_json
+        );
+        assert!(
+            !migrated_json.contains("wallpapers_by_language"),
+            "迁移后不应再包含 wallpapers_by_language，实际内容: {}",
+            migrated_json
+        );
+
+        // 验证再次加载不会重复迁移（直接走 v5 分支）
+        let manager2 = IndexManager::new(temp_dir.clone());
+        let index2 = manager2.load_index().await.unwrap();
+        assert_eq!(index2.version, WallpaperIndex::VERSION);
+        assert_eq!(index2.mkt.len(), 1);
 
         // 清理
         let _ = fs::remove_dir_all(&temp_dir).await;
@@ -732,7 +864,7 @@ mod tests {
 
         // 应该返回空索引（默认值）
         assert_eq!(index.version, WallpaperIndex::VERSION);
-        assert!(index.wallpapers_by_language.is_empty());
+        assert!(index.mkt.is_empty());
 
         // 清理
         let _ = fs::remove_dir_all(&temp_dir).await;
@@ -792,6 +924,46 @@ mod tests {
                 "壁纸应该按 end_date 降序排列"
             );
         }
+
+        // 清理
+        let _ = fs::remove_dir_all(&temp_dir).await;
+    }
+
+    #[tokio::test]
+    async fn test_get_available_mkt_keys_returns_sorted_keys() {
+        let unique = SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let temp_dir = std::env::temp_dir().join(format!("bw_index_keys_{unique}"));
+        fs::create_dir_all(&temp_dir).await.unwrap();
+
+        let manager = IndexManager::new(temp_dir.clone());
+
+        let wallpaper = LocalWallpaper {
+            title: "Key Order".to_string(),
+            copyright: "Test".to_string(),
+            copyright_link: "https://example.com".to_string(),
+            end_date: "20240102".to_string(),
+            urlbase: "/th?id=OHR.KeyOrder".to_string(),
+        };
+
+        // 有意按非字典序写入语言 key，验证返回顺序稳定。
+        manager
+            .upsert_wallpapers(vec![wallpaper.clone()], "zh-CN")
+            .await
+            .unwrap();
+        manager
+            .upsert_wallpapers(vec![wallpaper.clone()], "en-US")
+            .await
+            .unwrap();
+        manager
+            .upsert_wallpapers(vec![wallpaper], "ja-JP")
+            .await
+            .unwrap();
+
+        let keys = manager.get_available_mkt_keys().await.unwrap();
+        assert_eq!(keys, vec!["en-US", "ja-JP", "zh-CN"]);
 
         // 清理
         let _ = fs::remove_dir_all(&temp_dir).await;

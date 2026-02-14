@@ -1,8 +1,6 @@
 // 多语言配置
-// 支持的语言类型
+// 支持的语言类型："auto" 表示跟随系统
 export type Language = "auto" | "zh-CN" | "en-US";
-
-/* eslint-env browser */
 
 // 翻译内容
 export const translations = {
@@ -55,6 +53,14 @@ export const translations = {
     languageAuto: "自动",
     languageZhCN: "中文",
     languageEnUS: "English",
+    market: "壁纸市场",
+    marketHint: "决定获取哪个地区的壁纸，与界面语言独立",
+    marketRegionAsiaPacific: "亚太",
+    marketRegionEurope: "欧洲",
+    marketRegionAmericas: "美洲",
+    marketRegionAfrica: "非洲",
+    marketMismatchWarning:
+      "注意：Bing 实际返回了 {actualMkt} 的壁纸，与您选择的 {requestedMkt} 不同。这通常是因为您所在地区的 Bing 不支持该市场。",
     saveDirectory: "保存目录",
     settingsLoading: "加载设置中...",
     settingsSaveError: "保存设置失败",
@@ -144,8 +150,15 @@ export const translations = {
     languageAuto: "Auto",
     languageZhCN: "中文",
     languageEnUS: "English",
-    keepCount: "Keep Wallpaper Count",
-    keepCountHint: "(0 means unlimited, at least keep 8)",
+    market: "Wallpaper Market",
+    marketHint:
+      "Determines which region's wallpapers to fetch, independent of UI language",
+    marketRegionAsiaPacific: "Asia Pacific",
+    marketRegionEurope: "Europe",
+    marketRegionAmericas: "Americas",
+    marketRegionAfrica: "Africa",
+    marketMismatchWarning:
+      "Note: Bing returned wallpapers for {actualMkt} instead of your selected {requestedMkt}. This usually happens when Bing in your region does not support the selected market.",
     saveDirectory: "Save Directory",
     settingsLoading: "Loading settings...",
     settingsSaveError: "Failed to save settings",
@@ -208,14 +221,4 @@ export function detectSystemLanguage(): "zh-CN" | "en-US" {
     return "zh-CN";
   }
   return "en-US";
-}
-
-/**
- * 获取实际使用的语言
- */
-export function getActualLanguage(language: Language): "zh-CN" | "en-US" {
-  if (language === "auto") {
-    return detectSystemLanguage();
-  }
-  return language;
 }

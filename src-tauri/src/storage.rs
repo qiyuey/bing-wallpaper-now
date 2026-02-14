@@ -87,44 +87,69 @@ pub fn get_wallpaper_path(directory: &Path, end_date: &str) -> PathBuf {
 ///
 /// # Arguments
 /// * `directory` - 壁纸存储目录
-/// * `language` - 语言代码（如 "zh-CN", "en-US"）
-pub async fn get_local_wallpapers(directory: &Path, language: &str) -> Result<Vec<LocalWallpaper>> {
+/// * `mkt` - 市场代码（如 "zh-CN", "en-US", "ja-JP"）
+pub async fn get_local_wallpapers(directory: &Path, mkt: &str) -> Result<Vec<LocalWallpaper>> {
     let manager = get_index_manager(directory);
-    manager.get_all_wallpapers(language).await
+    manager.get_all_wallpapers(mkt).await
 }
 
-/// 验证壁纸数据的语言是否匹配
+/// 获取 index.json 中所有可用的 mkt key
 ///
-/// 检查 urlbase 字段中的语言代码是否与期望的语言匹配。
+/// 复用全局 IndexManager 缓存，避免重复磁盘 I/O。
+/// 用于 fallback 场景：当 effective_mkt 对应的壁纸为空时查找可用 key。
+pub async fn get_available_mkt_keys(directory: &Path) -> Result<Vec<String>> {
+    let manager = get_index_manager(directory);
+    manager.get_available_mkt_keys().await
+}
+
+/// 验证壁纸数据的市场代码是否匹配
+///
+/// 检查 urlbase 字段中的市场代码是否与期望的 mkt 匹配。
 /// urlbase 格式通常为：/th?id=OHR.xxx_ZH-CN1234567890 或 /th?id=OHR.xxx_EN-US1234567890
+///
+/// 验证规则：
+/// - urlbase 为空：通过验证（向后兼容）
+/// - urlbase 包含 `_XX-YY` 格式的 mkt 标记且与期望 mkt 的大写形式匹配：通过
+/// - urlbase 包含其他 mkt 标记且不包含期望 mkt 标记：验证失败
+/// - urlbase 不包含任何已知 mkt 标记：通过（不做限制）
 ///
 /// # Arguments
 /// * `wallpaper` - 要验证的壁纸数据
-/// * `expected_language` - 期望的语言代码（如 "zh-CN", "en-US"）
+/// * `expected_mkt` - 期望的市场代码（如 "zh-CN", "en-US", "ja-JP"）
 ///
 /// # Returns
-/// `true` 表示通过验证，`false` 表示语言不匹配
-fn validate_wallpaper_language(wallpaper: &LocalWallpaper, expected_language: &str) -> bool {
-    let expected_lang_in_url = match expected_language {
-        "zh-CN" => "_ZH-CN",
-        "en-US" => "_EN-US",
-        _ => return true, // 其他语言不验证，直接通过
-    };
+/// `true` 表示通过验证，`false` 表示市场代码不匹配
+/// 预计算的 mkt 大写标记集合（如 "_ZH-CN", "_EN-US" 等）
+///
+/// 使用 LazyLock 在首次访问时构建，避免每次调用 validate_wallpaper_mkt 时重复格式化。
+static MKT_UPPERCASE_MARKERS: std::sync::LazyLock<Vec<String>> = std::sync::LazyLock::new(|| {
+    crate::utils::SUPPORTED_MKTS
+        .iter()
+        .map(|mkt| format!("_{}", mkt.to_uppercase()))
+        .collect()
+});
 
+fn validate_wallpaper_mkt(wallpaper: &LocalWallpaper, expected_mkt: &str) -> bool {
     // 如果 urlbase 为空，不进行验证（向后兼容）
     if wallpaper.urlbase.is_empty() {
         return true;
     }
 
-    // 检查是否包含其他语言的代码
-    let contains_other_lang = match expected_language {
-        "zh-CN" => wallpaper.urlbase.contains("_EN-US"),
-        "en-US" => wallpaper.urlbase.contains("_ZH-CN"),
-        _ => false,
-    };
+    let expected_marker = format!("_{}", expected_mkt.to_uppercase());
 
-    // 如果包含其他语言代码，且不包含预期语言代码，则验证失败
-    !contains_other_lang || wallpaper.urlbase.contains(expected_lang_in_url)
+    // 快速路径：如果包含期望的标记，直接通过
+    if wallpaper.urlbase.contains(&expected_marker) {
+        return true;
+    }
+
+    // 检查是否包含其他已知 mkt 标记
+    let has_other_marker = MKT_UPPERCASE_MARKERS
+        .iter()
+        .any(|m| wallpaper.urlbase.contains(m.as_str()));
+
+    // 没有任何 mkt 标记 → 通过（向后兼容）
+    // 有其他 mkt 标记但不含期望的 → 失败
+    !has_other_marker
 }
 
 /// 批量保存壁纸元数据（性能优化）
@@ -134,24 +159,24 @@ fn validate_wallpaper_language(wallpaper: &LocalWallpaper, expected_language: &s
 /// # Arguments
 /// * `wallpapers` - 要保存的壁纸列表
 /// * `directory` - 壁纸存储目录
-/// * `language` - 语言代码（如 "zh-CN", "en-US"）
+/// * `mkt` - 市场代码（如 "zh-CN", "en-US", "ja-JP"）
 pub async fn save_wallpapers_metadata(
     wallpapers: Vec<LocalWallpaper>,
     directory: &Path,
-    language: &str,
+    mkt: &str,
 ) -> Result<()> {
-    // 验证数据语言匹配：过滤掉语言不匹配的条目
+    // 验证数据市场代码匹配：过滤掉不匹配的条目
     let mut validated_wallpapers = Vec::new();
     let mut filtered_count = 0;
 
     for wallpaper in wallpapers {
-        if !validate_wallpaper_language(&wallpaper, language) {
-            // 检测到语言不匹配，记录警告并跳过
+        if !validate_wallpaper_mkt(&wallpaper, mkt) {
+            // 检测到市场代码不匹配，记录警告并跳过
             log::warn!(
-                "跳过语言不匹配的壁纸: end_date={}, urlbase={}, 期望语言={}",
+                "跳过 mkt 不匹配的壁纸: end_date={}, urlbase={}, 期望 mkt={}",
                 wallpaper.end_date,
                 wallpaper.urlbase,
-                language
+                mkt
             );
             filtered_count += 1;
             continue;
@@ -161,16 +186,14 @@ pub async fn save_wallpapers_metadata(
 
     if filtered_count > 0 {
         log::warn!(
-            "过滤了 {} 条语言不匹配的壁纸数据（期望语言: {}）",
+            "过滤了 {} 条 mkt 不匹配的壁纸数据（期望 mkt: {}）",
             filtered_count,
-            language
+            mkt
         );
     }
 
     let manager = get_index_manager(directory);
-    manager
-        .upsert_wallpapers(validated_wallpapers, language)
-        .await
+    manager.upsert_wallpapers(validated_wallpapers, mkt).await
 }
 
 #[cfg(test)]
@@ -179,8 +202,7 @@ mod tests {
     use crate::models::LocalWallpaper;
 
     #[test]
-    fn test_validate_wallpaper_language_zh_cn() {
-        // 测试中文壁纸验证
+    fn test_validate_wallpaper_mkt_zh_cn() {
         let wallpaper_zh = LocalWallpaper {
             title: "测试".to_string(),
             copyright: "测试版权".to_string(),
@@ -189,13 +211,12 @@ mod tests {
             urlbase: "/th?id=OHR.Test_ZH-CN1234567890".to_string(),
         };
 
-        assert!(validate_wallpaper_language(&wallpaper_zh, "zh-CN"));
-        assert!(!validate_wallpaper_language(&wallpaper_zh, "en-US"));
+        assert!(validate_wallpaper_mkt(&wallpaper_zh, "zh-CN"));
+        assert!(!validate_wallpaper_mkt(&wallpaper_zh, "en-US"));
     }
 
     #[test]
-    fn test_validate_wallpaper_language_en_us() {
-        // 测试英文壁纸验证
+    fn test_validate_wallpaper_mkt_en_us() {
         let wallpaper_en = LocalWallpaper {
             title: "Test".to_string(),
             copyright: "Test Copyright".to_string(),
@@ -204,13 +225,29 @@ mod tests {
             urlbase: "/th?id=OHR.Test_EN-US1234567890".to_string(),
         };
 
-        assert!(validate_wallpaper_language(&wallpaper_en, "en-US"));
-        assert!(!validate_wallpaper_language(&wallpaper_en, "zh-CN"));
+        assert!(validate_wallpaper_mkt(&wallpaper_en, "en-US"));
+        assert!(!validate_wallpaper_mkt(&wallpaper_en, "zh-CN"));
     }
 
     #[test]
-    fn test_validate_wallpaper_language_empty_urlbase() {
-        // 测试空 urlbase（向后兼容）
+    fn test_validate_wallpaper_mkt_ja_jp() {
+        // 测试日语市场壁纸验证
+        let wallpaper_jp = LocalWallpaper {
+            title: "テスト".to_string(),
+            copyright: "テスト著作権".to_string(),
+            copyright_link: "https://example.com".to_string(),
+            end_date: "20250102".to_string(),
+            urlbase: "/th?id=OHR.Test_JA-JP1234567890".to_string(),
+        };
+
+        assert!(validate_wallpaper_mkt(&wallpaper_jp, "ja-JP"));
+        assert!(!validate_wallpaper_mkt(&wallpaper_jp, "zh-CN"));
+        assert!(!validate_wallpaper_mkt(&wallpaper_jp, "en-US"));
+    }
+
+    #[test]
+    fn test_validate_wallpaper_mkt_empty_urlbase() {
+        // 空 urlbase（向后兼容）应通过所有验证
         let wallpaper_empty = LocalWallpaper {
             title: "Test".to_string(),
             copyright: "Test Copyright".to_string(),
@@ -219,13 +256,14 @@ mod tests {
             urlbase: "".to_string(),
         };
 
-        assert!(validate_wallpaper_language(&wallpaper_empty, "zh-CN"));
-        assert!(validate_wallpaper_language(&wallpaper_empty, "en-US"));
+        assert!(validate_wallpaper_mkt(&wallpaper_empty, "zh-CN"));
+        assert!(validate_wallpaper_mkt(&wallpaper_empty, "en-US"));
+        assert!(validate_wallpaper_mkt(&wallpaper_empty, "ja-JP"));
     }
 
     #[test]
-    fn test_validate_wallpaper_language_no_lang_marker() {
-        // 测试不包含语言标记的 urlbase
+    fn test_validate_wallpaper_mkt_no_marker() {
+        // 不包含任何 mkt 标记的 urlbase 应通过验证
         let wallpaper_no_marker = LocalWallpaper {
             title: "Test".to_string(),
             copyright: "Test Copyright".to_string(),
@@ -234,22 +272,9 @@ mod tests {
             urlbase: "/th?id=OHR.Test1234567890".to_string(),
         };
 
-        assert!(validate_wallpaper_language(&wallpaper_no_marker, "zh-CN"));
-        assert!(validate_wallpaper_language(&wallpaper_no_marker, "en-US"));
-    }
-
-    #[test]
-    fn test_validate_wallpaper_language_unknown_language() {
-        // 测试未知语言（应该始终通过验证）
-        let wallpaper = LocalWallpaper {
-            title: "Test".to_string(),
-            copyright: "Test Copyright".to_string(),
-            copyright_link: "https://example.com".to_string(),
-            end_date: "20250102".to_string(),
-            urlbase: "/th?id=OHR.Test_ZH-CN1234567890".to_string(),
-        };
-
-        assert!(validate_wallpaper_language(&wallpaper, "unknown"));
+        assert!(validate_wallpaper_mkt(&wallpaper_no_marker, "zh-CN"));
+        assert!(validate_wallpaper_mkt(&wallpaper_no_marker, "en-US"));
+        assert!(validate_wallpaper_mkt(&wallpaper_no_marker, "ja-JP"));
     }
 
     #[test]

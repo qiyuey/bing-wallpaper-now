@@ -1,4 +1,4 @@
-﻿// UI 常量配置
+// UI 常量配置
 // 统一管理界面中的常用常量值
 
 /**
@@ -55,4 +55,6 @@ export const EVENTS = {
   CHECK_UPDATES_RESULT: "check-updates-result",
   /** 检查更新无更新 */
   CHECK_UPDATES_NO_UPDATE: "check-updates-no-update",
+  /** mkt 状态变化（mismatch 边沿触发：false→true / true→false） */
+  MKT_STATUS_CHANGED: "mkt-status-changed",
 } as const;

@@ -1,4 +1,3 @@
-/* eslint-env browser */
 import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { screen, fireEvent, waitFor } from "@testing-library/react";
@@ -33,16 +32,40 @@ describe("Settings", () => {
     save_directory: null,
     launch_at_startup: false,
     theme: "system" as const,
-    language: "auto" as const,
+    language: "zh-CN" as const,
+    resolved_language: "zh-CN" as const,
+    mkt: "zh-CN" as const,
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
 
-    // Mock invoke for ThemeContext initialization
+    // Mock invoke for ThemeContext initialization, MarketStatus and market groups
     vi.mocked(invoke).mockImplementation((cmd: string) => {
       if (cmd === "get_settings") {
         return Promise.resolve(mockSettings);
+      }
+      if (cmd === "get_market_status") {
+        return Promise.resolve({
+          requested_mkt: "zh-CN",
+          effective_mkt: "zh-CN",
+          is_mismatch: false,
+        });
+      }
+      if (cmd === "get_supported_mkts") {
+        return Promise.resolve([
+          {
+            region: "asia_pacific",
+            markets: [
+              { code: "zh-CN", label: "中国大陆" },
+              { code: "ja-JP", label: "日本" },
+            ],
+          },
+          {
+            region: "americas",
+            markets: [{ code: "en-US", label: "United States" }],
+          },
+        ]);
       }
       return Promise.resolve(undefined);
     });
@@ -410,5 +433,140 @@ describe("Settings", () => {
     renderWithTheme(<Settings onClose={mockOnClose} />);
 
     expect(screen.getByText(/加载设置中.../i)).toBeInTheDocument();
+  });
+
+  // ─── mkt-mismatch 告警（pull 模式） ───
+
+  it("should show mkt mismatch warning when get_market_status returns mismatch", async () => {
+    // 覆盖 invoke mock，让 get_market_status 返回 mismatch 状态
+    vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "get_settings") {
+        return Promise.resolve(mockSettings);
+      }
+      if (cmd === "get_market_status") {
+        return Promise.resolve({
+          requested_mkt: "en-US",
+          effective_mkt: "zh-CN",
+          is_mismatch: true,
+        });
+      }
+      if (cmd === "get_supported_mkts") {
+        return Promise.resolve([
+          {
+            region: "asia_pacific",
+            markets: [{ code: "zh-CN", label: "中国大陆" }],
+          },
+        ]);
+      }
+      return Promise.resolve(undefined);
+    });
+
+    renderWithTheme(<Settings onClose={mockOnClose} />);
+
+    await waitFor(() => {
+      // 告警文案包含"实际返回了 zh-CN"
+      expect(screen.getByText(/实际返回了 zh-CN/)).toBeInTheDocument();
+    });
+
+    // 应有 dismiss 按钮
+    expect(screen.getByLabelText("dismiss")).toBeInTheDocument();
+  });
+
+  it("should not show mkt mismatch warning when no mismatch", async () => {
+    // 默认 mock 已返回 is_mismatch: false
+    renderWithTheme(<Settings onClose={mockOnClose} />);
+
+    await screen.findByText(/选择文件夹/i, {}, { timeout: 3000 });
+
+    // 不应有 dismiss 按钮（即没有告警）
+    expect(screen.queryByLabelText("dismiss")).not.toBeInTheDocument();
+  });
+
+  it("should dismiss mkt mismatch warning when dismiss button is clicked", async () => {
+    // 覆盖 invoke mock，让 get_market_status 返回 mismatch 状态
+    vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "get_settings") {
+        return Promise.resolve(mockSettings);
+      }
+      if (cmd === "get_market_status") {
+        return Promise.resolve({
+          requested_mkt: "en-US",
+          effective_mkt: "zh-CN",
+          is_mismatch: true,
+        });
+      }
+      if (cmd === "get_supported_mkts") {
+        return Promise.resolve([
+          {
+            region: "asia_pacific",
+            markets: [{ code: "zh-CN", label: "中国大陆" }],
+          },
+        ]);
+      }
+      return Promise.resolve(undefined);
+    });
+
+    renderWithTheme(<Settings onClose={mockOnClose} />);
+
+    const dismissButton = await screen.findByLabelText("dismiss");
+    fireEvent.click(dismissButton);
+
+    // 点击 dismiss 后告警消失
+    await waitFor(() => {
+      expect(screen.queryByLabelText("dismiss")).not.toBeInTheDocument();
+    });
+  });
+
+  // ─── mkt 切换时序 ───
+
+  it("should await settings save before triggering refresh on mkt change", async () => {
+    const callOrder: string[] = [];
+
+    // 模拟 updateSettings 有延迟
+    mockUpdateSettings.mockImplementation(async () => {
+      callOrder.push("updateSettings");
+    });
+
+    const mockOnLanguageChange = vi.fn(() => {
+      callOrder.push("onLanguageChange");
+    });
+
+    renderWithTheme(
+      <Settings
+        onClose={mockOnClose}
+        onLanguageChange={mockOnLanguageChange}
+      />,
+    );
+
+    await screen.findByText(/选择文件夹/i, {}, { timeout: 3000 });
+
+    // 找到 mkt 下拉选择器并切换
+    const mktSelect = screen.getByDisplayValue(/中国大陆/i);
+    fireEvent.change(mktSelect, { target: { value: "ja-JP" } });
+
+    // 等待两个回调都执行完成
+    await waitFor(() => {
+      expect(mockOnLanguageChange).toHaveBeenCalled();
+    });
+
+    // 验证顺序：updateSettings 必须在 onLanguageChange 之前
+    expect(callOrder).toEqual(["updateSettings", "onLanguageChange"]);
+  });
+
+  it("should update mkt setting when market dropdown is changed", async () => {
+    renderWithTheme(<Settings onClose={mockOnClose} />);
+
+    await screen.findByText(/选择文件夹/i, {}, { timeout: 3000 });
+
+    const mktSelect = screen.getByDisplayValue(/中国大陆/i);
+    fireEvent.change(mktSelect, { target: { value: "en-US" } });
+
+    await waitFor(() => {
+      expect(mockUpdateSettings).toHaveBeenCalledWith(
+        expect.objectContaining({
+          mkt: "en-US",
+        }),
+      );
+    });
   });
 });

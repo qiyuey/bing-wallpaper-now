@@ -57,18 +57,24 @@ impl From<BingImageEntry> for LocalWallpaper {
 /// 壁纸元数据索引（单一文件存储）
 ///
 /// 索引版本号说明：
-/// - v4: 使用短字段名和紧凑格式以节省存储空间
+/// - v4: 使用短字段名和紧凑格式，壁纸按 `wallpapers_by_language` 分组
+/// - v5: 将 `wallpapers_by_language` 重命名为 `mkt`，语义更准确
+///
+/// 迁移说明：
+/// - v4 → v5：自动备份旧文件为 `index.json.v4.bak`，将 `wallpapers_by_language` 迁移为 `mkt`
+/// - 通过 `#[serde(alias = "wallpapers_by_language")]` 保证反序列化兼容
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WallpaperIndex {
     /// 版本号（用于兼容性检查）
     pub version: u32,
     /// 最后更新时间
     pub last_updated: DateTime<Utc>,
-    /// 按语言分组的壁纸列表
-    /// 外层 key = 语言代码（如 "zh-CN", "en-US"），内层 key = end_date
+    /// 按市场代码（mkt）分组的壁纸列表
+    /// 外层 key = mkt（如 "zh-CN", "en-US", "ja-JP"），内层 key = end_date
     /// 使用 end_date 作为 key，因为文件名也使用 end_date（Bing 的 startdate 是昨天，enddate 才是今天）
     /// 使用 IndexMap 以保持插入顺序，确保 JSON 序列化时按日期排序
-    pub wallpapers_by_language: IndexMap<String, IndexMap<String, LocalWallpaper>>,
+    #[serde(alias = "wallpapers_by_language")]
+    pub mkt: IndexMap<String, IndexMap<String, LocalWallpaper>>,
 }
 
 impl Default for WallpaperIndex {
@@ -81,21 +87,25 @@ impl WallpaperIndex {
     /// 索引版本常量
     ///
     /// v4: 使用短字段名和紧凑格式
-    pub const VERSION: u32 = 4;
+    /// v5: wallpapers_by_language → mkt
+    pub const VERSION: u32 = 5;
+
+    /// 支持从此版本迁移升级（v4 → v5）
+    pub const MIGRATE_FROM_VERSION: u32 = 4;
 
     /// 创建新索引
     pub fn new() -> Self {
         Self {
             version: Self::VERSION,
             last_updated: Utc::now(),
-            wallpapers_by_language: IndexMap::new(),
+            mkt: IndexMap::new(),
         }
     }
 
-    /// 获取指定语言的壁纸列表
-    pub fn get_wallpapers_for_language(&self, language: &str) -> Vec<LocalWallpaper> {
-        self.wallpapers_by_language
-            .get(language)
+    /// 获取指定 mkt 的壁纸列表
+    pub fn get_wallpapers_for_mkt(&self, mkt: &str) -> Vec<LocalWallpaper> {
+        self.mkt
+            .get(mkt)
             .map(|wp_map| {
                 let mut wallpapers: Vec<_> = wp_map.values().cloned().collect();
                 wallpapers.sort_by(|a, b| b.end_date.cmp(&a.end_date));
@@ -104,43 +114,43 @@ impl WallpaperIndex {
             .unwrap_or_default()
     }
 
-    /// 批量添加或更新指定语言的壁纸
+    /// 批量添加或更新指定 mkt 的壁纸
     /// 插入时会按日期降序排序，确保 JSON 序列化时保持顺序
-    pub fn upsert_wallpapers_for_language(
+    pub fn upsert_wallpapers_for_mkt(
         &mut self,
-        language: &str,
+        mkt: &str,
         wallpapers: Vec<LocalWallpaper>,
     ) {
         if wallpapers.is_empty() {
             return;
         }
-        let lang_map = self
-            .wallpapers_by_language
-            .entry(language.to_string())
+        let mkt_map = self
+            .mkt
+            .entry(mkt.to_string())
             .or_default();
 
         // 先插入所有壁纸
         for wallpaper in wallpapers {
-            lang_map.insert(wallpaper.end_date.clone(), wallpaper);
+            mkt_map.insert(wallpaper.end_date.clone(), wallpaper);
         }
 
         // 按日期降序排序（最新的在前）
-        lang_map.sort_by(|k1, _, k2, _| k2.cmp(k1));
+        mkt_map.sort_by(|k1, _, k2, _| k2.cmp(k1));
 
-        // 对外层（语言）也按字典序排序，确保 JSON 中的语言顺序一致
-        self.wallpapers_by_language.sort_keys();
+        // 对外层（mkt）也按字典序排序，确保 JSON 中的 mkt 顺序一致
+        self.mkt.sort_keys();
 
         self.last_updated = Utc::now();
     }
 
-    /// 对所有语言和日期进行排序，确保 JSON 序列化时保持顺序
+    /// 对所有 mkt 和日期进行排序，确保 JSON 序列化时保持顺序
     pub fn sort_all(&mut self) {
-        // 对每个语言的壁纸按日期降序排序
-        for lang_wallpapers in self.wallpapers_by_language.values_mut() {
-            lang_wallpapers.sort_by(|k1, _, k2, _| k2.cmp(k1));
+        // 对每个 mkt 的壁纸按日期降序排序
+        for mkt_wallpapers in self.mkt.values_mut() {
+            mkt_wallpapers.sort_by(|k1, _, k2, _| k2.cmp(k1));
         }
-        // 对外层（语言）按字典序排序
-        self.wallpapers_by_language.sort_keys();
+        // 对外层（mkt）按字典序排序
+        self.mkt.sort_keys();
     }
 
     /// 获取所有语言的壁纸（用于清理操作）
@@ -152,7 +162,7 @@ impl WallpaperIndex {
         let mut result = Vec::new();
 
         // 使用 BTreeMap 按语言代码排序，确保一致性
-        let lang_order: BTreeMap<_, _> = self.wallpapers_by_language.iter().collect();
+        let lang_order: BTreeMap<_, _> = self.mkt.iter().collect();
 
         // 按语言代码顺序遍历，优先选择字典序靠前的语言
         for (_, lang_wallpapers) in lang_order {
@@ -199,14 +209,14 @@ impl WallpaperIndex {
         );
 
         // 从所有语言中删除这些 end_date
-        for lang_wallpapers in self.wallpapers_by_language.values_mut() {
+        for lang_wallpapers in self.mkt.values_mut() {
             for end_date in &to_remove {
                 lang_wallpapers.shift_remove(end_date);
             }
         }
 
         // 移除空的语言分组
-        self.wallpapers_by_language
+        self.mkt
             .retain(|_, lang_wallpapers| !lang_wallpapers.is_empty());
 
         self.last_updated = Utc::now();
@@ -223,6 +233,18 @@ pub struct AppSettings {
     pub theme: String,
     #[serde(default = "default_language")]
     pub language: String,
+    /// 解析后的语言（"auto" 被解析为具体语言 "zh-CN" 或 "en-US"）
+    ///
+    /// 此字段由 get_settings 命令计算填充，不需要前端传入。
+    /// 前端 i18n 应使用此字段，而 language 字段仅用于设置 UI 回显。
+    #[serde(default)]
+    pub resolved_language: String,
+    /// Bing API 市场代码（如 "zh-CN", "en-US", "ja-JP" 等）
+    ///
+    /// 与 UI 语言 (language) 独立，决定从 Bing 获取哪个地区的壁纸内容。
+    /// 默认为空字符串，normalize_mkt() 会将其回退到 resolved_language。
+    #[serde(default)]
+    pub mkt: String,
 }
 
 /// 默认主题设置
@@ -231,23 +253,74 @@ fn default_theme() -> String {
 }
 
 /// 默认语言设置
+///
+/// 默认为 "auto"，运行时通过系统语言检测决定使用中文还是英文
 fn default_language() -> String {
     "auto".to_string()
 }
 
-/// Migration helper: in future if more legacy fields are removed or value normalization is needed,
-/// extend this method. Currently the legacy field `auto_apply_latest` is gone; serde silently ignores
-/// it when deserializing persisted JSON, so we just return self unchanged.
 impl Default for AppSettings {
     fn default() -> Self {
+        let lang = default_language();
+        let resolved = crate::utils::resolve_language(&lang).to_string();
+        let mkt = resolved.clone(); // mkt 默认跟随 resolved_language
         Self {
             auto_update: true,
             save_directory: None,
             launch_at_startup: false,
             theme: default_theme(),
-            language: default_language(),
+            language: lang,
+            resolved_language: resolved,
+            mkt,
         }
     }
+}
+
+impl AppSettings {
+    /// 归一化语言设置
+    ///
+    /// "auto"、"zh-CN"、"en-US" 是有效值，保持不变。
+    /// 其他无效值（如旧版本遗留的非标准语言代码）通过系统语言检测归一化。
+    pub fn normalize_language(&mut self) {
+        match self.language.as_str() {
+            "auto" | "zh-CN" | "en-US" => {} // 有效值，不变
+            _ => {
+                self.language = crate::utils::resolve_language(&self.language).to_string();
+            }
+        }
+    }
+
+    /// 计算 resolved_language 字段
+    ///
+    /// 将 language 通过 resolve_language 统一解析为具体语言。
+    /// 这是整个项目中 "auto" → 具体语言 的唯一解析入口。
+    pub fn compute_resolved_language(&mut self) {
+        self.resolved_language = crate::utils::resolve_language(&self.language).to_string();
+    }
+
+    /// 归一化 mkt 设置
+    ///
+    /// 如果 mkt 为空或不在 SUPPORTED_MKTS 中，回退到 resolved_language。
+    /// 如果 resolved_language 也无效，最终回退到 "en-US"。
+    ///
+    /// 应在 compute_resolved_language() 之后调用，确保 resolved_language 已填充。
+    pub fn normalize_mkt(&mut self) {
+        self.mkt = crate::utils::resolve_mkt(&self.mkt, &self.resolved_language).to_string();
+    }
+}
+
+/// Market 状态统一结构
+///
+/// 将分散的 mkt 相关状态收敛为一个语义清晰的结构体，
+/// 作为前端获取 mkt 状态的唯一接口。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MarketStatus {
+    /// 用户设置的 mkt
+    pub requested_mkt: String,
+    /// 实际生效的 mkt（可能被 Bing 重定向）
+    pub effective_mkt: String,
+    /// 是否存在 mismatch
+    pub is_mismatch: bool,
 }
 
 /// 应用内部运行时状态（不展示给用户）
@@ -268,6 +341,12 @@ pub struct AppRuntimeState {
     /// 当用户首次启用自启动时设置为 true，表示用户已经看到过系统通知
     #[serde(default)]
     pub autostart_notification_shown: bool,
+    /// Bing API 最近一次返回的实际 mkt（持久化，解决重启后读不到壁纸的问题）
+    ///
+    /// 当用户设置的 mkt（如 "en-US"）被 Bing 重定向到其他市场（如 "zh-CN"）时，
+    /// 壁纸元数据保存在实际 mkt 下。此字段持久化后，重启时能立即用正确的 key 读取。
+    #[serde(default)]
+    pub last_actual_mkt: Option<String>,
 }
 
 #[cfg(test)]
@@ -289,7 +368,9 @@ mod tests {
             save_directory: Some("/custom/path".to_string()),
             launch_at_startup: true,
             theme: "dark".to_string(),
-            language: "auto".to_string(),
+            language: "zh-CN".to_string(),
+            resolved_language: "zh-CN".to_string(),
+            mkt: "zh-CN".to_string(),
         };
 
         let json = serde_json::to_string(&settings).unwrap();
@@ -299,6 +380,9 @@ mod tests {
         assert_eq!(deserialized.save_directory, settings.save_directory);
         assert_eq!(deserialized.launch_at_startup, settings.launch_at_startup);
         assert_eq!(deserialized.theme, settings.theme);
+        assert_eq!(deserialized.language, "zh-CN");
+        assert_eq!(deserialized.resolved_language, "zh-CN");
+        assert_eq!(deserialized.mkt, "zh-CN");
     }
 
     #[test]
@@ -346,11 +430,166 @@ mod tests {
             "save_directory": null,
             "launch_at_startup": false,
             "theme": "system",
-            "language": "auto"
+            "language": "zh-CN"
         }"#;
 
         let settings: AppSettings = serde_json::from_str(json).unwrap();
         assert!(settings.auto_update);
         assert_eq!(settings.theme, "system");
+        assert_eq!(settings.language, "zh-CN");
+        // 旧 JSON 不含 resolved_language 和 mkt，应默认为空字符串
+        assert_eq!(settings.resolved_language, "");
+        assert_eq!(settings.mkt, "");
+    }
+
+    #[test]
+    fn test_app_settings_normalize_language() {
+        let base = AppSettings {
+            auto_update: true,
+            save_directory: None,
+            launch_at_startup: false,
+            theme: "system".to_string(),
+            language: "auto".to_string(),
+            resolved_language: String::new(),
+            mkt: String::new(),
+        };
+
+        // "auto" 是有效值，normalize 不应改变
+        let mut settings_auto = base.clone();
+        settings_auto.normalize_language();
+        assert_eq!(settings_auto.language, "auto");
+
+        // "zh-CN" 是有效值，不应改变
+        let mut settings_zh = AppSettings {
+            language: "zh-CN".to_string(),
+            ..base.clone()
+        };
+        settings_zh.normalize_language();
+        assert_eq!(settings_zh.language, "zh-CN");
+
+        // "en-US" 是有效值，不应改变
+        let mut settings_en = AppSettings {
+            language: "en-US".to_string(),
+            ..base.clone()
+        };
+        settings_en.normalize_language();
+        assert_eq!(settings_en.language, "en-US");
+
+        // 其他无效值应被归一化为系统检测的语言
+        let mut settings_invalid = AppSettings {
+            language: "fr-FR".to_string(),
+            ..base.clone()
+        };
+        settings_invalid.normalize_language();
+        assert!(settings_invalid.language == "zh-CN" || settings_invalid.language == "en-US");
+    }
+
+    #[test]
+    fn test_app_settings_default_language_is_auto() {
+        let settings = AppSettings::default();
+        // 默认语言偏好应为 "auto"
+        assert_eq!(
+            settings.language, "auto",
+            "Default language should be 'auto'"
+        );
+        // resolved_language 应为系统检测的具体语言
+        assert!(
+            settings.resolved_language == "zh-CN" || settings.resolved_language == "en-US",
+            "Default resolved_language should be zh-CN or en-US, got: {}",
+            settings.resolved_language
+        );
+    }
+
+    #[test]
+    fn test_app_settings_compute_resolved_language() {
+        let mut settings = AppSettings {
+            auto_update: true,
+            save_directory: None,
+            launch_at_startup: false,
+            theme: "system".to_string(),
+            language: "auto".to_string(),
+            resolved_language: String::new(),
+            mkt: String::new(),
+        };
+
+        // "auto" 应解析为系统语言
+        settings.compute_resolved_language();
+        assert!(
+            settings.resolved_language == "zh-CN" || settings.resolved_language == "en-US",
+            "auto should resolve to zh-CN or en-US, got: {}",
+            settings.resolved_language
+        );
+
+        // "zh-CN" 应解析为 "zh-CN"
+        settings.language = "zh-CN".to_string();
+        settings.compute_resolved_language();
+        assert_eq!(settings.resolved_language, "zh-CN");
+
+        // "en-US" 应解析为 "en-US"
+        settings.language = "en-US".to_string();
+        settings.compute_resolved_language();
+        assert_eq!(settings.resolved_language, "en-US");
+    }
+
+    #[test]
+    fn test_app_settings_normalize_mkt() {
+        let mut settings = AppSettings {
+            auto_update: true,
+            save_directory: None,
+            launch_at_startup: false,
+            theme: "system".to_string(),
+            language: "auto".to_string(),
+            resolved_language: "zh-CN".to_string(),
+            mkt: String::new(),
+        };
+
+        // 空 mkt 应回退到 resolved_language
+        settings.normalize_mkt();
+        assert_eq!(settings.mkt, "zh-CN");
+
+        // 有效 mkt 不应改变
+        settings.mkt = "ja-JP".to_string();
+        settings.normalize_mkt();
+        assert_eq!(settings.mkt, "ja-JP");
+
+        // 无效 mkt 应回退到 resolved_language
+        settings.mkt = "xx-YY".to_string();
+        settings.normalize_mkt();
+        assert_eq!(settings.mkt, "zh-CN");
+
+        // resolved_language 为 en-US 时的回退
+        settings.resolved_language = "en-US".to_string();
+        settings.mkt = "".to_string();
+        settings.normalize_mkt();
+        assert_eq!(settings.mkt, "en-US");
+    }
+
+    #[test]
+    fn test_app_settings_default_mkt() {
+        let settings = AppSettings::default();
+        // 默认 mkt 应跟随 resolved_language
+        assert!(
+            crate::utils::is_valid_mkt(&settings.mkt),
+            "Default mkt should be a valid market code, got: {}",
+            settings.mkt
+        );
+    }
+
+    #[test]
+    fn test_app_settings_mkt_serde_missing() {
+        // 旧版本 JSON 不含 mkt 字段，反序列化后 mkt 应为空字符串
+        let json = r#"{
+            "auto_update": true,
+            "save_directory": null,
+            "launch_at_startup": false,
+            "theme": "system",
+            "language": "zh-CN"
+        }"#;
+
+        let settings: AppSettings = serde_json::from_str(json).unwrap();
+        assert_eq!(
+            settings.mkt, "",
+            "Missing mkt should default to empty string"
+        );
     }
 }

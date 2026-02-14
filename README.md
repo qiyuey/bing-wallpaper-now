@@ -32,7 +32,7 @@ xattr -rd com.apple.quarantine "/Applications/Bing Wallpaper Now.app"
 - 🎨 **One Click Set** - Set as desktop wallpaper with a single click
 - 📁 **Local Gallery** - Save all wallpapers locally, browse full history
 - 🔄 **Background Fetch** - Downloads in the background, UI never blocked
-- 🗑️ **Smart Cleanup** - Auto clean old wallpapers by retention count
+- 🗑️ **Automatic Cleanup** - Automatically removes older cache to control disk usage
 
 ### macOS Exclusive
 
@@ -44,7 +44,7 @@ xattr -rd com.apple.quarantine "/Applications/Bing Wallpaper Now.app"
 
 - 🚀 **Fast Load** - Loads local cache first, fetches remote in the background
 - 💾 **System Tray** - Minimize to tray, does not occupy taskbar
-- ⚙️ **Configurable** - Custom save directory, retention policy, startup options
+- ⚙️ **Configurable** - Custom save directory, startup options, and market/language preferences
 - 🎨 **Themes** - Light, dark, and system-follow modes
 
 ## 🎯 Usage
@@ -74,9 +74,16 @@ The app runs in your system tray for quick access:
 
 Click the "Settings" (star icon) to customize:
 
-- **Auto Update** - Automatically fetch and set the latest wallpaper
+- **Auto Update** - Automatically fetch and apply the latest wallpaper
+- **Language** - UI language (`Auto` / `zh-CN` / `en-US`)
+- **Wallpaper Market** - Choose which Bing market to fetch wallpapers from (`mkt`)
 - **Save Directory** - Choose where to store wallpapers
-- **Retention Count** - How many wallpapers to keep (at least 8)
+- **Theme** - Light / dark / follow system
+- **Launch at Startup** - Start app automatically after login
+
+> Note: In some regions, Bing may ignore your selected market and return another one
+> (for example, forcing `zh-CN`). The app will detect this automatically, use the
+> actual returned market for indexing, and show a warning in Settings.
 
 ## ❓ FAQ
 
@@ -94,8 +101,13 @@ pictures directory, but you can change this in settings.
 **A:** Each UHD wallpaper is roughly 1–3MB. Keeping 8 uses 8–24MB.
 
 **Q: Can wallpapers be kept forever?**  
-**A:** Currently, old wallpapers are auto-cleaned based on your retention
-setting (default up to 10000). Favorites feature planned in future.
+**A:** The app automatically cleans older cached wallpapers over time to keep
+storage usage predictable. A "favorites/never delete" option is not available yet.
+
+**Q: Why does the app show a market mismatch warning?**  
+**A:** This means Bing returned wallpapers for a different market than the one
+you selected. It usually happens due to regional restrictions. The app keeps
+working and uses the actual returned market to avoid empty lists.
 
 ## 📞 Support & Feedback
 
@@ -114,6 +126,7 @@ Please read [AGENTS.md](AGENTS.md) for code style, workflow and tooling guidelin
 ### Requirements
 
 - Node.js 24+ (LTS)
+- pnpm 10+ (required)
 - Rust 1.80+ (Edition 2024)
 - OS: macOS 10.15+ / Windows 10+ / Linux
 

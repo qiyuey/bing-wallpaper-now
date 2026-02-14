@@ -1,9 +1,24 @@
 use crate::models::{BingImageArchive, BingImageEntry};
+use crate::utils;
 use anyhow::{Context, Result};
 use log::{error, info, warn};
 
 const BING_API_URL: &str = "https://www.bing.com/HPImageArchive.aspx";
 const BING_BASE_URL: &str = "https://www.bing.com";
+
+/// Bing API 获取结果
+///
+/// 除了返回图片列表外，还包含从响应中检测到的实际 mkt。
+/// 当中国 Bing 忽略请求参数中的 mkt 并强制返回 zh-CN 时，
+/// `actual_mkt` 会与请求的 `mkt` 不同。
+#[derive(Debug, Clone)]
+pub struct BingFetchResult {
+    /// 图片列表
+    pub images: Vec<BingImageEntry>,
+    /// 从 copyrightlink 检测到的实际 mkt（标准化后）
+    /// None 表示无法从响应中检测
+    pub actual_mkt: Option<String>,
+}
 
 /// 从 Bing API 获取壁纸列表
 ///
@@ -11,7 +26,10 @@ const BING_BASE_URL: &str = "https://www.bing.com";
 /// * `count` - 要获取的图片数量 (1-8)
 /// * `idx` - 起始索引,0表示今天
 /// * `mkt` - 市场/语言代码，例如 "zh-CN" 或 "en-US"
-pub async fn fetch_bing_images(count: u8, idx: u8, mkt: &str) -> Result<Vec<BingImageEntry>> {
+///
+/// # Returns
+/// `BingFetchResult` 包含图片列表和检测到的实际 mkt
+pub async fn fetch_bing_images(count: u8, idx: u8, mkt: &str) -> Result<BingFetchResult> {
     let count = count.min(8); // Bing API 限制最多8张
 
     let url = format!(
@@ -56,8 +74,39 @@ pub async fn fetch_bing_images(count: u8, idx: u8, mkt: &str) -> Result<Vec<Bing
         }
     };
 
-    // 为每个图片条目添加完整的 URL
-    // 如果是英文 API，将 startdate 和 enddate 都减一天（统一时区）
+    // 从第一个图片的 copyrightlink 检测实际 mkt
+    let actual_mkt = archive
+        .images
+        .first()
+        .and_then(|img| utils::detect_actual_mkt(&img.copyrightlink));
+
+    if let Some(ref detected) = actual_mkt
+        && detected != mkt
+    {
+        warn!(
+            target: "bing_api",
+            "实际返回的 mkt ({}) 与请求的 mkt ({}) 不同",
+            detected, mkt
+        );
+    }
+
+    // 通过比较第一张图片的 enddate 与本地日期判断是否需要日期调整
+    // 这种方式不依赖市场列表硬编码，能正确处理所有市场和时区组合
+    let needs_adjustment = archive
+        .images
+        .first()
+        .map(|img| utils::is_date_ahead_of_local(&img.enddate))
+        .unwrap_or(false);
+
+    if needs_adjustment {
+        info!(
+            target: "bing_api",
+            "检测到 API 日期超前于本地日期，将对所有日期减一天（mkt: {}）",
+            actual_mkt.as_deref().unwrap_or(mkt)
+        );
+    }
+
+    // 为每个图片条目添加完整的 URL，并根据时区差异调整日期
     let images: Vec<BingImageEntry> = archive
         .images
         .into_iter()
@@ -65,8 +114,8 @@ pub async fn fetch_bing_images(count: u8, idx: u8, mkt: &str) -> Result<Vec<Bing
             if !img.url.starts_with("http") {
                 img.url = format!("{}{}", BING_BASE_URL, img.url);
             }
-            // 英文 API 的日期减一天，统一时区
-            if mkt == "en-US" {
+            // 如果 API 日期超前于本地日期，减一天对齐
+            if needs_adjustment {
                 img.startdate = subtract_one_day(&img.startdate);
                 img.enddate = subtract_one_day(&img.enddate);
             }
@@ -75,9 +124,15 @@ pub async fn fetch_bing_images(count: u8, idx: u8, mkt: &str) -> Result<Vec<Bing
         .collect();
 
     let total_elapsed = start_time.elapsed();
-    info!(target: "bing_api", "Bing API 请求完成: 获取到 {} 张图片, 总耗时={:.2}ms", images.len(), total_elapsed.as_secs_f64() * 1000.0);
+    info!(
+        target: "bing_api",
+        "Bing API 请求完成: 获取到 {} 张图片, actual_mkt={:?}, 总耗时={:.2}ms",
+        images.len(),
+        actual_mkt,
+        total_elapsed.as_secs_f64() * 1000.0
+    );
 
-    Ok(images)
+    Ok(BingFetchResult { images, actual_mkt })
 }
 
 /// 将日期字符串减一天（YYYYMMDD 格式）
@@ -147,11 +202,11 @@ mod tests {
             return;
         }
 
-        let images = fetch_bing_images(1, 0, "zh-CN").await;
-        assert!(images.is_ok(), "Bing fetch failed");
-        let images = images.unwrap();
-        assert!(!images.is_empty(), "No images returned");
-        assert!(images[0].url.starts_with("http"));
+        let result = fetch_bing_images(1, 0, "zh-CN").await;
+        assert!(result.is_ok(), "Bing fetch failed");
+        let result = result.unwrap();
+        assert!(!result.images.is_empty(), "No images returned");
+        assert!(result.images[0].url.starts_with("http"));
     }
 
     #[test]
