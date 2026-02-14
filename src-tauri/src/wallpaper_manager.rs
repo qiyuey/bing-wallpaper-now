@@ -225,6 +225,10 @@ pub fn set_wallpaper(image_path: &Path, portrait_image_path: Option<&Path>) -> R
         anyhow::bail!("Wallpaper image does not exist: {:?}", image_path);
     }
 
+    // portrait_image_path 仅在 macOS 上使用（Windows/Linux 暂不支持竖屏壁纸）
+    #[cfg(not(target_os = "macos"))]
+    let _ = portrait_image_path;
+
     // macOS 使用 NSWorkspace API 来处理多显示器和全屏场景
     #[cfg(target_os = "macos")]
     {

@@ -287,10 +287,7 @@ function App() {
       await forceUpdate(true);
     } catch (err) {
       console.error("Force update failed:", err);
-      await showSystemNotification(
-        t("wallpaperError"),
-        String(err),
-      );
+      await showSystemNotification(t("wallpaperError"), String(err));
     }
   };
 
@@ -304,10 +301,7 @@ function App() {
       // 更新完成后会通过 wallpaper-updated 事件自动刷新列表
     } catch (err) {
       console.error("Language change refresh failed:", err);
-      await showSystemNotification(
-        t("wallpaperError"),
-        String(err),
-      );
+      await showSystemNotification(t("wallpaperError"), String(err));
     }
   };
 
