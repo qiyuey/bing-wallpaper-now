@@ -2176,6 +2176,8 @@ pub fn run() {
                 let _ = window.set_focus();
                 let _ = window.unminimize();
             }
+            // macOS: 重新设置为 Accessory 模式，防止 Dock 出现运行状态点
+            macos_app::set_activation_policy_accessory();
         }))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::default().build())
@@ -2355,6 +2357,17 @@ pub fn run() {
                 api.prevent_close();
             }
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app_handle, event| {
+            if let tauri::RunEvent::Reopen { .. } = event {
+                // macOS: 用户点击 Dock 图标时，显示主窗口
+                if let Some(window) = app_handle.get_webview_window("main") {
+                    let _ = window.show();
+                    let _ = window.set_focus();
+                }
+                // 重新设置为 Accessory 模式，防止 Dock 出现运行状态点
+                macos_app::set_activation_policy_accessory();
+            }
+        });
 }
