@@ -1,7 +1,6 @@
 mod bing_api;
 mod download_manager;
 mod index_manager;
-mod macos_app;
 mod models;
 mod runtime_state;
 mod settings_store;
@@ -2174,10 +2173,7 @@ pub fn run() {
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.show();
                 let _ = window.set_focus();
-                let _ = window.unminimize();
             }
-            // macOS: 重新设置为 Accessory 模式，防止 Dock 出现运行状态点
-            macos_app::set_activation_policy_accessory();
         }))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::default().build())
@@ -2331,9 +2327,6 @@ pub fn run() {
 
             setup_tray(app.handle())?;
 
-            // macOS: 始终设置为 Accessory 模式（只显示托盘图标，不显示 Dock 图标）
-            macos_app::set_activation_policy_accessory();
-
             // 检查是否是自启动（通过命令行参数）
             let is_autostart = std::env::args()
                 .any(|arg| arg == "--minimized" || arg == "--hidden" || arg == "--startup");
@@ -2350,17 +2343,9 @@ pub fn run() {
             Ok(())
         })
         .on_window_event(|window, event| {
-            match event {
-                tauri::WindowEvent::CloseRequested { api, .. } => {
-                    let _ = window.hide();
-                    api.prevent_close();
-                }
-                tauri::WindowEvent::Focused(true) => {
-                    // macOS: 窗口获得焦点时重置 Accessory 模式，
-                    // 防止 Dock 点击等操作导致出现运行状态点
-                    macos_app::set_activation_policy_accessory();
-                }
-                _ => {}
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                let _ = window.hide();
+                api.prevent_close();
             }
         })
         .run(tauri::generate_context!())
