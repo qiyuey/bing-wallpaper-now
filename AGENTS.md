@@ -98,7 +98,8 @@ bing-wallpaper-now/
 │   │   ├── utils.rs            # Language/mkt helper utilities
 │   │   └── lib.rs              # Main Rust entry point
 │   ├── Cargo.toml              # Rust dependencies
-│   └── tauri.conf.json         # Tauri configuration
+│   ├── tauri.conf.json         # Tauri configuration
+│   └── Info.plist              # macOS bundle configuration (LSUIElement etc.)
 ├── scripts/                     # Build & utility scripts
 │   ├── check-quality.sh        # Code quality checks
 │   └── manage-version.sh       # Version management
@@ -190,6 +191,9 @@ Rust functions exposed to frontend via `#[tauri::command]` macro:
 - **macOS**: Uses objc2 bindings for native NSWorkspace, NSScreen APIs
 - Handles multi-monitor wallpaper setting
 - Supports Space switching and fullscreen app scenarios
+- Dock 图标隐藏通过 `src-tauri/Info.plist` 的 `LSUIElement=true` 实现
+  （系统级声明，优于运行时 `setActivationPolicy` 调用）
+- **Windows/Linux**: 通过 `tauri.conf.json` 的 `skipTaskbar: true` 隐藏任务栏图标
 
 ## Build & Release Process
 
@@ -234,6 +238,8 @@ Rust functions exposed to frontend via `#[tauri::command]` macro:
 - **`package.json`**: Frontend dependencies, scripts, version
 - **`src-tauri/Cargo.toml`**: Rust dependencies, version
 - **`src-tauri/tauri.conf.json`**: Tauri app configuration
+- **`src-tauri/Info.plist`**: macOS bundle configuration（构建时与 Tauri 生成的
+  plist 合并，用于 `LSUIElement` 等系统级声明）
 - **`eslint.config.js`**: ESLint flat config (modern format)
 - **`vitest.config.ts`**: Vitest test configuration
 - **`Makefile`**: Convenient command shortcuts
@@ -255,6 +261,18 @@ Rust functions exposed to frontend via `#[tauri::command]` macro:
 
 - **Solution**: Install Xcode Command Line Tools: `xcode-select --install`
 
+**Issue**: macOS Dock 图标意外出现运行状态（小圆点）
+
+- **Solution**: 确保 `src-tauri/Info.plist` 中 `LSUIElement` 为 `true`。不要
+  尝试在运行时通过 `setActivationPolicy` 切换来解决，因为存在竞态条件。
+  如果修改 Rust 代码后行为不符合预期，先执行 `cargo clean` 再重新编译，
+  避免增量编译缓存干扰。
+
+**Issue**: Rust 增量编译导致行为不一致
+
+- **Solution**: 运行 `cd src-tauri && cargo clean && cd ..`，然后重新编译。
+  平台特定行为（如 macOS Dock、窗口管理）修改后建议清理编译缓存再验证。
+
 ### Development Tips
 
 1. **Hot Reload**: Use `pnpm run tauri dev` for full app hot reload including Rust changes
@@ -262,6 +280,10 @@ Rust functions exposed to frontend via `#[tauri::command]` macro:
 3. **Type Safety**: Run `pnpm run typecheck` frequently to catch TypeScript errors early
 4. **Pre-commit**: Always run `make check` before committing to catch issues
 5. **Debugging Rust**: Use `log::debug!()` and enable Tauri logs in settings
+6. **遇到问题先搜索**: 遇到平台特性、Tauri API、系统行为等问题时，**先联网
+   搜索**相关问题及已知解决方案，再动手修复。很多问题（如 macOS Dock 行为、
+   窗口管理、系统权限等）在社区中已有成熟的解决方案，避免用运行时 hack 解决
+   本应在配置层面处理的问题
 
 ## External APIs
 
