@@ -2,6 +2,27 @@
 
 All notable changes to Bing Wallpaper Now will be documented in this file.
 
+## 1.0.1
+
+### Changed
+
+- 🖥️ **macOS Dock 图标行为优化**
+  - 使用 `Info.plist` 的 `LSUIElement=true` 系统级声明隐藏 Dock 图标，替代运行时
+    `setActivationPolicy` 切换方案
+  - 移除 `macos_app.rs` 模块及所有运行时 activation policy 调用
+  - 彻底解决点击 Dock 图标后出现运行状态小圆点的问题
+
+- 🔧 **简化窗口事件处理**
+  - 精简 `on_window_event` 处理逻辑，仅保留 `CloseRequested` 事件处理
+  - 移除冗余的 `Focused` 事件处理和 `unminimize` 调用
+
+### Docs
+
+- 📝 **AGENTS.md 文档增强**
+  - 新增"遇到问题先搜索"开发指导原则
+  - 补充 macOS Dock 图标和增量编译问题的排查方案
+  - 新增 `Info.plist` 文件说明和平台特定行为文档
+
 ## 1.0.0
 
 ### Added
