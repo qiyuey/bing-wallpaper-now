@@ -2350,24 +2350,19 @@ pub fn run() {
             Ok(())
         })
         .on_window_event(|window, event| {
-            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                // Check if this is a real quit request (from tray menu)
-                // If not, just hide the window
-                let _ = window.hide();
-                api.prevent_close();
+            match event {
+                tauri::WindowEvent::CloseRequested { api, .. } => {
+                    let _ = window.hide();
+                    api.prevent_close();
+                }
+                tauri::WindowEvent::Focused(true) => {
+                    // macOS: 窗口获得焦点时重置 Accessory 模式，
+                    // 防止 Dock 点击等操作导致出现运行状态点
+                    macos_app::set_activation_policy_accessory();
+                }
+                _ => {}
             }
         })
-        .build(tauri::generate_context!())
-        .expect("error while building tauri application")
-        .run(|app_handle, event| {
-            if let tauri::RunEvent::Reopen { .. } = event {
-                // macOS: 用户点击 Dock 图标时，显示主窗口
-                if let Some(window) = app_handle.get_webview_window("main") {
-                    let _ = window.show();
-                    let _ = window.set_focus();
-                }
-                // 重新设置为 Accessory 模式，防止 Dock 出现运行状态点
-                macos_app::set_activation_policy_accessory();
-            }
-        });
+        .run(tauri::generate_context!())
+        .expect("error while running tauri application");
 }
