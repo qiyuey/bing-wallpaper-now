@@ -15,6 +15,13 @@ Get the latest version from [GitHub Releases](https://github.com/qiyuey/bing-wal
 - **macOS**: `.dmg` disk image
 - **Linux**: `.deb` (Debian/Ubuntu), `.rpm` (Fedora/RedHat), or `.AppImage` (universal)
 
+### macOS via Homebrew
+
+```bash
+brew tap qiyuey/tap
+brew install --cask bing-wallpaper-now
+```
+
 ### macOS Installation Note
 
 If you see "App is damaged or cannot be opened", run the following in Terminal (add `sudo` in front if needed):

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.0
+
+### Added
+
+- 支持通过 Homebrew Cask 安装 (macOS)：`brew tap qiyuey/tap && brew install --cask bing-wallpaper-now`
+
 ## 1.3.2
 
 - 测试自动更新流程

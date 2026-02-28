@@ -15,6 +15,13 @@
 - **macOS**: `.dmg` 磁盘镜像
 - **Linux**: `.deb` (Debian/Ubuntu) 或 `.rpm` (Fedora/RedHat) 或 `.AppImage` (通用版本)
 
+### macOS 通过 Homebrew 安装
+
+```bash
+brew tap qiyuey/tap
+brew install --cask bing-wallpaper-now
+```
+
 ### macOS 安装说明
 
 若出现“应用已损坏”或“无法打开”，在终端执行（需要管理员权限时可在前面加 sudo）：
