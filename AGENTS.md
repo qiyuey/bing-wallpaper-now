@@ -43,6 +43,7 @@ make dev MV=0.0.1           # Mock old version to test update flow
 # Building
 pnpm run build              # Build frontend (TypeScript compile + Vite build)
 pnpm run tauri build        # Build production app for current platform
+make package BUNDLES=dmg    # Build specific bundle format
 
 # Type checking
 pnpm run typecheck          # TypeScript type checking (tsc --noEmit)
@@ -70,6 +71,11 @@ make patch                  # Bump patch version (1.0.0-0 -> 1.0.1-0)
 make minor                  # Bump minor version (1.0.0-0 -> 1.1.0-0)
 make major                  # Bump major version (1.0.0-0 -> 2.0.0-0)
 make release                # Release current dev version and tag
+make retag                  # Re-push current tag to trigger CI rebuild
+
+# Cleanup
+make clean                  # Clean build artifacts
+make clean-all              # Deep clean (including Rust target)
 ```
 
 ## Project Structure
@@ -144,6 +150,14 @@ bing-wallpaper-now/
 │   ├── Cargo.toml                   # Rust dependencies
 │   ├── tauri.conf.json              # Tauri configuration
 │   └── Info.plist                   # macOS bundle config (LSUIElement etc.)
+├── .github/workflows/               # CI/CD
+│   ├── ci.yml                       # PR/push checks + multi-platform cache warming
+│   └── release.yml                  # Tag-triggered release builds
+├── .cursor/skills/                  # AI agent skills
+│   ├── bump-version/               # Version bump workflow
+│   ├── release/                    # Release workflow
+│   ├── review/                     # Code review workflow
+│   └── update-deps/               # Dependency update workflow
 ├── scripts/                          # Build & utility scripts
 │   ├── check-quality.sh             # Code quality checks
 │   ├── manage-version.sh            # Version management
@@ -176,6 +190,10 @@ bing-wallpaper-now/
 - **Rust patterns**: Use `anyhow::Result` for error handling, Tokio runtime
   (features = ["full"]) for async, add doc comments (`///`) for all public
   functions
+- **Rust conditional compilation**: When `#[cfg(debug_assertions)]` blocks
+  introduce mutability that only exists in debug mode, use `#[allow(unused_mut)]`
+  to suppress the release-mode warning. This is the standard pattern for
+  variables whose assignment is behind conditional compilation.
 - **File organization**: Frontend source files in `src/`, backend source files
   in `src-tauri/src/`, tests colocated with source (`.test.ts`, `.test.tsx` for
   frontend), type definitions in `src/types/`
@@ -209,13 +227,26 @@ bing-wallpaper-now/
 
 The app uses several Tauri plugins with specific permissions configured in `src-tauri/capabilities/default.json`:
 
-- **opener**: `allow-open-path` for opening wallpaper folder
-- **dialog**: `allow-message`, `allow-open`, `allow-save` for file dialogs
-- **store**: `allow-get`, `allow-set` for settings persistence
-- **autostart**: `allow-enable`, `allow-disable`, `allow-is-enabled`
-- **notification**: `default` for notifications
+- **opener**: `default`, `allow-open-path` (scoped to `$PICTURE/**` and `$HOME/Pictures/**`)
+- **dialog**: `default`, `allow-message`, `allow-open`, `allow-save`
+- **store**: `default`, `allow-get`, `allow-set`
+- **autostart**: `default`, `allow-enable`, `allow-disable`, `allow-is-enabled`
+- **notification**: `default`
+- **updater**: `default`
+- **process**: `allow-restart`
 
 When adding new plugin functionality, ensure proper permissions are configured.
+
+### Updater Configuration
+
+The app supports in-app auto-update via Tauri's updater plugin:
+
+- `tauri.conf.json` → `bundle.createUpdaterArtifacts: true` enables `.sig` file generation during builds
+- `tauri.conf.json` → `plugins.updater.pubkey` contains the minisign public key
+- `tauri.conf.json` → `plugins.updater.endpoints` points to the `latest.json` on GitHub Releases
+- Signing requires `TAURI_SIGNING_PRIVATE_KEY` and
+  `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` (configured as GitHub Secrets)
+- The release workflow generates `latest.json` from uploaded `.sig` assets
 
 ### Commands
 
@@ -320,19 +351,40 @@ Verify these paths after structural refactoring or event-related changes:
   - `package.json`
   - `src-tauri/Cargo.toml`
   - `src-tauri/Cargo.lock`
+  - `src-tauri/tauri.conf.json`
 
 ### CI/CD
 
-- GitHub Actions automatically builds and publishes releases when tags are pushed
-- Builds for Windows (.msi, .exe), macOS (.dmg), Linux (.deb, .rpm, .AppImage)
+**CI workflow** (`.github/workflows/ci.yml`):
+
+- Triggered on PR and push to `main`
+- Jobs: frontend checks (lint, typecheck, test), Rust checks (fmt, clippy, test)
+- Multi-platform release cache warming (push to `main` only):
+  builds `cargo build --release` on all 6 platforms to populate
+  Rust cache for subsequent release builds
+
+**Release workflow** (`.github/workflows/release.yml`):
+
+- Triggered when version tags (`[0-9]*.*.*`) are pushed
+- Builds for 6 platforms: Windows (x64, ARM64), macOS (Apple Silicon, Intel), Linux (x64, ARM64)
+- macOS builds are code-signed with Apple Developer certificate
+- Updater artifacts (`.sig` files) are generated and uploaded alongside bundles
+- `latest.json` is generated from release assets for the in-app updater
+- macOS `.app.tar.gz` files are renamed to include architecture (`_aarch64` / `_x64`)
+
+**Cache strategy**: CI saves Rust release-profile cache on `main`
+(`shared-key: release`). Release workflow reads this cache
+(`save-if: false`). Different tags cannot share cache with each other
+(GitHub Actions ref-scoping), but all tags can read from `main`.
 
 ## Important Files
 
 - **`package.json`**: Frontend dependencies, scripts, version
 - **`src-tauri/Cargo.toml`**: Rust dependencies, version
-- **`src-tauri/tauri.conf.json`**: Tauri app configuration
+- **`src-tauri/tauri.conf.json`**: Tauri app configuration (updater, bundle, window settings)
 - **`src-tauri/Info.plist`**: macOS bundle configuration（构建时与 Tauri 生成的
   plist 合并，用于 `LSUIElement` 等系统级声明）
+- **`src-tauri/capabilities/default.json`**: Tauri plugin permissions
 - **`eslint.config.js`**: ESLint flat config (modern format)
 - **`vitest.config.ts`**: Vitest test configuration
 - **`Makefile`**: Convenient command shortcuts
@@ -344,7 +396,7 @@ Verify these paths after structural refactoring or event-related changes:
 
 **Issue**: Node.js version mismatch
 
-- **Solution**: Ensure Node.js 24+ is installed. Use `node --version` to check.
+- **Solution**: Ensure Node.js 25+ is installed. Use `node --version` to check.
 
 **Issue**: Rust compilation errors
 
@@ -368,6 +420,13 @@ Verify these paths after structural refactoring or event-related changes:
 
 - **Solution**: 运行 `cd src-tauri && cargo clean && cd ..`，然后重新编译。
   平台特定行为（如 macOS Dock、窗口管理）修改后建议清理编译缓存再验证。
+
+**Issue**: `unused_mut` warning in release vs `mut` required in debug
+
+- **Solution**: When `#[cfg(debug_assertions)]` blocks introduce variable
+  mutation that only exists in debug mode, add `#[allow(unused_mut)]` on the
+  `let mut` binding. This suppresses the release-mode warning while keeping
+  debug-mode compilation valid.
 
 ### Development Tips
 
@@ -418,6 +477,7 @@ Notes:
 - No external servers except Bing API
 - All wallpapers stored locally
 - Settings stored locally via Tauri plugin-store
+- Updater signing keys stored in GitHub Secrets (never committed to repo)
 - Open source under Anti-996 License
 
 ## Contributing Guidelines
