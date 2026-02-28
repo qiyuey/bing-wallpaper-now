@@ -82,7 +82,8 @@ xattr -rd com.apple.quarantine "/Applications/Bing Wallpaper Now.app"
 **A:** Yes, previously downloaded wallpapers can be set anytime without internet.
 
 **Q: Why does a "market mismatch" warning appear?**
-**A:** Bing may ignore your selected market in some regions and return wallpapers from another. The app adapts automatically — no action needed.
+**A:** Bing may ignore your selected market in some regions and return
+wallpapers from another. The app adapts automatically — no action needed.
 
 ## 📞 Support & Feedback
 
