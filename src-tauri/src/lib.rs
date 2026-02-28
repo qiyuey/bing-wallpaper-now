@@ -97,7 +97,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_process::init())
         .plugin({
-            let mut updater_builder = tauri_plugin_updater::Builder::new();
+            let updater_builder = tauri_plugin_updater::Builder::new();
 
             // Debug 构建：支持 DEV_OVERRIDE_VERSION 环境变量覆盖当前版本号
             #[cfg(debug_assertions)]

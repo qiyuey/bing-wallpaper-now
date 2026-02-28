@@ -458,7 +458,7 @@ jobs:
                   target="darwin-x86_64"
                 fi
                 if [ -n "$target" ]; then
-                  PLATFORM_SIG["$target"]=$(gh release download "$TAG" -p "$name" -O - 2>/dev/null || echo "")
+                  PLATFORM_SIG["$target"]=$(gh release download "$TAG" --repo "$REPO" -p "$name" -O - 2>/dev/null || echo "")
                   PLATFORM_URL["$target"]="${RELEASE_URL}/${base}"
                 fi
                 ;;
@@ -471,7 +471,7 @@ jobs:
                   target="windows-aarch64"
                 fi
                 if [ -n "$target" ]; then
-                  PLATFORM_SIG["$target"]=$(gh release download "$TAG" -p "$name" -O - 2>/dev/null || echo "")
+                  PLATFORM_SIG["$target"]=$(gh release download "$TAG" --repo "$REPO" -p "$name" -O - 2>/dev/null || echo "")
                   PLATFORM_URL["$target"]="${RELEASE_URL}/${base}"
                 fi
                 ;;
@@ -484,7 +484,7 @@ jobs:
                   target="windows-aarch64"
                 fi
                 if [ -n "$target" ] && [ -z "${PLATFORM_SIG[$target]:-}" ]; then
-                  PLATFORM_SIG["$target"]=$(gh release download "$TAG" -p "$name" -O - 2>/dev/null || echo "")
+                  PLATFORM_SIG["$target"]=$(gh release download "$TAG" --repo "$REPO" -p "$name" -O - 2>/dev/null || echo "")
                   PLATFORM_URL["$target"]="${RELEASE_URL}/${base}"
                 fi
                 ;;
@@ -497,7 +497,7 @@ jobs:
                   target="linux-aarch64"
                 fi
                 if [ -n "$target" ]; then
-                  PLATFORM_SIG["$target"]=$(gh release download "$TAG" -p "$name" -O - 2>/dev/null || echo "")
+                  PLATFORM_SIG["$target"]=$(gh release download "$TAG" --repo "$REPO" -p "$name" -O - 2>/dev/null || echo "")
                   PLATFORM_URL["$target"]="${RELEASE_URL}/${base}"
                 fi
                 ;;
