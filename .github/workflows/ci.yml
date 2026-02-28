@@ -88,3 +88,50 @@ jobs:
 
       - name: Tests
         run: cargo test --manifest-path src-tauri/Cargo.toml --locked
+
+  release-cache:
+    name: Release Cache (${{ matrix.platform }})
+    if: github.event_name == 'push'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: "Windows (x64)"
+            os: windows-latest
+          - platform: "Windows (ARM64)"
+            os: windows-11-arm
+          - platform: "macOS (Apple Silicon)"
+            os: macos-latest
+          - platform: "macOS (Intel)"
+            os: macos-15-intel
+          - platform: "Ubuntu (x64)"
+            os: ubuntu-24.04
+          - platform: "Ubuntu (ARM64)"
+            os: ubuntu-24.04-arm
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          shared-key: release
+          cache-on-failure: true
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev
+
+      - name: Build (release profile)
+        run: cargo build --manifest-path src-tauri/Cargo.toml --release --locked
