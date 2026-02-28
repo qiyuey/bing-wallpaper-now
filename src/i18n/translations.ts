@@ -8,8 +8,6 @@ export const translations = {
     // App
     appTitle: "Bing Wallpaper",
     appSubtitle: "Now",
-    appTagline: "哪怕前路渺茫，也要让心中有光。",
-
     // 通用
     loading: "加载中...",
     error: "错误",
@@ -142,8 +140,6 @@ export const translations = {
     // App
     appTitle: "Bing Wallpaper",
     appSubtitle: "Now",
-    appTagline: "Not all those who wander are lost.",
-
     // 通用
     loading: "Loading...",
     error: "Error",

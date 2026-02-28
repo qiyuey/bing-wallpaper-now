@@ -12,7 +12,6 @@ import { openPath } from "@tauri-apps/plugin-opener";
 import { version } from "../package.json";
 import { getStandardIconProps } from "./config/icons";
 import { INLINE_SPACING } from "./config/ui";
-import { useDynamicTagline } from "./hooks/useDynamicTagline";
 import { useI18n } from "./i18n/I18nContext";
 import { useUpdateCheck } from "./hooks/useUpdateCheck";
 import { useTrayEvents } from "./hooks/useTrayEvents";
@@ -29,9 +28,7 @@ function App() {
     effectiveMktLabel,
   } = useBingWallpapers();
 
-  const { t, actualLanguage } = useI18n();
-  const dynamicTagline = useDynamicTagline("time-based", 60000, actualLanguage); // 使用基于时间段的动态标语，根据当前语言显示
-
+  const { t } = useI18n();
   const [showSettings, setShowSettings] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [wallpaperDirectory, setWallpaperDirectory] = useState<string>("");
@@ -187,7 +184,6 @@ function App() {
           <div
             style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}
           >
-            <p className="app-tagline">{dynamicTagline}</p>
             {lastUpdateTime && (
               <div className="last-update">
                 {t("lastUpdate")}: {lastUpdateTime}

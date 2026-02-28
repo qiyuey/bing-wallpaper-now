@@ -76,37 +76,88 @@ make release                # Release current dev version and tag
 
 ```text
 bing-wallpaper-now/
-├── src/                          # Frontend (React + TypeScript)
-│   ├── components/               # React components
-│   │   ├── App.tsx              # Main app component
-│   │   ├── Settings.tsx         # Settings dialog
-│   │   └── WallpaperCard.tsx    # Wallpaper display card
-│   ├── hooks/                   # Custom React hooks
-│   │   ├── useBingWallpapers.ts # Wallpaper data fetching
-│   │   ├── useSettings.ts       # Settings management
-│   │   └── useTray.ts           # System tray integration
-│   ├── types/                   # TypeScript type definitions
-│   └── main.tsx                 # App entry point
-├── src-tauri/                   # Backend (Rust + Tauri)
+├── src/                              # Frontend (React + TypeScript)
+│   ├── App.tsx                      # Main app component
+│   ├── App.css                      # App styles
+│   ├── main.tsx                     # App entry point
+│   ├── components/                  # React components
+│   │   ├── Settings.tsx             # Settings dialog
+│   │   ├── WallpaperCard.tsx        # Wallpaper display card
+│   │   ├── WallpaperGrid.tsx        # Virtual-scrolled wallpaper grid
+│   │   ├── UpdateDialog.tsx         # App update dialog
+│   │   └── About.tsx               # About dialog
+│   ├── hooks/                       # Custom React hooks
+│   │   ├── useBingWallpapers.ts     # Wallpaper data fetching
+│   │   ├── useSettings.ts          # Settings management
+│   │   ├── useTrayEvents.ts        # System tray event integration
+│   │   ├── useUpdateCheck.ts       # App update checking
+│   │   └── useScreenOrientations.ts # Screen orientation detection
+│   ├── config/                      # Frontend configuration
+│   │   ├── icons.ts                # Icon props helpers
+│   │   ├── layout.ts              # Layout breakpoints & sizing
+│   │   └── ui.ts                   # UI spacing constants
+│   ├── contexts/                    # React contexts
+│   │   └── ThemeContext.tsx         # Theme (light/dark/system) provider
+│   ├── i18n/                        # Internationalization
+│   │   ├── I18nContext.tsx          # I18n context provider
+│   │   └── translations.ts         # zh-CN / en-US translation strings
+│   ├── utils/                       # Utility functions
+│   │   ├── eventListener.ts        # Tauri event listener helpers
+│   │   ├── notification.ts         # System notification helpers
+│   │   └── transferHelpers.ts      # Import/export data helpers
+│   ├── types/                       # TypeScript type definitions
+│   │   └── index.ts
+│   └── test/                        # Test utilities
+│       ├── setup.ts                # Vitest setup
+│       └── test-utils.tsx          # Render helpers for tests
+├── src-tauri/                       # Backend (Rust + Tauri)
 │   ├── src/
-│   │   ├── bing_api.rs         # Bing API integration
-│   │   ├── index_manager.rs    # Local metadata index management
-│   │   ├── wallpaper_manager.rs # Wallpaper setting logic
-│   │   ├── download_manager.rs  # Image download & caching
-│   │   ├── settings_store.rs   # Persistent app settings store
-│   │   ├── runtime_state.rs    # Runtime state persistence
-│   │   ├── storage.rs          # File storage management
-│   │   ├── models.rs           # Shared data models
-│   │   ├── utils.rs            # Language/mkt helper utilities
-│   │   └── lib.rs              # Main Rust entry point
-│   ├── Cargo.toml              # Rust dependencies
-│   ├── tauri.conf.json         # Tauri configuration
-│   └── Info.plist              # macOS bundle configuration (LSUIElement etc.)
-├── scripts/                     # Build & utility scripts
-│   ├── check-quality.sh        # Code quality checks
-│   └── manage-version.sh       # Version management
-├── Makefile                     # Development commands
-└── package.json                 # Frontend dependencies & scripts
+│   │   ├── lib.rs                  # Tauri app setup & command registration
+│   │   ├── main.rs                 # Binary entry point
+│   │   ├── bing_api.rs             # Bing API integration
+│   │   ├── index_manager.rs        # Local metadata index management
+│   │   ├── wallpaper_manager.rs    # Wallpaper setting logic (macOS/Win/Linux)
+│   │   ├── download_manager.rs     # Image download & caching
+│   │   ├── settings_store.rs       # Persistent app settings store
+│   │   ├── runtime_state.rs        # Runtime state persistence
+│   │   ├── storage.rs              # File storage management
+│   │   ├── update_cycle.rs         # Wallpaper update cycle orchestration
+│   │   ├── auto_update.rs          # Background auto-update scheduler
+│   │   ├── version_check.rs        # App version check helpers
+│   │   ├── transfer.rs             # Import/export data transfer
+│   │   ├── tray.rs                 # System tray menu & events
+│   │   ├── utils.rs                # Language/mkt helper utilities
+│   │   ├── commands/               # Tauri command handlers
+│   │   │   ├── mod.rs
+│   │   │   ├── wallpaper.rs        # Wallpaper commands
+│   │   │   ├── settings.rs         # Settings commands
+│   │   │   ├── storage.rs          # Storage/transfer commands
+│   │   │   ├── mkt.rs              # Market status commands
+│   │   │   └── window.rs           # Window management commands
+│   │   └── models/                 # Shared data models
+│   │       ├── mod.rs
+│   │       ├── bing.rs             # Bing API response models
+│   │       ├── settings.rs         # App settings model
+│   │       ├── wallpaper.rs        # Wallpaper metadata model
+│   │       ├── index.rs            # Index file models
+│   │       └── runtime.rs          # Runtime state model
+│   ├── Cargo.toml                   # Rust dependencies
+│   ├── tauri.conf.json              # Tauri configuration
+│   └── Info.plist                   # macOS bundle config (LSUIElement etc.)
+├── scripts/                          # Build & utility scripts
+│   ├── check-quality.sh             # Code quality checks
+│   ├── manage-version.sh            # Version management
+│   ├── validate-changelog.sh        # Changelog validation
+│   ├── precheck.sh                  # Pre-build checks
+│   ├── generate-icons.mjs           # App icon generation
+│   └── lib/                         # Shared shell utilities
+│       ├── version.sh
+│       ├── ui.sh
+│       ├── project.sh
+│       ├── git.sh
+│       └── validators.sh
+├── Makefile                          # Development commands
+└── package.json                      # Frontend dependencies & scripts
 ```
 
 ## Code style

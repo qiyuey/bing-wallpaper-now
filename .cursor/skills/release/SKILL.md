@@ -26,6 +26,7 @@ AI 负责：
 
 1. 确认发布范围（对比 tag 差异）
 2. 更新 `CHANGELOG.md` 并提交
+3. 按需更新 `AGENTS.md`、`README.md`、`README.zh.md` 并一起提交
 
 `make release` 脚本自动处理：
 
@@ -75,22 +76,34 @@ AI 负责：
    - 先整理证据清单（提交/PR），再写入条目
    - 不得把原始 commit log 原样粘贴为 changelog
 
-4. **人工确认 CHANGELOG（必须）**
+4. 按需更新项目文档
+   - 对比本次发布范围内的变更，判断以下文件是否需要同步更新：
+     - `AGENTS.md`：项目结构、命令、代码规范、Tauri 配置等开发指南
+     - `README.md`：面向用户的英文功能介绍、使用说明、FAQ
+     - `README.zh.md`：面向用户的中文功能介绍、使用说明、FAQ
+   - 更新原则：
+     - 仅当本次发布涉及**新增/删除文件、新增/移除功能、命令变化、配置变化**时才需要更新
+     - 保持三个文件各自的现有风格和语言（AGENTS.md 中英混用、README.md 英文、README.zh.md 中文）
+     - 不做无意义的润色或重写，只同步实际变更
+   - 若无需更新，跳过此步骤
+
+5. **人工确认发布内容（必须）**
    - 将完整的 CHANGELOG 新增内容展示给用户
-   - 明确告知用户："请确认 CHANGELOG 内容，确认无误后我再继续提交和发布"
+   - 若步骤 4 中更新了文档，一并展示变更摘要
+   - 明确告知用户："请确认 CHANGELOG 及文档更新内容，确认无误后我再继续提交和发布"
    - **必须等待用户明确确认后才能进入下一步**
    - 若用户要求修改，按反馈修正后再次请求确认，直到用户满意
 
-5. 提交 CHANGELOG
-   - 仅提交 `CHANGELOG.md`
-   - 提交信息：`chore: add CHANGELOG entry for X.Y.Z`
+6. 提交发布文档
+   - 提交 `CHANGELOG.md` 及本次更新的文档文件（`AGENTS.md`、`README.md`、`README.zh.md`）
+   - 提交信息：`chore: add CHANGELOG entry for X.Y.Z`（若同时更新了文档，改为 `docs: update docs and CHANGELOG for X.Y.Z`）
 
-6. 执行发布命令
+7. 执行发布命令
    - 运行 `make release`
    - 脚本会自动运行质量检查、更新版本、提交、打 tag、推送
    - 若失败，停止并说明失败原因，**不要手动补救**
 
-7. 返回发布结果
+8. 返回发布结果
    - 返回版本号、tag、关键提交与后续验证建议
    - 附上 CI 构建链接
 
