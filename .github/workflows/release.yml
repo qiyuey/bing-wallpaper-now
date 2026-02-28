@@ -182,11 +182,13 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Rust Cache
+      - name: Rust Cache (registry only, read-only)
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
-          cache-on-failure: true
+          shared-key: rust-deps-src-tauri
+          cache-targets: false
+          save-if: false
 
       - name: Install Linux dependencies
         if: runner.os == 'Linux'

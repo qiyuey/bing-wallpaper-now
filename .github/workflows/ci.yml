@@ -69,6 +69,8 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
+          shared-key: rust-deps-src-tauri
+          cache-on-failure: true
 
       - name: Install Linux dependencies
         run: |
