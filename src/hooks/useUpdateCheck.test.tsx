@@ -3,14 +3,18 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor, act } from "@testing-library/react";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
+import { check, Update } from "@tauri-apps/plugin-updater";
 import { useUpdateCheck } from "./useUpdateCheck";
-import { EVENTS } from "../config/ui";
 import { showSystemNotification } from "../utils/notification";
 import { I18nProvider } from "../i18n/I18nContext";
 
 vi.mock("@tauri-apps/api/core");
 vi.mock("@tauri-apps/api/event");
 vi.mock("../utils/notification");
+vi.mock("@tauri-apps/plugin-updater", () => ({
+  check: vi.fn(),
+  Update: vi.fn(),
+}));
 
 function wrapper({ children }: { children: ReactNode }) {
   return <I18nProvider>{children}</I18nProvider>;
@@ -18,6 +22,20 @@ function wrapper({ children }: { children: ReactNode }) {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyEventHandler = (...args: any[]) => void;
+
+function createMockUpdate(version: string): Update {
+  return {
+    available: true,
+    currentVersion: "1.0.0",
+    version,
+    body: "Release notes",
+    rawJson: {},
+    downloadAndInstall: vi.fn().mockResolvedValue(undefined),
+    download: vi.fn().mockResolvedValue(undefined),
+    install: vi.fn().mockResolvedValue(undefined),
+    close: vi.fn().mockResolvedValue(undefined),
+  } as unknown as Update;
+}
 
 describe("useUpdateCheck", () => {
   let eventCallbacks: Map<string, AnyEventHandler>;
@@ -32,6 +50,7 @@ describe("useUpdateCheck", () => {
     });
 
     vi.mocked(invoke).mockResolvedValue(undefined);
+    vi.mocked(check).mockResolvedValue(null);
     vi.mocked(showSystemNotification).mockResolvedValue(undefined);
   });
 
@@ -40,120 +59,110 @@ describe("useUpdateCheck", () => {
     expect(result.current.updateInfo).toBeNull();
   });
 
-  it("should register listeners for check-updates-result and check-updates-no-update", async () => {
+  it("should register listener for tray-check-updates event", async () => {
     renderHook(() => useUpdateCheck(), { wrapper });
 
     await waitFor(() => {
       expect(listen).toHaveBeenCalledWith(
-        EVENTS.CHECK_UPDATES_RESULT,
-        expect.any(Function),
-      );
-      expect(listen).toHaveBeenCalledWith(
-        EVENTS.CHECK_UPDATES_NO_UPDATE,
+        "tray-check-updates",
         expect.any(Function),
       );
     });
   });
 
-  it("should set updateInfo when check-updates-result event has valid update", async () => {
+  it("should set updateInfo when tray check finds an update", async () => {
+    const mockUpdate = createMockUpdate("2.0.0");
+    vi.mocked(check).mockResolvedValue(mockUpdate);
+    vi.mocked(invoke).mockResolvedValue(false);
+
     const { result } = renderHook(() => useUpdateCheck(), { wrapper });
 
     await waitFor(() => {
-      expect(eventCallbacks.has(EVENTS.CHECK_UPDATES_RESULT)).toBe(true);
+      expect(eventCallbacks.has("tray-check-updates")).toBe(true);
     });
 
-    act(() => {
-      eventCallbacks.get(EVENTS.CHECK_UPDATES_RESULT)!({
-        payload: {
-          has_update: true,
-          latest_version: "2.0.0",
-          release_url: "https://github.com/releases/2.0.0",
-          platform_available: true,
-          current_version: "1.0.0",
-        },
+    await act(async () => {
+      await eventCallbacks.get("tray-check-updates")!({
+        payload: null,
       });
     });
 
-    expect(result.current.updateInfo).toEqual({
-      version: "2.0.0",
-      releaseUrl: "https://github.com/releases/2.0.0",
-    });
+    expect(result.current.updateInfo).not.toBeNull();
+    expect(result.current.updateInfo?.version).toBe("2.0.0");
   });
 
-  it("should not set updateInfo when has_update is false", async () => {
-    const { result } = renderHook(() => useUpdateCheck(), { wrapper });
+  it("should show notification when tray check finds no update", async () => {
+    vi.mocked(check).mockResolvedValue(null);
 
-    await waitFor(() => {
-      expect(eventCallbacks.has(EVENTS.CHECK_UPDATES_RESULT)).toBe(true);
-    });
-
-    act(() => {
-      eventCallbacks.get(EVENTS.CHECK_UPDATES_RESULT)!({
-        payload: {
-          has_update: false,
-          latest_version: "1.0.0",
-          release_url: null,
-          platform_available: true,
-          current_version: "1.0.0",
-        },
-      });
-    });
-
-    expect(result.current.updateInfo).toBeNull();
-  });
-
-  it("should not set updateInfo when platform_available is false", async () => {
-    const { result } = renderHook(() => useUpdateCheck(), { wrapper });
-
-    await waitFor(() => {
-      expect(eventCallbacks.has(EVENTS.CHECK_UPDATES_RESULT)).toBe(true);
-    });
-
-    act(() => {
-      eventCallbacks.get(EVENTS.CHECK_UPDATES_RESULT)!({
-        payload: {
-          has_update: true,
-          latest_version: "2.0.0",
-          release_url: "https://example.com",
-          platform_available: false,
-          current_version: "1.0.0",
-        },
-      });
-    });
-
-    expect(result.current.updateInfo).toBeNull();
-  });
-
-  it("should show system notification on check-updates-no-update event", async () => {
     renderHook(() => useUpdateCheck(), { wrapper });
 
     await waitFor(() => {
-      expect(eventCallbacks.has(EVENTS.CHECK_UPDATES_NO_UPDATE)).toBe(true);
+      expect(eventCallbacks.has("tray-check-updates")).toBe(true);
     });
 
-    act(() => {
-      eventCallbacks.get(EVENTS.CHECK_UPDATES_NO_UPDATE)!({ payload: null });
+    await act(async () => {
+      await eventCallbacks.get("tray-check-updates")!({
+        payload: null,
+      });
     });
 
     expect(showSystemNotification).toHaveBeenCalledTimes(1);
   });
 
-  it("should allow clearing updateInfo via setUpdateInfo(null)", async () => {
+  it("should show notification when tray check errors", async () => {
+    vi.mocked(check).mockRejectedValue(new Error("Network error"));
+
+    renderHook(() => useUpdateCheck(), { wrapper });
+
+    await waitFor(() => {
+      expect(eventCallbacks.has("tray-check-updates")).toBe(true);
+    });
+
+    await act(async () => {
+      await eventCallbacks.get("tray-check-updates")!({
+        payload: null,
+      });
+    });
+
+    expect(showSystemNotification).toHaveBeenCalledTimes(1);
+  });
+
+  it("should not set updateInfo when tray check finds ignored version", async () => {
+    const mockUpdate = createMockUpdate("2.0.0");
+    vi.mocked(check).mockResolvedValue(mockUpdate);
+    vi.mocked(invoke).mockResolvedValue(true); // is_version_ignored = true
+
     const { result } = renderHook(() => useUpdateCheck(), { wrapper });
 
     await waitFor(() => {
-      expect(eventCallbacks.has(EVENTS.CHECK_UPDATES_RESULT)).toBe(true);
+      expect(eventCallbacks.has("tray-check-updates")).toBe(true);
     });
 
-    act(() => {
-      eventCallbacks.get(EVENTS.CHECK_UPDATES_RESULT)!({
-        payload: {
-          has_update: true,
-          latest_version: "2.0.0",
-          release_url: "https://example.com",
-          platform_available: true,
-          current_version: "1.0.0",
-        },
+    await act(async () => {
+      await eventCallbacks.get("tray-check-updates")!({
+        payload: null,
+      });
+    });
+
+    // For tray (manual) check with showNoUpdate=true, ignored version shows "no update" notification
+    expect(result.current.updateInfo).toBeNull();
+    expect(showSystemNotification).toHaveBeenCalledTimes(1);
+  });
+
+  it("should allow clearing updateInfo via setUpdateInfo(null)", async () => {
+    const mockUpdate = createMockUpdate("2.0.0");
+    vi.mocked(check).mockResolvedValue(mockUpdate);
+    vi.mocked(invoke).mockResolvedValue(false);
+
+    const { result } = renderHook(() => useUpdateCheck(), { wrapper });
+
+    await waitFor(() => {
+      expect(eventCallbacks.has("tray-check-updates")).toBe(true);
+    });
+
+    await act(async () => {
+      await eventCallbacks.get("tray-check-updates")!({
+        payload: null,
       });
     });
 
@@ -168,21 +177,9 @@ describe("useUpdateCheck", () => {
 
   describe("auto-check on startup", () => {
     it("should auto-check after 60s and set updateInfo if update available", async () => {
-      vi.mocked(invoke).mockImplementation(async (cmd: string) => {
-        if (cmd === "check_for_updates") {
-          return {
-            has_update: true,
-            latest_version: "3.0.0",
-            release_url: "https://example.com/v3",
-            platform_available: true,
-            current_version: "1.0.0",
-          };
-        }
-        if (cmd === "is_version_ignored") {
-          return false;
-        }
-        return undefined;
-      });
+      const mockUpdate = createMockUpdate("3.0.0");
+      vi.mocked(check).mockResolvedValue(mockUpdate);
+      vi.mocked(invoke).mockResolvedValue(false); // not ignored
 
       vi.useFakeTimers();
       const { result } = renderHook(() => useUpdateCheck(), { wrapper });
@@ -193,30 +190,16 @@ describe("useUpdateCheck", () => {
         await vi.advanceTimersByTimeAsync(60000);
       });
 
-      expect(result.current.updateInfo).toEqual({
-        version: "3.0.0",
-        releaseUrl: "https://example.com/v3",
-      });
+      expect(result.current.updateInfo).not.toBeNull();
+      expect(result.current.updateInfo?.version).toBe("3.0.0");
 
       vi.useRealTimers();
     });
 
     it("should not set updateInfo if version is ignored", async () => {
-      vi.mocked(invoke).mockImplementation(async (cmd: string) => {
-        if (cmd === "check_for_updates") {
-          return {
-            has_update: true,
-            latest_version: "3.0.0",
-            release_url: "https://example.com/v3",
-            platform_available: true,
-            current_version: "1.0.0",
-          };
-        }
-        if (cmd === "is_version_ignored") {
-          return true;
-        }
-        return undefined;
-      });
+      const mockUpdate = createMockUpdate("3.0.0");
+      vi.mocked(check).mockResolvedValue(mockUpdate);
+      vi.mocked(invoke).mockResolvedValue(true); // is_version_ignored = true
 
       vi.useFakeTimers();
       const { result } = renderHook(() => useUpdateCheck(), { wrapper });
@@ -229,23 +212,14 @@ describe("useUpdateCheck", () => {
         version: "3.0.0",
       });
       expect(result.current.updateInfo).toBeNull();
+      // Silent auto-check should NOT show notification
+      expect(showSystemNotification).not.toHaveBeenCalled();
 
       vi.useRealTimers();
     });
 
     it("should not set updateInfo if no update available", async () => {
-      vi.mocked(invoke).mockImplementation(async (cmd: string) => {
-        if (cmd === "check_for_updates") {
-          return {
-            has_update: false,
-            latest_version: "1.0.0",
-            release_url: null,
-            platform_available: true,
-            current_version: "1.0.0",
-          };
-        }
-        return undefined;
-      });
+      vi.mocked(check).mockResolvedValue(null);
 
       vi.useFakeTimers();
       const { result } = renderHook(() => useUpdateCheck(), { wrapper });
@@ -255,6 +229,8 @@ describe("useUpdateCheck", () => {
       });
 
       expect(result.current.updateInfo).toBeNull();
+      // Silent auto-check should NOT show notification
+      expect(showSystemNotification).not.toHaveBeenCalled();
 
       vi.useRealTimers();
     });
@@ -264,12 +240,7 @@ describe("useUpdateCheck", () => {
         .spyOn(console, "error")
         .mockImplementation(() => {});
 
-      vi.mocked(invoke).mockImplementation(async (cmd: string) => {
-        if (cmd === "check_for_updates") {
-          throw new Error("Network error");
-        }
-        return undefined;
-      });
+      vi.mocked(check).mockRejectedValue(new Error("Network error"));
 
       vi.useFakeTimers();
       const { result } = renderHook(() => useUpdateCheck(), { wrapper });
@@ -283,6 +254,8 @@ describe("useUpdateCheck", () => {
         "Failed to check for updates:",
         expect.any(Error),
       );
+      // Silent auto-check should NOT show notification
+      expect(showSystemNotification).not.toHaveBeenCalled();
 
       consoleSpy.mockRestore();
       vi.useRealTimers();

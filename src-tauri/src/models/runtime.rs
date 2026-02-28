@@ -38,6 +38,10 @@ pub struct AppRuntimeState {
     /// 壁纸元数据保存在实际 mkt 下。此字段持久化后，重启时能立即用正确的 key 读取。
     #[serde(default)]
     pub last_actual_mkt: Option<String>,
+    /// (已弃用) 旧版安装方式检测字段，迁移到 tauri-plugin-updater 后不再需要。
+    /// 保留 serde(default) 以兼容已有持久化数据的反序列化。
+    #[serde(default, skip_serializing)]
+    pub _install_method_deprecated: Option<String>,
 }
 
 #[cfg(test)]
@@ -69,6 +73,7 @@ mod tests {
         assert!(state.ignored_update_version.is_none());
         assert!(!state.autostart_notification_shown);
         assert!(state.last_actual_mkt.is_none());
+        assert!(state._install_method_deprecated.is_none());
     }
 
     #[test]

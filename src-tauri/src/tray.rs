@@ -1,4 +1,4 @@
-use crate::{AppState, utils, version_check};
+use crate::{AppState, utils};
 use log::{info, warn};
 use std::time::{Duration, Instant};
 use tauri::{
@@ -285,52 +285,15 @@ pub(crate) fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
                     let _ = app.emit("open-about", ());
                 }
                 "check_updates" => {
-                    // 手动触发更新检查（仅托盘菜单触发，自动检查不会进入这里）
-                    // 注意：自动检查更新通过前端直接调用 check_for_updates 命令实现，
-                    // 不会触发此事件处理，因此不会显示 toast
-                    let app_handle = app.clone();
-                    tauri::async_runtime::spawn(async move {
-                        match version_check::check_for_updates().await {
-                            Ok(result) => {
-                                // 如果有更新且平台安装包可用，通知前端显示更新对话框
-                                if result.has_update
-                                    && result.latest_version.is_some()
-                                    && result.release_url.is_some()
-                                    && result.platform_available
-                                {
-                                    // 检查该版本是否已被用户忽略
-                                    let is_ignored = if let Some(version) = &result.latest_version {
-                                        version_check::is_version_ignored(app_handle.clone(), version.clone())
-                                            .await
-                                            .unwrap_or(false)
-                                    } else {
-                                        false
-                                    };
-
-                                    if !is_ignored {
-                                        // 手动检查到更新，先弹出主窗口
-                                        if let Some(window) = app_handle.get_webview_window("main") {
-                                            let _ = window.show();
-                                            let _ = window.set_focus();
-                                        }
-                                        // 通过事件通知前端显示更新对话框
-                                        if let Err(e) = app_handle.emit("check-updates-result", result) {
-                                            warn!(target: "tray", "Failed to emit check-updates-result event: {}", e);
-                                        }
-                                    }
-                                } else {
-                                    // 手动检查时没有更新，发送事件通知前端显示 toast
-                                    // 自动检查不会触发此事件，因此不会显示 toast
-                                    if let Err(e) = app_handle.emit("check-updates-no-update", ()) {
-                                        warn!(target: "tray", "Failed to emit check-updates-no-update event: {}", e);
-                                    }
-                                }
-                            }
-                            Err(e) => {
-                                warn!(target: "version_check", "手动检查更新失败: {}", e);
-                            }
-                        }
-                    });
+                    // 显示主窗口并通知前端执行更新检查
+                    // 实际检查逻辑由前端 useUpdateCheck 通过 @tauri-apps/plugin-updater 完成
+                    if let Some(window) = app.get_webview_window("main") {
+                        let _ = window.show();
+                        let _ = window.set_focus();
+                    }
+                    if let Err(e) = app.emit("tray-check-updates", ()) {
+                        warn!(target: "tray", "Failed to emit tray-check-updates event: {}", e);
+                    }
                 }
                 "quit" => {
                     // 优雅退出应用

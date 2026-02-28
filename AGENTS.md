@@ -38,6 +38,7 @@ The app distinguishes between:
 # Development
 pnpm run dev                # Vite dev server only
 pnpm run tauri dev          # Full Tauri app with hot reload
+make dev MV=0.0.1           # Mock old version to test update flow
 
 # Building
 pnpm run build              # Build frontend (TypeScript compile + Vite build)
@@ -176,7 +177,7 @@ Rust functions exposed to frontend via `#[tauri::command]` macro:
 - `get_wallpaper_directory()` - Get current wallpaper save directory
 - `get_default_wallpaper_directory()` - Get default save directory
 - `get_last_update_time()` / `get_update_in_progress()` - Query update status
-- `check_for_updates()` - Check app release updates
+- `add_ignored_update_version(version)` / `is_version_ignored(version)` - Manage ignored update versions
 - See `src-tauri/src/lib.rs` for complete list
 
 ### Critical Event Chains (Manual Regression Checklist)
@@ -186,12 +187,10 @@ Verify these paths after structural refactoring or event-related changes:
 
 1. **Tray → Manual Update Check → Show Window → Update Dialog**
    - `tray.rs` "check_updates" menu click
-   - → `version_check::check_for_updates()` + `is_version_ignored()`
-   - → `window.show()` + `window.set_focus()` (only for manual check)
-   - → `emit("check-updates-result")` → frontend `useUpdateCheck` hook
-   - → `UpdateDialog` renders
-   - Also: if no update → `emit("check-updates-no-update")` → system
-     notification toast
+   - → `window.show()` + `window.set_focus()` + `emit("tray-check-updates")`
+   - → frontend `useUpdateCheck` hook receives event
+   - → `@tauri-apps/plugin-updater` `check()` + `is_version_ignored()`
+   - → `UpdateDialog` renders (or system notification if no update)
 
 2. **Tray → Force Update → Wallpaper Refresh**
    - `tray.rs` "refresh" menu click
@@ -214,9 +213,10 @@ Verify these paths after structural refactoring or event-related changes:
    - → warning banner shown if `is_mismatch`
 
 6. **Startup Auto Update Check (Frontend)**
-   - `useUpdateCheck` hook: 60s `setTimeout` → `invoke("check_for_updates")`
+   - `useUpdateCheck` hook: 60s `setTimeout` → `@tauri-apps/plugin-updater` `check()`
    - → `invoke("is_version_ignored")` → silently set or skip `UpdateDialog`
    - (**Does NOT** go through tray event path; no window show/focus)
+   - Update download/install uses plugin's `downloadAndInstall()` + `relaunch()`
 
 ### Settings & mkt mismatch behavior
 
@@ -325,7 +325,13 @@ Verify these paths after structural refactoring or event-related changes:
 3. **Type Safety**: Run `pnpm run typecheck` frequently to catch TypeScript errors early
 4. **Pre-commit**: Always run `make check` before committing to catch issues
 5. **Debugging Rust**: Use `log::debug!()` and enable Tauri logs in settings
-6. **遇到问题先搜索**: 遇到平台特性、Tauri API、系统行为等问题时，**先联网
+6. **测试更新流程**: 使用 `make dev MV=0.0.1` 模拟旧版本来触发更新检测，
+   无需修改任何配置文件。底层通过环境变量 `DEV_OVERRIDE_VERSION` 覆盖编译期
+   版本号，仅在 debug 构建中生效，release 构建中完全移除。常用场景：
+   - `make dev MV=0.0.1` — 模拟旧版本，触发更新
+   - `make dev MV=99.0.0` — 模拟新版本，验证无更新
+   - `make dev` — 不设置，使用真实版本号
+7. **遇到问题先搜索**: 遇到平台特性、Tauri API、系统行为等问题时，**先联网
    搜索**相关问题及已知解决方案，再动手修复。很多问题（如 macOS Dock 行为、
    窗口管理、系统权限等）在社区中已有成熟的解决方案，避免用运行时 hack 解决
    本应在配置层面处理的问题

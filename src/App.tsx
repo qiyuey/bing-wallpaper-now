@@ -293,7 +293,8 @@ function App() {
       {updateInfo && (
         <UpdateDialog
           version={updateInfo.version}
-          releaseUrl={updateInfo.releaseUrl}
+          body={updateInfo.body}
+          update={updateInfo.update}
           onClose={() => setUpdateInfo(null)}
           onIgnore={() => setUpdateInfo(null)}
         />

@@ -95,6 +95,26 @@ pub fn run() {
         ))
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_process::init())
+        .plugin({
+            let mut updater_builder = tauri_plugin_updater::Builder::new();
+
+            // Debug 构建：支持 DEV_OVERRIDE_VERSION 环境变量覆盖当前版本号
+            #[cfg(debug_assertions)]
+            {
+                if let Ok(dev_version) = std::env::var("DEV_OVERRIDE_VERSION") {
+                    if let Ok(dev_ver) = semver::Version::parse(&dev_version) {
+                        info!(target: "updater", "DEV_OVERRIDE_VERSION={}, using custom version comparator", dev_version);
+                        updater_builder = updater_builder
+                            .default_version_comparator(move |_current, remote| remote.version > dev_ver);
+                    } else {
+                        warn!(target: "updater", "DEV_OVERRIDE_VERSION={} is not valid semver, ignoring", dev_version);
+                    }
+                }
+            }
+
+            updater_builder.build()
+        })
         .plugin(
             tauri_plugin_log::Builder::default()
                 .level(log::LevelFilter::Info)
@@ -116,7 +136,6 @@ pub fn run() {
             commands::storage::ensure_wallpaper_directory_exists,
             commands::window::show_main_window,
             update_cycle::force_update,
-            version_check::check_for_updates,
             version_check::add_ignored_update_version,
             version_check::is_version_ignored,
             commands::window::get_screen_orientations,

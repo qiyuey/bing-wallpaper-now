@@ -53,9 +53,11 @@ all: check
 
 ##@ Development
 ## dev: Start Tauri development mode (hot reload)
+##      Pass MV=x.y.z to mock version for update testing
 dev:
 	@echo Starting development mode...
-	$(PKG_MANAGER) run tauri dev
+	$(if $(MV),@echo "Mock version: $(MV) (via DEV_OVERRIDE_VERSION)")
+	$(if $(MV),DEV_OVERRIDE_VERSION=$(MV)) $(PKG_MANAGER) run tauri dev
 
 # ============================================================================
 # Dependency Management

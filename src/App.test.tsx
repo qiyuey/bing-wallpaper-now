@@ -11,6 +11,7 @@ import App from "./App";
 import { invoke } from "@tauri-apps/api/core";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { listen, type Event } from "@tauri-apps/api/event";
+import { check, Update } from "@tauri-apps/plugin-updater";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { renderWithI18n } from "./test/test-utils";
 import { LocalWallpaperRaw } from "./types";
@@ -20,6 +21,27 @@ vi.mock("@tauri-apps/api/core");
 vi.mock("@tauri-apps/plugin-opener");
 vi.mock("@tauri-apps/api/event");
 vi.mock("./utils/notification");
+vi.mock("@tauri-apps/plugin-updater", () => ({
+  check: vi.fn(),
+  Update: vi.fn(),
+}));
+vi.mock("@tauri-apps/plugin-process", () => ({
+  relaunch: vi.fn().mockResolvedValue(undefined),
+}));
+
+function createMockUpdate(version: string): Update {
+  return {
+    available: true,
+    currentVersion: "1.0.0",
+    version,
+    body: "Release notes",
+    rawJson: {},
+    downloadAndInstall: vi.fn().mockResolvedValue(undefined),
+    download: vi.fn().mockResolvedValue(undefined),
+    install: vi.fn().mockResolvedValue(undefined),
+    close: vi.fn().mockResolvedValue(undefined),
+  } as unknown as Update;
+}
 
 const renderWithTheme = (component: React.ReactElement) => {
   return renderWithI18n(<ThemeProvider>{component}</ThemeProvider>);
@@ -98,6 +120,8 @@ describe("App", () => {
     });
     // Mock event listener
     vi.mocked(listen).mockResolvedValue(() => {});
+    // Mock updater plugin (no update by default)
+    vi.mocked(check).mockResolvedValue(null);
   });
 
   afterEach(() => {
@@ -715,18 +739,9 @@ describe("App", () => {
     });
 
     it("should check for updates after 1 minute delay", async () => {
-      const mockVersionCheckResult = {
-        current_version: "0.4.5",
-        latest_version: "0.4.6",
-        has_update: true,
-        release_url: "https://github.com/example/releases/tag/0.4.6",
-        platform_available: true,
-      };
-
+      const mockUpdate = createMockUpdate("0.4.6");
+      vi.mocked(check).mockResolvedValue(mockUpdate);
       vi.mocked(invoke).mockImplementation((cmd: string) => {
-        if (cmd === "check_for_updates") {
-          return Promise.resolve(mockVersionCheckResult);
-        }
         if (cmd === "is_version_ignored") {
           return Promise.resolve(false);
         }
@@ -754,37 +769,24 @@ describe("App", () => {
 
       renderWithTheme(<App />);
 
-      // 验证 setTimeout 被调用，但还没有执行版本检查
-      expect(invoke).not.toHaveBeenCalledWith("check_for_updates");
-
       // 快进 59 秒，版本检查应该还没执行
       vi.advanceTimersByTime(59000);
-      expect(invoke).not.toHaveBeenCalledWith("check_for_updates");
+      expect(check).not.toHaveBeenCalled();
 
       // 快进 1 秒，到达 60 秒，版本检查应该执行
       await act(async () => {
         vi.advanceTimersByTime(1000);
-        // 等待 Promise 链完成（版本检查是异步的）
         await Promise.resolve();
         await Promise.resolve();
       });
 
-      expect(invoke).toHaveBeenCalledWith("check_for_updates");
+      expect(check).toHaveBeenCalled();
     });
 
     it("should display update dialog when update is available and not ignored", async () => {
-      const mockVersionCheckResult = {
-        current_version: "0.4.5",
-        latest_version: "0.4.6",
-        has_update: true,
-        release_url: "https://github.com/example/releases/tag/0.4.6",
-        platform_available: true,
-      };
-
+      const mockUpdate = createMockUpdate("0.4.6");
+      vi.mocked(check).mockResolvedValue(mockUpdate);
       vi.mocked(invoke).mockImplementation((cmd: string) => {
-        if (cmd === "check_for_updates") {
-          return Promise.resolve(mockVersionCheckResult);
-        }
         if (cmd === "is_version_ignored") {
           return Promise.resolve(false);
         }
@@ -812,36 +814,24 @@ describe("App", () => {
 
       renderWithTheme(<App />);
 
-      // 快进 60 秒并等待 Promise 完成
       await act(async () => {
         vi.advanceTimersByTime(60000);
-        // 等待 Promise 链完成（版本检查 -> 检查忽略状态 -> 设置状态）
         await Promise.resolve();
         await Promise.resolve();
         await Promise.resolve();
       });
 
-      // 验证更新对话框显示（在 fake timers 模式下，直接查询而不是使用 waitFor）
       expect(
         screen.getByText(/有新版本可用|Update Available/),
       ).toBeInTheDocument();
     });
 
     it("should not display update dialog when version is ignored", async () => {
-      const mockVersionCheckResult = {
-        current_version: "0.4.5",
-        latest_version: "0.4.6",
-        has_update: true,
-        release_url: "https://github.com/example/releases/tag/0.4.6",
-        platform_available: true,
-      };
-
+      const mockUpdate = createMockUpdate("0.4.6");
+      vi.mocked(check).mockResolvedValue(mockUpdate);
       vi.mocked(invoke).mockImplementation((cmd: string) => {
-        if (cmd === "check_for_updates") {
-          return Promise.resolve(mockVersionCheckResult);
-        }
         if (cmd === "is_version_ignored") {
-          return Promise.resolve(true); // 版本已被忽略
+          return Promise.resolve(true);
         }
         if (cmd === "get_wallpaper_directory") {
           return Promise.resolve("/path/to/wallpapers");
@@ -867,72 +857,30 @@ describe("App", () => {
 
       renderWithTheme(<App />);
 
-      // 快进 60 秒并等待 Promise 完成
       await act(async () => {
         vi.advanceTimersByTime(60000);
-        // 等待 Promise 链完成
         await Promise.resolve();
         await Promise.resolve();
       });
 
-      // 验证版本检查被调用
-      expect(invoke).toHaveBeenCalledWith("check_for_updates");
-
-      // 更新对话框不应该显示（因为版本被忽略）
+      expect(check).toHaveBeenCalled();
       expect(
         screen.queryByText(/有新版本可用|Update Available/),
       ).not.toBeInTheDocument();
     });
 
     it("should not display update dialog when no update is available", async () => {
-      const mockVersionCheckResult = {
-        current_version: "0.4.6",
-        latest_version: "0.4.6",
-        has_update: false,
-        release_url: null,
-        platform_available: true,
-      };
-
-      vi.mocked(invoke).mockImplementation((cmd: string) => {
-        if (cmd === "check_for_updates") {
-          return Promise.resolve(mockVersionCheckResult);
-        }
-        if (cmd === "get_wallpaper_directory") {
-          return Promise.resolve("/path/to/wallpapers");
-        }
-        if (cmd === "get_local_wallpapers") {
-          return Promise.resolve(mockWallpapersRaw);
-        }
-        if (cmd === "get_settings") {
-          return Promise.resolve({
-            auto_update: true,
-            save_directory: null,
-            launch_at_startup: false,
-            language: "zh-CN",
-            resolved_language: "zh-CN",
-            mkt: "zh-CN",
-          });
-        }
-        if (cmd === "get_last_update_time") {
-          return Promise.resolve(null);
-        }
-        return Promise.resolve([]);
-      });
+      vi.mocked(check).mockResolvedValue(null);
 
       renderWithTheme(<App />);
 
-      // 快进 60 秒并等待 Promise 完成
       await act(async () => {
         vi.advanceTimersByTime(60000);
-        // 等待 Promise 链完成
         await Promise.resolve();
         await Promise.resolve();
       });
 
-      // 验证版本检查被调用
-      expect(invoke).toHaveBeenCalledWith("check_for_updates");
-
-      // 更新对话框不应该显示（因为没有更新）
+      expect(check).toHaveBeenCalled();
       expect(
         screen.queryByText(/有新版本可用|Update Available/),
       ).not.toBeInTheDocument();
@@ -983,49 +931,21 @@ describe("App", () => {
         .spyOn(console, "error")
         .mockImplementation(() => {});
 
-      vi.mocked(invoke).mockImplementation((cmd: string) => {
-        if (cmd === "check_for_updates") {
-          return Promise.reject(new Error("Network error"));
-        }
-        if (cmd === "get_wallpaper_directory") {
-          return Promise.resolve("/path/to/wallpapers");
-        }
-        if (cmd === "get_local_wallpapers") {
-          return Promise.resolve(mockWallpapersRaw);
-        }
-        if (cmd === "get_settings") {
-          return Promise.resolve({
-            auto_update: true,
-            save_directory: null,
-            launch_at_startup: false,
-            language: "zh-CN",
-            resolved_language: "zh-CN",
-            mkt: "zh-CN",
-          });
-        }
-        if (cmd === "get_last_update_time") {
-          return Promise.resolve(null);
-        }
-        return Promise.resolve([]);
-      });
+      vi.mocked(check).mockRejectedValue(new Error("Network error"));
 
       renderWithTheme(<App />);
 
-      // 快进 60 秒并等待 Promise 完成
       await act(async () => {
         vi.advanceTimersByTime(60000);
-        // 等待 Promise 链完成（包括错误处理）
         await Promise.resolve();
         await Promise.resolve();
       });
 
-      // 验证错误被记录
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         "Failed to check for updates:",
         expect.any(Error),
       );
 
-      // 更新对话框不应该显示
       expect(
         screen.queryByText(/有新版本可用|Update Available/),
       ).not.toBeInTheDocument();
@@ -1174,18 +1094,23 @@ describe("App", () => {
     });
 
     it("should close update dialog when Esc is pressed", async () => {
-      const mockVersionCheckResult = {
-        current_version: "0.4.5",
-        latest_version: "0.4.6",
-        has_update: true,
-        release_url: "https://github.com/example/releases/tag/0.4.6",
-        platform_available: true,
-      };
+      const mockUpdate = createMockUpdate("0.4.6");
+      vi.mocked(check).mockResolvedValue(mockUpdate);
+
+      let trayCheckUpdatesCallback:
+        | ((event: Event<unknown>) => void)
+        | undefined;
+
+      vi.mocked(listen).mockImplementation(
+        (event: string, callback: (event: Event<unknown>) => void) => {
+          if (event === "tray-check-updates") {
+            trayCheckUpdatesCallback = callback;
+          }
+          return Promise.resolve(() => {});
+        },
+      );
 
       vi.mocked(invoke).mockImplementation((cmd: string) => {
-        if (cmd === "check_for_updates") {
-          return Promise.resolve(mockVersionCheckResult);
-        }
         if (cmd === "is_version_ignored") {
           return Promise.resolve(false);
         }
@@ -1213,20 +1138,15 @@ describe("App", () => {
 
       renderWithTheme(<App />);
 
-      // Trigger update check
+      await waitFor(() => {
+        expect(trayCheckUpdatesCallback).toBeDefined();
+      });
+
       await act(async () => {
-        const result = await invoke("check_for_updates");
-        // Simulate the event that would be emitted
-        const listeners = vi.mocked(listen).mock.calls;
-        // Find the check-updates-result listener
-        for (const [eventName, callback] of listeners) {
-          if (eventName === "check-updates-result") {
-            await callback({
-              event: "check-updates-result",
-              payload: result,
-            } as Event<unknown>);
-          }
-        }
+        await trayCheckUpdatesCallback!({
+          event: "tray-check-updates",
+          payload: undefined,
+        } as Event<unknown>);
       });
 
       await waitFor(() => {
@@ -1235,7 +1155,6 @@ describe("App", () => {
         ).toBeInTheDocument();
       });
 
-      // Press Esc to close
       fireEvent.keyDown(window, {
         key: "Escape",
       });
@@ -1253,43 +1172,63 @@ describe("App", () => {
       vi.mocked(notificationUtils.showSystemNotification).mockResolvedValue();
     });
 
-    it("should display update dialog when check-updates-result event is received", async () => {
-      const mockVersionCheckResult = {
-        current_version: "0.4.5",
-        latest_version: "0.4.6",
-        has_update: true,
-        release_url: "https://github.com/example/releases/tag/0.4.6",
-        platform_available: true,
-      };
+    it("should display update dialog when tray-check-updates event triggers and update found", async () => {
+      const mockUpdate = createMockUpdate("0.4.6");
+      vi.mocked(check).mockResolvedValue(mockUpdate);
 
-      let checkUpdatesResultCallback:
+      let trayCheckUpdatesCallback:
         | ((event: Event<unknown>) => void)
         | undefined;
 
       vi.mocked(listen).mockImplementation(
         (event: string, callback: (event: Event<unknown>) => void) => {
-          if (event === "check-updates-result") {
-            checkUpdatesResultCallback = callback;
+          if (event === "tray-check-updates") {
+            trayCheckUpdatesCallback = callback;
           }
           return Promise.resolve(() => {});
         },
       );
 
+      vi.mocked(invoke).mockImplementation((cmd: string) => {
+        if (cmd === "is_version_ignored") {
+          return Promise.resolve(false);
+        }
+        if (cmd === "get_wallpaper_directory") {
+          return Promise.resolve("/path/to/wallpapers");
+        }
+        if (cmd === "get_local_wallpapers") {
+          return Promise.resolve(mockWallpapersRaw);
+        }
+        if (cmd === "get_settings") {
+          return Promise.resolve({
+            auto_update: true,
+            save_directory: null,
+            launch_at_startup: false,
+            language: "zh-CN",
+            resolved_language: "zh-CN",
+            mkt: "zh-CN",
+          });
+        }
+        if (cmd === "get_last_update_time") {
+          return Promise.resolve(null);
+        }
+        return Promise.resolve([]);
+      });
+
       renderWithTheme(<App />);
 
       await waitFor(() => {
         expect(listen).toHaveBeenCalledWith(
-          "check-updates-result",
+          "tray-check-updates",
           expect.any(Function),
         );
       });
 
-      // Trigger the event
-      if (checkUpdatesResultCallback) {
+      if (trayCheckUpdatesCallback) {
         await act(async () => {
-          checkUpdatesResultCallback!({
-            event: "check-updates-result",
-            payload: mockVersionCheckResult,
+          await trayCheckUpdatesCallback!({
+            event: "tray-check-updates",
+            payload: undefined,
           } as Event<unknown>);
         });
       }
@@ -1301,15 +1240,17 @@ describe("App", () => {
       });
     });
 
-    it("should show system notification when check-updates-no-update event is received", async () => {
-      let checkUpdatesNoUpdateCallback:
+    it("should show system notification when tray-check-updates finds no update", async () => {
+      vi.mocked(check).mockResolvedValue(null);
+
+      let trayCheckUpdatesCallback:
         | ((event: Event<unknown>) => void)
         | undefined;
 
       vi.mocked(listen).mockImplementation(
         (event: string, callback: (event: Event<unknown>) => void) => {
-          if (event === "check-updates-no-update") {
-            checkUpdatesNoUpdateCallback = callback;
+          if (event === "tray-check-updates") {
+            trayCheckUpdatesCallback = callback;
           }
           return Promise.resolve(() => {});
         },
@@ -1319,16 +1260,15 @@ describe("App", () => {
 
       await waitFor(() => {
         expect(listen).toHaveBeenCalledWith(
-          "check-updates-no-update",
+          "tray-check-updates",
           expect.any(Function),
         );
       });
 
-      // Trigger the event
-      if (checkUpdatesNoUpdateCallback) {
+      if (trayCheckUpdatesCallback) {
         await act(async () => {
-          checkUpdatesNoUpdateCallback!({
-            event: "check-updates-no-update",
+          await trayCheckUpdatesCallback!({
+            event: "tray-check-updates",
             payload: undefined,
           } as Event<unknown>);
         });
@@ -1342,57 +1282,6 @@ describe("App", () => {
         "检查更新",
         "已是最新版本",
       );
-    });
-
-    it("should not display update dialog if version is missing", async () => {
-      const mockVersionCheckResult = {
-        current_version: "0.4.5",
-        latest_version: null,
-        has_update: false,
-        release_url: null,
-        platform_available: false,
-      };
-
-      let checkUpdatesResultCallback:
-        | ((event: Event<unknown>) => void)
-        | undefined;
-
-      vi.mocked(listen).mockImplementation(
-        (event: string, callback: (event: Event<unknown>) => void) => {
-          if (event === "check-updates-result") {
-            checkUpdatesResultCallback = callback;
-          }
-          return Promise.resolve(() => {});
-        },
-      );
-
-      renderWithTheme(<App />);
-
-      await waitFor(() => {
-        expect(listen).toHaveBeenCalledWith(
-          "check-updates-result",
-          expect.any(Function),
-        );
-      });
-
-      // Trigger the event with incomplete data
-      if (checkUpdatesResultCallback) {
-        await act(async () => {
-          checkUpdatesResultCallback!({
-            event: "check-updates-result",
-            payload: mockVersionCheckResult,
-          } as Event<unknown>);
-        });
-      }
-
-      // Wait a bit to ensure no dialog appears
-      await act(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 100));
-      });
-
-      expect(
-        screen.queryByText(/有新版本可用|Update Available/i),
-      ).not.toBeInTheDocument();
     });
   });
 });
