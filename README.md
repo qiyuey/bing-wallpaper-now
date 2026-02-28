@@ -45,6 +45,7 @@ xattr -rd com.apple.quarantine "/Applications/Bing Wallpaper Now.app"
 - 🚀 **Fast Load** - Loads local cache first, fetches remote in the background
 - 💾 **System Tray** - Minimize to tray, does not occupy taskbar
 - ⚙️ **Configurable** - Custom save directory, startup options, and market/language preferences
+- 🔄 **In-App Updates** - Download and install new versions directly within the app
 - 🎨 **Themes** - Light, dark, and system-follow modes
 
 ## 🎯 Usage
