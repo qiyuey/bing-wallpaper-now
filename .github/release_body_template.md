@@ -43,9 +43,16 @@ ${CHANGELOG}
 
 ---
 
+### macOS 通过 Homebrew 安装
+
+```bash
+brew tap qiyuey/tap
+brew install --cask bing-wallpaper-now
+```
+
 ### macOS 安装方法
 
-若出现“应用已损坏”或“无法打开”，在终端执行（需要管理员权限时可在前面加 sudo）：
+若出现"应用已损坏"或"无法打开"，在终端执行（需要管理员权限时可在前面加 sudo）：
 ```bash
 xattr -rd com.apple.quarantine "/Applications/Bing Wallpaper Now.app"
 ```
