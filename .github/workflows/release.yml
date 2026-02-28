@@ -489,8 +489,10 @@ jobs:
           PLATFORMS+="}"
 
           if [ "$first" = true ]; then
-            echo "Error: No valid platform entries found"
-            exit 1
+            echo "Warning: No valid platform entries found (no .sig assets on release)."
+            echo "To enable in-app updates, set TAURI_SIGNING_PRIVATE_KEY in GitHub Secrets and re-release."
+            echo "Skipping latest.json generation; release workflow will still succeed."
+            exit 0
           fi
 
           # Build final latest.json using jq for proper escaping
@@ -510,4 +512,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release upload "${{ github.ref_name }}" latest.json --clobber --repo "${{ github.repository }}"
+          if [ -f latest.json ]; then
+            gh release upload "${{ github.ref_name }}" latest.json --clobber --repo "${{ github.repository }}"
+          else
+            echo "No latest.json (no .sig assets); skipping upload."
+          fi
