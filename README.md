@@ -30,92 +30,53 @@ If you see "App is damaged or cannot be opened", run the following in Terminal (
 xattr -rd com.apple.quarantine "/Applications/Bing Wallpaper Now.app"
 ```
 
-## ✨ Features
+## ✨ Why Bing Wallpaper Now
 
-### Core Features
+### Lightweight & Modern
 
-- 📸 **Daily Wallpapers** - Automatically fetch up to 8 Bing daily wallpapers
-- 🖼️ **High Resolution** - Download UHD (Ultra HD) wallpapers
-- 🎨 **One Click Set** - Set as desktop wallpaper with a single click
-- 📁 **Local Gallery** - Save all wallpapers locally, browse full history
-- 🔄 **Background Fetch** - Downloads in the background, UI never blocked
-- 🗑️ **Automatic Cleanup** - Automatically removes older cache to control disk usage
+- **Built with Tauri 2.0** — Rust backend + React frontend, not Electron. Low memory, fast startup
+- **6 native platform builds** — macOS (Apple Silicon / Intel), Windows (x64 / ARM64), Linux (x64 / ARM64)
+- **Privacy first** — No telemetry, no tracking. Only talks to Bing API. All data stored locally
 
-### macOS Exclusive
+### Portrait Display Support
 
-- 🖥️ **Multiple Monitors** - Set wallpaper on all displays
-- 🎯 **Fullscreen App Support** - Handles wallpapers in fullscreen usage
-- 🔄 **Auto Restore on Space Switch** - Automatically restore wallpaper when switching Spaces or exiting fullscreen
+- **Auto-detects portrait monitors** and downloads dedicated 1080×1920 wallpapers
+- Mixed landscape/portrait multi-monitor setups get the correct orientation per screen
 
-### User Experience
+### Deep macOS Integration
 
-- 🚀 **Fast Load** - Loads local cache first, fetches remote in the background
-- 💾 **System Tray** - Minimize to tray, does not occupy taskbar
-- ⚙️ **Configurable** - Custom save directory, startup options, and market/language preferences
-- 🔄 **In-App Updates** - Download and install new versions directly within the app
-- 🎨 **Themes** - Light, dark, and system-follow modes
+- **Multi-monitor** — Sets wallpaper on all displays via native NSWorkspace API
+- **Fullscreen & Split View** — Correctly handles wallpapers in fullscreen apps
+- **Space auto-restore** — Automatically restores and verifies wallpaper when switching Spaces or exiting fullscreen
+- **Tray-only** — No Dock icon, no taskbar clutter
 
-## 🎯 Usage
+### More Features
 
-### First Launch
-
-1. Download and install the app
-2. Launch "Bing Wallpaper Now"
-3. The app will fetch today’s Bing wallpaper
-4. Browse the gallery in the main window
-
-### Set Wallpaper
-
-- **Click any wallpaper card** to immediately set it as your desktop wallpaper
-- The wallpaper is applied instantly
-- On macOS, it applies to all connected displays
-
-### System Tray
-
-The app runs in your system tray for quick access:
-
-- **Left click** - Show/hide main window
-- **Right click** - Menu (show window, quit)
-- **Close window** - Minimize to tray (app keeps running)
-
-### Settings
-
-Click the "Settings" (star icon) to customize:
-
-- **Auto Update** - Automatically fetch and apply the latest wallpaper
-- **Language** - UI language (`Auto` / `zh-CN` / `en-US`)
-- **Wallpaper Market** - Choose which Bing market to fetch wallpapers from (`mkt`)
-- **Save Directory** - Choose where to store wallpapers
-- **Theme** - Light / dark / follow system
-- **Launch at Startup** - Start app automatically after login
-
-> Note: In some regions, Bing may ignore your selected market and return another one
-> (for example, forcing `zh-CN`). The app will detect this automatically, use the
-> actual returned market for indexing, and show a warning in Settings.
+- 📸 Auto-fetch Bing UHD wallpapers daily, one click to set
+- 🔄 In-app auto-update with progress and signature verification
+- 🎨 Light / dark / system-follow themes
+- ⚙️ Custom save directory, wallpaper market, startup options
+- 🗑️ Automatic cache cleanup to control disk usage
 
 ## ❓ FAQ
 
-**Q: How often are wallpapers updated?**  
-**A:** Bing releases new wallpapers daily. Enable "Auto Update" to fetch the latest automatically.
+**Q: How do I set a wallpaper?**
+**A:** Click any wallpaper card to instantly set it as your desktop. On macOS, it applies to all monitors automatically.
 
-**Q: Where are my wallpapers saved?**  
-**A:** By default, they're in a "Bing Wallpaper Now" folder in your system
-pictures directory, but you can change this in settings.
+**Q: Does the app keep running after closing the window?**
+**A:** Yes, closing the window minimizes it to the system tray. Click the tray icon to reopen, right-click to quit.
 
-**Q: Can I use it offline?**  
-**A:** Yes! Previously downloaded wallpapers are always available and can still be set offline.
+**Q: Where are my wallpapers saved?**
+**A:** By default in a "Bing Wallpaper Now" folder under your system pictures directory. You can change this in settings.
 
-**Q: How much storage does it use?**  
-**A:** Each UHD wallpaper is roughly 1–3MB. Keeping 8 uses 8–24MB.
+**Q: How much storage does it use?**
+**A:** Each UHD wallpaper is roughly 1–3MB. Keeping 8 uses about 8–24MB. The app auto-cleans older cache.
 
-**Q: Can wallpapers be kept forever?**  
-**A:** The app automatically cleans older cached wallpapers over time to keep
-storage usage predictable. A "favorites/never delete" option is not available yet.
+**Q: Can I use it offline?**
+**A:** Yes, previously downloaded wallpapers can be set anytime without internet.
 
-**Q: Why does the app show a market mismatch warning?**  
-**A:** This means Bing returned wallpapers for a different market than the one
-you selected. It usually happens due to regional restrictions. The app keeps
-working and uses the actual returned market to avoid empty lists.
+**Q: Why does a "market mismatch" warning appear?**
+**A:** Bing may ignore your selected market in some regions and return wallpapers from another. The app adapts automatically — no action needed.
 
 ## 📞 Support & Feedback
 
