@@ -98,6 +98,28 @@ jobs:
           make_latest: true
           body_path: release_body.md
 
+      - name: Clean up stale updater artifacts
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          STALE_ASSETS=$(gh api "repos/${REPO}/releases/tags/${TAG}" \
+            --jq '[.assets[] | select(.name == "latest.json" or (.name | endswith(".sig"))) | "\(.id)\t\(.name)"] | .[]' 2>/dev/null || true)
+
+          if [ -z "$STALE_ASSETS" ]; then
+            echo "No stale updater artifacts found, clean slate."
+            exit 0
+          fi
+
+          echo "Removing stale updater artifacts from previous build:"
+          while IFS=$'\t' read -r asset_id asset_name; do
+            echo "  Deleting: $asset_name (id=$asset_id)"
+            gh api -X DELETE "repos/${REPO}/releases/assets/${asset_id}" 2>/dev/null || true
+          done <<< "$STALE_ASSETS"
+          echo "✅ Stale artifacts cleaned up"
+
   frontend:
     name: Frontend Build
     needs: release

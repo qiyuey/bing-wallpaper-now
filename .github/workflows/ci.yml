@@ -95,6 +95,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     env:
+      RUST_BACKTRACE: short
       CARGO_INCREMENTAL: 0
       CARGO_PROFILE_RELEASE_CODEGEN_UNITS: 16
       CARGO_PROFILE_RELEASE_LTO: thin
