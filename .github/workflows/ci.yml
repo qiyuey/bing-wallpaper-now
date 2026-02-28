@@ -94,6 +94,12 @@ jobs:
     if: github.event_name == 'push'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
+    env:
+      CARGO_INCREMENTAL: 0
+      CARGO_PROFILE_RELEASE_CODEGEN_UNITS: 16
+      CARGO_PROFILE_RELEASE_LTO: thin
+      CARGO_NET_GIT_FETCH_WITH_CLI: true
+      CARGO_NET_RETRY: 10
     strategy:
       fail-fast: false
       matrix:

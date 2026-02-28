@@ -30,6 +30,12 @@ readonly MAX_WAIT_FOR_RUN=120  # 2 minutes to wait for workflow to appear
 # Helpers
 # ============================================================================
 
+send_notification() {
+    local title="$1"
+    local message="$2"
+    osascript -e "display notification \"$message\" with title \"$title\"" 2>/dev/null || true
+}
+
 get_run_id() {
     local tag="$1"
     gh run list --branch "$tag" --workflow release.yml --limit 1 --json databaseId --jq '.[0].databaseId // empty' 2>/dev/null
@@ -110,11 +116,13 @@ main() {
             echo ""
             if [[ "$conclusion" == "success" ]]; then
                 print_success "所有 job 构建成功"
+                send_notification "CI 构建成功" "$tag 所有 job 构建成功"
                 echo ""
                 print_info "Release: ${repo_url}/releases/tag/${tag}"
                 exit 0
             else
                 print_error "构建失败 (conclusion: $conclusion)"
+                send_notification "CI 构建失败" "$tag 构建失败"
                 echo ""
                 # Print failed jobs
                 local failed_jobs
@@ -137,6 +145,7 @@ main() {
     done
 
     print_error "监控超时 (${TIMEOUT}s)"
+    send_notification "CI 监控超时" "$tag 构建仍在运行"
     print_info "构建仍在运行，请手动检查: ${repo_url}/actions/runs/${run_id}"
     exit 2
 }

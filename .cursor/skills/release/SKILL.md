@@ -61,8 +61,9 @@ AI 负责：确认发布范围、更新 `CHANGELOG.md`、按需更新 `AGENTS.md
    - 失败时：分析原因，若可修复则修复并提交，重试一次；否则停止并说明
 
 7. **监控 CI 构建**
-   - 运行 `bash scripts/monitor-ci.sh <tag>`
-   - 脚本会自动轮询并报告结果
+   - 先用 `gh run list` 获取 workflow run URL，以 **Markdown 超链接** 形式展示给用户（方便直接点击跳转）
+   - 然后运行 `bash scripts/monitor-ci.sh <tag>`
+   - 脚本会自动轮询并报告结果，构建完成时自动发送 macOS 系统通知
    - 若脚本报告失败：展示失败信息，询问用户是否排查修复
    - 修复后可 `make retag` 重新触发构建，再次运行监控脚本
 
