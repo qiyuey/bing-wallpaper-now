@@ -628,3 +628,16 @@ jobs:
             git push
             echo "Pushed cask update for ${TAG}"
           fi
+
+  winget:
+    name: Update WinGet Package
+    needs: bundle
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: vedantmgoyal9/winget-releaser@v2
+        with:
+          identifier: Qiyuey.BingWallpaperNow
+          installers-regex: '\.(msi|exe)$'
+          token: ${{ secrets.WINGET_TOKEN }}

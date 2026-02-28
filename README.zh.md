@@ -22,6 +22,12 @@ brew tap qiyuey/tap
 brew install --cask bing-wallpaper-now
 ```
 
+### Windows 通过 WinGet 安装
+
+```bash
+winget install Qiyuey.BingWallpaperNow
+```
+
 ### macOS 安装说明
 
 若出现"应用已损坏"或"无法打开"，在终端执行（需要管理员权限时可在前面加 sudo）：

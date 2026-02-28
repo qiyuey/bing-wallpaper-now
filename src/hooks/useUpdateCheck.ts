@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { check, Update } from "@tauri-apps/plugin-updater";
@@ -12,27 +12,47 @@ interface UpdateInfo {
   update: Update;
 }
 
+const CHECK_TIMEOUT_MS = 15_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = window.setTimeout(
+      () => reject(new Error(`Update check timed out after ${ms}ms`)),
+      ms,
+    );
+    promise.then(resolve, reject).finally(() => window.clearTimeout(timer));
+  });
+}
+
 export function useUpdateCheck() {
   const { t } = useI18n();
+  const tRef = useRef(t);
+  useEffect(() => {
+    tRef.current = t;
+  });
+
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const pendingCheckRef = useRef<Promise<UpdateInfo | null> | null>(null);
 
-  const performCheck = useCallback(
+  const performCheckRef = useRef(
     async (options: { showNoUpdate: boolean }): Promise<UpdateInfo | null> => {
-      // If a check is already running, wait for it then run ours
       if (pendingCheckRef.current) {
         await pendingCheckRef.current.catch(() => {});
       }
 
       const promise = (async (): Promise<UpdateInfo | null> => {
+        const currentT = tRef.current;
         try {
-          const update = await check({ timeout: 10000 });
+          const update = await withTimeout(
+            check({ timeout: 10000 }),
+            CHECK_TIMEOUT_MS,
+          );
 
           if (!update) {
             if (options.showNoUpdate) {
               showSystemNotification(
-                t("checkForUpdates"),
-                t("noUpdateAvailable"),
+                currentT("checkForUpdates"),
+                currentT("noUpdateAvailable"),
               );
             }
             return null;
@@ -48,8 +68,8 @@ export function useUpdateCheck() {
 
           if (isIgnored && options.showNoUpdate) {
             showSystemNotification(
-              t("checkForUpdates"),
-              t("noUpdateAvailable"),
+              currentT("checkForUpdates"),
+              currentT("noUpdateAvailable"),
             );
             return null;
           }
@@ -63,8 +83,8 @@ export function useUpdateCheck() {
           console.error("Failed to check for updates:", err);
           if (options.showNoUpdate) {
             showSystemNotification(
-              t("checkForUpdates"),
-              t("updateCheckFailed"),
+              currentT("checkForUpdates"),
+              currentT("updateCheckFailed"),
             );
           }
           return null;
@@ -76,10 +96,11 @@ export function useUpdateCheck() {
       pendingCheckRef.current = promise;
       return promise;
     },
-    [t],
   );
 
-  // Listen for tray-triggered manual update check event
+  // Listen for tray-triggered manual update check event.
+  // Uses ref pattern (like useTrayEvents) so the listener is registered once
+  // and survives re-renders caused by i18n loading transitions.
   useEffect(() => {
     let mounted = true;
     let unlisten: (() => void) | undefined;
@@ -87,7 +108,9 @@ export function useUpdateCheck() {
     (async () => {
       try {
         const unlistenFn = await listen("tray-check-updates", async () => {
-          const info = await performCheck({ showNoUpdate: true });
+          const info = await performCheckRef.current({
+            showNoUpdate: true,
+          });
           if (info && mounted) {
             setUpdateInfo(info);
           }
@@ -108,7 +131,7 @@ export function useUpdateCheck() {
       mounted = false;
       unlisten?.();
     };
-  }, [performCheck]);
+  }, []);
 
   // Auto-check on startup after 60s delay (silent -- no notification on "no update")
   useEffect(() => {
@@ -117,7 +140,7 @@ export function useUpdateCheck() {
     const timeoutId = window.setTimeout(async () => {
       if (!mounted) return;
 
-      const info = await performCheck({ showNoUpdate: false });
+      const info = await performCheckRef.current({ showNoUpdate: false });
       if (info && mounted) {
         setUpdateInfo(info);
       }
@@ -127,7 +150,7 @@ export function useUpdateCheck() {
       mounted = false;
       window.clearTimeout(timeoutId);
     };
-  }, [performCheck]);
+  }, []);
 
   return { updateInfo, setUpdateInfo };
 }

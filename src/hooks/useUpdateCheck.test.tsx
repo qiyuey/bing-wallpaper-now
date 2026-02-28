@@ -261,4 +261,60 @@ describe("useUpdateCheck", () => {
       vi.useRealTimers();
     });
   });
+
+  describe("timeout fallback", () => {
+    it("should show failure notification when check() hangs and times out", async () => {
+      const consoleSpy = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
+
+      // check() returns a promise that never resolves (simulating DNS hang)
+      vi.mocked(check).mockReturnValue(new Promise(() => {}));
+
+      renderHook(() => useUpdateCheck(), { wrapper });
+
+      await waitFor(() => {
+        expect(eventCallbacks.has("tray-check-updates")).toBe(true);
+      });
+
+      // Switch to fake timers AFTER listener is registered
+      vi.useFakeTimers();
+
+      await act(async () => {
+        eventCallbacks.get("tray-check-updates")!({ payload: null });
+        // Advance past the 15s JS-level timeout
+        await vi.advanceTimersByTimeAsync(15_000);
+      });
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        "Failed to check for updates:",
+        expect.objectContaining({
+          message: expect.stringContaining("timed out"),
+        }),
+      );
+      expect(showSystemNotification).toHaveBeenCalledTimes(1);
+
+      consoleSpy.mockRestore();
+      vi.useRealTimers();
+    });
+
+    it("should not time out when check() resolves quickly", async () => {
+      vi.mocked(check).mockResolvedValue(null);
+
+      renderHook(() => useUpdateCheck(), { wrapper });
+
+      await waitFor(() => {
+        expect(eventCallbacks.has("tray-check-updates")).toBe(true);
+      });
+
+      await act(async () => {
+        await eventCallbacks.get("tray-check-updates")!({
+          payload: null,
+        });
+      });
+
+      // Should show "no update" notification, not "failed"
+      expect(showSystemNotification).toHaveBeenCalledTimes(1);
+    });
+  });
 });
