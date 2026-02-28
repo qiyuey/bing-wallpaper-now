@@ -1,0 +1,390 @@
+# AGENTS.md
+
+> Repository guidelines for AI coding agents working on Bing Wallpaper Now
+
+## Setup commands
+
+- Install deps: `pnpm install`
+- Start dev server: `pnpm run tauri dev` (or `make dev`)
+- Run tests: `pnpm test`
+- Run quality checks: `make check`
+
+## Prerequisites
+
+- **Node.js**: 25+
+- **Rust**: 1.80+ (Edition 2024)
+- **pnpm**: 10.19.0 (specified in `packageManager` field)
+
+## Project Overview
+
+Bing Wallpaper Now is a cross-platform desktop application that automatically
+fetches and sets Bing daily wallpapers. Built with Tauri 2.0, it combines a
+React/TypeScript frontend with a Rust backend.
+
+The app distinguishes between:
+
+- UI language (`language` / `resolved_language`) for localization
+- Bing wallpaper market (`mkt`) for content source selection
+
+**Tech Stack:**
+
+- Frontend: React 19, TypeScript, Vite
+- Backend: Rust (Edition 2024), Tauri 2.0
+- Testing: Vitest (frontend), Cargo test (backend)
+
+### Common Commands
+
+```bash
+# Development
+pnpm run dev                # Vite dev server only
+pnpm run tauri dev          # Full Tauri app with hot reload
+
+# Building
+pnpm run build              # Build frontend (TypeScript compile + Vite build)
+pnpm run tauri build        # Build production app for current platform
+
+# Type checking
+pnpm run typecheck          # TypeScript type checking (tsc --noEmit)
+
+# Linting & Formatting
+pnpm run lint               # ESLint check
+pnpm run lint:fix           # ESLint auto-fix
+pnpm run lint:md            # Markdown linting
+pnpm run lint:md:fix        # Markdown auto-fix
+pnpm run format             # Prettier format code
+pnpm run format:check       # Prettier check formatting
+
+# Testing
+pnpm test                   # Run all tests (Rust + frontend)
+pnpm run test:frontend      # Vitest (React/TypeScript tests)
+pnpm run test:rust          # Cargo test (Rust tests)
+
+# Quality checks (runs before commit)
+make check                  # Run all quality checks
+make check NO_FIX=1         # Strict mode: check only, no auto-fix
+make fix                    # Auto-fix all formatting and lint issues
+
+# Version management
+make patch                  # Bump patch version (1.0.0-0 -> 1.0.1-0)
+make minor                  # Bump minor version (1.0.0-0 -> 1.1.0-0)
+make major                  # Bump major version (1.0.0-0 -> 2.0.0-0)
+make release                # Release current dev version and tag
+```
+
+## Project Structure
+
+```text
+bing-wallpaper-now/
+├── src/                          # Frontend (React + TypeScript)
+│   ├── components/               # React components
+│   │   ├── App.tsx              # Main app component
+│   │   ├── Settings.tsx         # Settings dialog
+│   │   └── WallpaperCard.tsx    # Wallpaper display card
+│   ├── hooks/                   # Custom React hooks
+│   │   ├── useBingWallpapers.ts # Wallpaper data fetching
+│   │   ├── useSettings.ts       # Settings management
+│   │   └── useTray.ts           # System tray integration
+│   ├── types/                   # TypeScript type definitions
+│   └── main.tsx                 # App entry point
+├── src-tauri/                   # Backend (Rust + Tauri)
+│   ├── src/
+│   │   ├── bing_api.rs         # Bing API integration
+│   │   ├── index_manager.rs    # Local metadata index management
+│   │   ├── wallpaper_manager.rs # Wallpaper setting logic
+│   │   ├── download_manager.rs  # Image download & caching
+│   │   ├── settings_store.rs   # Persistent app settings store
+│   │   ├── runtime_state.rs    # Runtime state persistence
+│   │   ├── storage.rs          # File storage management
+│   │   ├── models.rs           # Shared data models
+│   │   ├── utils.rs            # Language/mkt helper utilities
+│   │   └── lib.rs              # Main Rust entry point
+│   ├── Cargo.toml              # Rust dependencies
+│   ├── tauri.conf.json         # Tauri configuration
+│   └── Info.plist              # macOS bundle configuration (LSUIElement etc.)
+├── scripts/                     # Build & utility scripts
+│   ├── check-quality.sh        # Code quality checks
+│   └── manage-version.sh       # Version management
+├── Makefile                     # Development commands
+└── package.json                 # Frontend dependencies & scripts
+```
+
+## Code style
+
+- **TypeScript**: Strict mode enabled, follows Prettier defaults for quotes and semicolons
+- **TypeScript/React naming**:
+  - Components: PascalCase (`WallpaperCard.tsx`)
+  - Hooks: camelCase with "use" prefix (`useBingWallpapers.ts`)
+  - Files: Match component/hook name
+- **React**: Functional components only, use hooks for state management, React 19+ (no need to import React in JSX files)
+- **ESLint rules**: Unused vars warn (except with `_` prefix), `any` type warn,
+  console warn (allow `console.warn` and `console.error`), React Hooks enforce
+  rules-of-hooks (error), exhaustive-deps (warn)
+- **Rust**: Edition 2024, use `cargo fmt --manifest-path src-tauri/Cargo.toml` for formatting, use `cargo clippy` for linting
+- **Rust naming**: Files snake_case (`bing_api.rs`), functions snake_case, types PascalCase, constants SCREAMING_SNAKE_CASE
+- **Rust patterns**: Use `anyhow::Result` for error handling, Tokio runtime
+  (features = ["full"]) for async, add doc comments (`///`) for all public
+  functions
+- **File organization**: Frontend source files in `src/`, backend source files
+  in `src-tauri/src/`, tests colocated with source (`.test.ts`, `.test.tsx` for
+  frontend), type definitions in `src/types/`
+
+## Testing instructions
+
+- Run `make check` to run all quality checks (format, lint, types, tests) before committing
+- Run `pnpm test` to run all tests (Rust + frontend)
+- Run `pnpm run test:frontend` for Vitest (React/TypeScript tests)
+- Run `pnpm run test:rust` for Cargo test (Rust tests)
+- Fix any test or type errors until the whole suite passes
+- After moving files or changing imports, run `pnpm run lint` and
+  `pnpm run typecheck` to ensure ESLint and TypeScript rules still pass
+- Add or update tests for the code you change, even if nobody asked
+- Frontend tests: `src/**/*.{test,spec}.{ts,tsx}`, coverage thresholds: Lines
+  70%, Functions 40%, Branches 60%, Statements 70%
+- Backend tests: Same files as implementation (`#[cfg(test)]` modules), run with `-- --nocapture` to see println! output
+
+## PR instructions
+
+- Always run `make check` before committing
+- Run `pnpm run lint` and `pnpm run typecheck` before submitting PR
+- Keep commits focused and atomic
+- Write clear commit messages
+- Add tests for new features
+- Update documentation if needed
+
+## Tauri-Specific Notes
+
+### Plugin Permissions
+
+The app uses several Tauri plugins with specific permissions configured in `src-tauri/capabilities/default.json`:
+
+- **opener**: `allow-open-path` for opening wallpaper folder
+- **dialog**: `allow-message`, `allow-open`, `allow-save` for file dialogs
+- **store**: `allow-get`, `allow-set` for settings persistence
+- **autostart**: `allow-enable`, `allow-disable`, `allow-is-enabled`
+- **notification**: `default` for notifications
+
+When adding new plugin functionality, ensure proper permissions are configured.
+
+### Commands
+
+Rust functions exposed to frontend via `#[tauri::command]` macro:
+
+- `get_local_wallpapers()` - Read local wallpaper metadata list
+- `set_desktop_wallpaper(file_path: String)` - Set desktop wallpaper (with on-demand download if needed)
+- `force_update()` - Trigger one update cycle immediately
+- `get_settings()` / `update_settings(new_settings)` - Read/update app settings
+- `get_wallpaper_directory()` - Get current wallpaper save directory
+- `get_default_wallpaper_directory()` - Get default save directory
+- `get_last_update_time()` / `get_update_in_progress()` - Query update status
+- `check_for_updates()` - Check app release updates
+- See `src-tauri/src/lib.rs` for complete list
+
+### Critical Event Chains (Manual Regression Checklist)
+
+Cross-module event chains that are not fully covered by unit tests.
+Verify these paths after structural refactoring or event-related changes:
+
+1. **Tray → Manual Update Check → Show Window → Update Dialog**
+   - `tray.rs` "check_updates" menu click
+   - → `version_check::check_for_updates()` + `is_version_ignored()`
+   - → `window.show()` + `window.set_focus()` (only for manual check)
+   - → `emit("check-updates-result")` → frontend `useUpdateCheck` hook
+   - → `UpdateDialog` renders
+   - Also: if no update → `emit("check-updates-no-update")` → system
+     notification toast
+
+2. **Tray → Force Update → Wallpaper Refresh**
+   - `tray.rs` "refresh" menu click
+   - → `update_cycle::run_update_cycle_internal(app, true)`
+   - → download images → set wallpaper
+   - → `emit("wallpaper-updated")` → frontend `useBingWallpapers` re-fetches
+
+3. **Auto Update Cycle (Background)**
+   - `auto_update::start_auto_update_task()` timer fires
+   - → `update_cycle::run_update_cycle()` (same as above, silent)
+
+4. **Tray → Open Settings / About / Folder**
+   - `tray.rs` menu click → `emit("open-settings"/"open-about"/"open-folder")`
+   - → frontend `useTrayEvents` hook dispatches callbacks
+   - → respective panel/dialog shown or folder opened
+
+5. **Market Mismatch Detection**
+   - `update_cycle` detects actual mkt ≠ requested mkt
+   - → `emit("mkt-status-changed")` → Settings.tsx re-fetches `get_market_status`
+   - → warning banner shown if `is_mismatch`
+
+6. **Startup Auto Update Check (Frontend)**
+   - `useUpdateCheck` hook: 60s `setTimeout` → `invoke("check_for_updates")`
+   - → `invoke("is_version_ignored")` → silently set or skip `UpdateDialog`
+   - (**Does NOT** go through tray event path; no window show/focus)
+
+### Settings & mkt mismatch behavior
+
+- `AppSettings.language`: user preference (`auto` / `zh-CN` / `en-US`)
+- `AppSettings.resolved_language`: resolved UI language for rendering
+- `AppSettings.mkt`: Bing market code (independent from UI language)
+- Backend emits `mkt-mismatch` when Bing actual market differs from requested `mkt`
+- Runtime state persists `last_actual_mkt` to keep read/write index keys consistent across restarts
+
+### Platform-Specific Code
+
+- **macOS**: Uses objc2 bindings for native NSWorkspace, NSScreen APIs
+- Handles multi-monitor wallpaper setting
+- Supports Space switching and fullscreen app scenarios
+- Dock 图标隐藏采用双重保障：`src-tauri/Info.plist` 的 `LSUIElement=true`
+  （系统级声明）+ 启动时一次性 `setActivationPolicy(Accessory)` 运行时调用。
+  单独依赖 Info.plist 不足以在所有场景下阻止 Dock 运行状态点出现。
+  注意：仅在 setup 中调用一次，不要在 focus/reopen 等事件中重复调用以避免竞态
+- **Windows/Linux**: 通过 `tauri.conf.json` 的 `skipTaskbar: true` 隐藏任务栏图标
+
+## Build & Release Process
+
+### Development Workflow
+
+1. After a release, create a new development version:
+
+   ```bash
+   make patch  # Creates version like 1.0.1-0
+   ```
+
+2. Develop features, commit changes regularly
+
+3. Before committing, run quality checks:
+
+   ```bash
+   make check  # Runs lint, format check, typecheck, tests
+   ```
+
+4. When ready to release:
+
+   ```bash
+   make release  # Removes -0 suffix, creates git tag, pushes
+   ```
+
+### Version Format
+
+- **Development**: `X.Y.Z-0` (e.g., `1.0.0-0`)
+- **Release**: `X.Y.Z` (e.g., `1.0.0`)
+- Version is synchronized across:
+  - `package.json`
+  - `src-tauri/Cargo.toml`
+  - `src-tauri/Cargo.lock`
+
+### CI/CD
+
+- GitHub Actions automatically builds and publishes releases when tags are pushed
+- Builds for Windows (.msi, .exe), macOS (.dmg), Linux (.deb, .rpm, .AppImage)
+
+## Important Files
+
+- **`package.json`**: Frontend dependencies, scripts, version
+- **`src-tauri/Cargo.toml`**: Rust dependencies, version
+- **`src-tauri/tauri.conf.json`**: Tauri app configuration
+- **`src-tauri/Info.plist`**: macOS bundle configuration（构建时与 Tauri 生成的
+  plist 合并，用于 `LSUIElement` 等系统级声明）
+- **`eslint.config.js`**: ESLint flat config (modern format)
+- **`vitest.config.ts`**: Vitest test configuration
+- **`Makefile`**: Convenient command shortcuts
+- **`scripts/check-quality.sh`**: Pre-commit quality checks
+
+## Common Issues & Solutions
+
+### Build Issues
+
+**Issue**: Node.js version mismatch
+
+- **Solution**: Ensure Node.js 24+ is installed. Use `node --version` to check.
+
+**Issue**: Rust compilation errors
+
+- **Solution**: Update Rust: `rustup update`. Ensure 1.80+ with edition 2024 support.
+
+**Issue**: Tauri dev fails on macOS
+
+- **Solution**: Install Xcode Command Line Tools: `xcode-select --install`
+
+**Issue**: macOS Dock 图标意外出现运行状态（小圆点）
+
+- **Solution**: 采用双重保障：确保 `src-tauri/Info.plist` 中 `LSUIElement`
+  为 `true`，同时在 setup 中一次性调用 `setActivationPolicy(Accessory)`。
+  单独依赖 Info.plist 不足以在所有 macOS 场景下阻止 Dock 运行状态点。
+  不要在 focus/reopen 等高频事件中重复调用 `setActivationPolicy`，
+  那会引起竞态条件和 Dock 图标闪烁。
+  如果修改 Rust 代码后行为不符合预期，先执行 `cargo clean` 再重新编译，
+  避免增量编译缓存干扰。
+
+**Issue**: Rust 增量编译导致行为不一致
+
+- **Solution**: 运行 `cd src-tauri && cargo clean && cd ..`，然后重新编译。
+  平台特定行为（如 macOS Dock、窗口管理）修改后建议清理编译缓存再验证。
+
+### Development Tips
+
+1. **Hot Reload**: Use `pnpm run tauri dev` for full app hot reload including Rust changes
+2. **Faster Frontend Iteration**: Use `pnpm run dev` for Vite-only mode when working on UI
+3. **Type Safety**: Run `pnpm run typecheck` frequently to catch TypeScript errors early
+4. **Pre-commit**: Always run `make check` before committing to catch issues
+5. **Debugging Rust**: Use `log::debug!()` and enable Tauri logs in settings
+6. **遇到问题先搜索**: 遇到平台特性、Tauri API、系统行为等问题时，**先联网
+   搜索**相关问题及已知解决方案，再动手修复。很多问题（如 macOS Dock 行为、
+   窗口管理、系统权限等）在社区中已有成熟的解决方案，避免用运行时 hack 解决
+   本应在配置层面处理的问题
+
+## External APIs
+
+### Bing Wallpaper API
+
+Endpoint: `https://www.bing.com/HPImageArchive.aspx`
+
+Query parameters:
+
+- `format=js` - JSON response
+- `idx=0` - Start index (0 = today, 1 = yesterday, etc.)
+- `n=8` - Number of images (max 8)
+- `mkt=en-US` - Market/locale
+
+Response contains:
+
+- `images[]` - Array of wallpaper objects
+- `url` - Partial URL path (needs to be prefixed with `https://www.bing.com`)
+- `copyright` - Image attribution
+- `title` - Image title
+
+Notes:
+
+- `mkt` in request may be ignored by Bing in some regions
+- Use actual returned market (`actual_mkt`, parsed from response link) for metadata indexing
+
+## Security & Privacy
+
+- No analytics or tracking
+- No external servers except Bing API
+- All wallpapers stored locally
+- Settings stored locally via Tauri plugin-store
+- Open source under Anti-996 License
+
+## Contributing Guidelines
+
+1. Fork and create a feature branch
+2. Follow code style conventions
+3. Add tests for new features
+4. Run `make check` before submitting PR
+5. Update documentation if needed
+6. Keep commits focused and atomic
+7. Write clear commit messages
+
+## License
+
+MIT License + Anti-996 License
+
+- Advocates for reasonable working hours
+- Work-life balance
+- Developer well-being
+
+## References
+
+- [Tauri Documentation](https://tauri.app)
+- [React Documentation](https://react.dev)
+- [Vite Documentation](https://vitejs.dev)
+- [Vitest Documentation](https://vitest.dev)
+- [Rust Book](https://doc.rust-lang.org/book/)

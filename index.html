@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/icon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bing Wallpaper Now</title>
+    <!-- 在页面加载的最早阶段清除可能被 shim 的 React DevTools 全局钩子 -->
+    <!-- 这个脚本必须在所有其他脚本之前执行，确保在 React 加载前钩子是干净的 -->
+    <!-- React Refresh 会检查钩子是否被 Proxy 包装或缺少关键属性 -->
+    <script>
+      (function() {
+        if (typeof window !== "undefined") {
+          const hookKey = "__REACT_DEVTOOLS_GLOBAL_HOOK__";
+          const existingHook = window[hookKey];
+          
+          if (existingHook && typeof existingHook === "object") {
+            // 检查钩子是否被 Proxy 包装（通过检查属性描述符是否有 getter/setter）
+            let isProxy = false;
+            try {
+              const descriptor = Object.getOwnPropertyDescriptor(window, hookKey);
+              if (descriptor && (descriptor.get || descriptor.set)) {
+                isProxy = true;
+              }
+            } catch (e) {
+              // 忽略错误
+            }
+            
+            // 检查钩子是否缺少关键属性（正常的 DevTools 钩子应该有这些）
+            const hasCriticalProps = 
+              existingHook.renderers !== undefined ||
+              typeof existingHook.supportsFiber === "function" ||
+              typeof existingHook.onCommitFiberRoot === "function" ||
+              existingHook.inject !== undefined ||
+              existingHook.rendererInterfaces !== undefined;
+            
+            // 如果钩子被代理或缺少关键属性，清除它让 React Refresh 重新创建
+            if (isProxy || !hasCriticalProps) {
+              try {
+                // 如果使用了 getter/setter，需要先重新定义属性
+                const descriptor = Object.getOwnPropertyDescriptor(window, hookKey);
+                if (descriptor && (descriptor.get || descriptor.set)) {
+                  Object.defineProperty(window, hookKey, {
+                    configurable: true,
+                    enumerable: true,
+                    writable: true,
+                    value: undefined
+                  });
+                }
+                delete window[hookKey];
+              } catch (e) {
+                // 如果删除失败，尝试设置为 undefined
+                try {
+                  window[hookKey] = undefined;
+                } catch (e2) {
+                  // 忽略错误
+                }
+              }
+            }
+          }
+        }
+      })();
+    </script>
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

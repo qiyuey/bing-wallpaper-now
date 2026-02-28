@@ -1,0 +1,378 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "[0-9]*.*.*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "25"
+  RUST_BACKTRACE: short
+  CARGO_INCREMENTAL: 0
+  CARGO_PROFILE_RELEASE_CODEGEN_UNITS: 16
+  CARGO_PROFILE_RELEASE_LTO: thin
+  CARGO_NET_GIT_FETCH_WITH_CLI: true
+  CARGO_NET_RETRY: 10
+
+jobs:
+  changelog:
+    name: Changelog
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: startsWith(github.ref, 'refs/tags/')
+    outputs:
+      changelog: ${{ steps.changelog.outputs.content }}
+      previous_tag: ${{ steps.previous_tag.outputs.tag }}
+    steps:
+      - name: Checkout (full history for tags/changelog)
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Get previous tag
+        id: previous_tag
+        shell: bash
+        run: |
+          PREVIOUS_TAG=$(git tag --sort=-v:refname | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | grep -v "${{ github.ref_name }}" | head -n 1)
+          echo "tag=$PREVIOUS_TAG" >> $GITHUB_OUTPUT
+          echo "Previous tag: $PREVIOUS_TAG"
+
+      - name: Extract changelog
+        id: changelog
+        shell: bash
+        run: |
+          CHANGELOG=$(sed -n "/^## ${{ github.ref_name }}/,/^## /p" CHANGELOG.md | sed '1d;$d' | sed '/^$/d')
+          if [ -z "$CHANGELOG" ]; then
+            CHANGELOG="请查看完整的更新日志: [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)"
+          fi
+          echo "content<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+  release:
+    name: Create or Update Release
+    needs: changelog
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Generate release body (envsubst template)
+        shell: bash
+        env:
+          VERSION: ${{ github.ref_name }}
+          REPOSITORY: ${{ github.repository }}
+          PREVIOUS_TAG: ${{ needs.changelog.outputs.previous_tag }}
+          CHANGELOG: ${{ needs.changelog.outputs.changelog }}
+        run: |
+          export VERSION REPOSITORY PREVIOUS_TAG CHANGELOG
+          if [ -n "$PREVIOUS_TAG" ]; then
+            export COMPARE_LINK="[${PREVIOUS_TAG}...${VERSION}](https://github.com/${REPOSITORY}/compare/${PREVIOUS_TAG}...${VERSION})"
+          else
+            export COMPARE_LINK="[查看提交历史](https://github.com/${REPOSITORY}/commits/${VERSION})"
+          fi
+          envsubst < .github/release_body_template.md > release_body.md
+          echo "Generated release_body.md preview (first 60 lines):"
+          sed -n '1,60p' release_body.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: "Bing Wallpaper Now ${{ github.ref_name }}"
+          draft: false
+          prerelease: false
+          make_latest: true
+          body_path: release_body.md
+
+  frontend:
+    name: Frontend Build
+    needs: release
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build frontend
+        run: pnpm run build
+
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: dist
+          retention-days: 3
+
+  bundle:
+    name: Bundle (${{ matrix.platform }})
+    needs: [frontend, release]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: "Windows (x64)"
+            os: windows-latest
+          - platform: "Windows (ARM64)"
+            os: windows-11-arm
+          - platform: "macOS (Apple Silicon)"
+            os: macos-latest
+          - platform: "macOS (Intel)"
+            os: macos-15-intel
+          - platform: "Ubuntu (x64)"
+            os: ubuntu-24.04
+          - platform: "Ubuntu (ARM64)"
+            os: ubuntu-24.04-arm
+
+    steps:
+      - name: Checkout (shallow)
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Download frontend dist
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: dist
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --prefer-offline
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          cache-on-failure: true
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            xdg-utils
+
+      - name: Import macOS signing certificate
+        if: runner.os == 'macOS'
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          if [ -z "$APPLE_CERTIFICATE" ]; then
+            echo "❌ Error: APPLE_CERTIFICATE secret is not configured"
+            echo "Please add APPLE_CERTIFICATE to GitHub Secrets (Settings -> Secrets and variables -> Actions)"
+            exit 1
+          fi
+          
+          if [ -z "$APPLE_CERTIFICATE_PASSWORD" ]; then
+            echo "❌ Error: APPLE_CERTIFICATE_PASSWORD secret is not configured"
+            echo "Please add APPLE_CERTIFICATE_PASSWORD to GitHub Secrets"
+            exit 1
+          fi
+          
+          if [ -z "$KEYCHAIN_PASSWORD" ]; then
+            echo "❌ Error: KEYCHAIN_PASSWORD secret is not configured"
+            echo "Please add KEYCHAIN_PASSWORD to GitHub Secrets"
+            echo "You can generate a random password using: openssl rand -base64 24"
+            exit 1
+          fi
+          
+          echo "✅ All required secrets are configured"
+          
+          CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          
+          echo "$APPLE_CERTIFICATE" | base64 --decode > "$CERTIFICATE_PATH"
+          
+          if [ ! -f "$CERTIFICATE_PATH" ]; then
+            echo "❌ Error: Failed to decode certificate"
+            exit 1
+          fi
+          
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          
+          security import "$CERTIFICATE_PATH" -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH" || {
+            echo "❌ Error: Failed to import certificate"
+            echo "Please verify:"
+            echo "  1. APPLE_CERTIFICATE is a valid Base64-encoded .p12 file"
+            echo "  2. APPLE_CERTIFICATE_PASSWORD matches the password used when exporting the certificate"
+            exit 1
+          }
+          
+          security list-keychain -d user -s "$KEYCHAIN_PATH"
+          
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          
+          echo "✅ Certificate imported successfully"
+
+      - name: Validate macOS signing identity
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+        run: |
+          if [ -z "$APPLE_SIGNING_IDENTITY" ]; then
+            echo "❌ Error: APPLE_SIGNING_IDENTITY secret is not configured"
+            echo "Production builds require a valid Apple signing identity."
+            echo "Please add APPLE_SIGNING_IDENTITY to GitHub Secrets (Settings -> Secrets and variables -> Actions)"
+            echo "The value should be your signing identity name, e.g., 'Developer ID Application: Your Name (TEAM_ID)'"
+            exit 1
+          fi
+          
+          echo "✅ Signing identity configured: $APPLE_SIGNING_IDENTITY"
+
+      - name: Patch tauri.conf.json (skip beforeBuildCommand and set signingIdentity)
+        shell: bash
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+        run: |
+          command -v jq &> /dev/null || { echo "❌ jq is required but not found"; exit 1; }
+
+          jq '.build.beforeBuildCommand = ""' src-tauri/tauri.conf.json > src-tauri/tauri.conf.json.tmp
+          mv src-tauri/tauri.conf.json.tmp src-tauri/tauri.conf.json
+
+          if [ "$RUNNER_OS" == "macOS" ]; then
+            [ -n "$APPLE_SIGNING_IDENTITY" ] || { echo "❌ APPLE_SIGNING_IDENTITY is required but not set"; exit 1; }
+            echo "Setting signingIdentity to: $APPLE_SIGNING_IDENTITY"
+            jq --arg identity "$APPLE_SIGNING_IDENTITY" '
+              .bundle.macOS.signingIdentity = $identity |
+              .bundle.macOS.hardenedRuntime = true
+            ' src-tauri/tauri.conf.json > src-tauri/tauri.conf.json.tmp
+            mv src-tauri/tauri.conf.json.tmp src-tauri/tauri.conf.json
+          fi
+
+      - name: Build Tauri app (skip frontend build)
+        id: tauri-build
+        uses: tauri-apps/tauri-action@v0
+        continue-on-error: false
+        with:
+          projectPath: src-tauri
+          tauriScript: pnpm tauri
+
+      - name: Verify build output
+        shell: bash
+        run: |
+          if [ ! -d "src-tauri/target/release/bundle" ]; then
+            echo "Error: Bundle directory not found"
+            ls -la src-tauri/target/release/ 2>/dev/null || echo "Release directory not found"
+            exit 1
+          fi
+          echo "Build successful. Bundle files:"
+          find src-tauri/target/release/bundle -type f \( -name "*.deb" -o -name "*.rpm" -o -name "*.dmg" -o -name "*.msi" -o -name "*.exe" -o -name "*.AppImage" \) 2>/dev/null | head -n 10 || true
+
+      - name: Verify macOS code signing
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          APP_PATH=$(find src-tauri/target/release/bundle -name "*.app" -type d | head -n 1)
+          if [ -z "$APP_PATH" ]; then
+            echo "❌ Error: No .app bundle found"
+            exit 1
+          fi
+
+          echo "Verifying code signing for: $APP_PATH"
+
+          CODESIGN_OUTPUT=$(codesign -dv --verbose=2 "$APP_PATH" 2>&1) || {
+            echo "❌ Error: Code signing verification failed"
+            echo "$CODESIGN_OUTPUT"
+            exit 1
+          }
+          echo "$CODESIGN_OUTPUT"
+
+          if ! AUTHORITY=$(echo "$CODESIGN_OUTPUT" | grep "Authority=."); then
+            echo "❌ Error: No signing authority found (unsigned or ad-hoc)"
+            exit 1
+          fi
+
+          echo ""
+          echo "✅ Code signing verified: $AUTHORITY"
+
+      - name: Upload bundle to Release
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" == "Windows" ]; then
+            PATTERNS=(
+              "src-tauri/target/release/bundle/msi/*.msi"
+              "src-tauri/target/release/bundle/nsis/*.exe"
+            )
+          elif [ "${{ runner.os }}" == "macOS" ]; then
+            PATTERNS=(
+              "src-tauri/target/release/bundle/dmg/*.dmg"
+            )
+          else
+            PATTERNS=(
+              "src-tauri/target/release/bundle/deb/*.deb"
+              "src-tauri/target/release/bundle/rpm/*.rpm"
+              "src-tauri/target/release/bundle/appimage/*.AppImage"
+            )
+          fi
+          
+          FILES=()
+          shopt -s nullglob
+          for pattern in "${PATTERNS[@]}"; do
+            for file in $pattern; do
+              [ -f "$file" ] && FILES+=("$file")
+            done
+          done
+          shopt -u nullglob
+          
+          if [ ${#FILES[@]} -eq 0 ]; then
+            echo "Error: No bundle files found for this platform"
+            find src-tauri/target/release/bundle -type f 2>/dev/null || echo "Bundle directory not found"
+            exit 1
+          fi
+          
+          echo "Uploading ${#FILES[@]} file(s)..."
+          gh release upload "${{ github.ref_name }}" "${FILES[@]}" --clobber
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,46 @@
+[package]
+name = "bing-wallpaper-now"
+version = "1.2.1"
+description = "A Bing Wallpaper App"
+authors = ["qiyuey"]
+edition = "2024"
+
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+# The `_lib` suffix may seem redundant but it is necessary
+# to make the lib name unique and wouldn't conflict with the bin name.
+# This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
+name = "bing_wallpaper_now_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["protocol-asset", "tray-icon"] }
+tauri-plugin-opener = "2"
+tauri-plugin-store = "2"
+tauri-plugin-autostart = "2"
+tauri-plugin-notification = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-log = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+reqwest = { version = "0.12", features = ["json", "stream", "rustls-tls"], default-features = false }
+tokio = { version = "1", features = ["rt", "rt-multi-thread", "fs", "time", "sync", "io-util", "macros", "test-util"] }
+chrono = { version = "0.4", features = ["serde"] }
+wallpaper = "3"
+anyhow = "1"
+dirs = "6"
+log = "0.4"
+futures = "0.3"
+tauri-plugin-single-instance = "2"
+image = { version = "0.25", features = ["png"] }
+num_cpus = "1"
+indexmap = { version = "2", features = ["serde"] }
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6.3"
+objc2-foundation = { version = "0.3.2", features = ["NSString", "NSDictionary", "NSArray", "NSURL", "NSError", "NSNotification"] }
+objc2-app-kit = { version = "0.3.2", features = ["NSWorkspace", "NSScreen", "NSApplication", "NSResponder", "NSRunningApplication"] }
