@@ -40,7 +40,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDUzOUEwN0ZCNEFFOUY5QkQKUldTOStlbEsrd2VhVTBZWWY5OXU3aUZka09NVzk1QlhPWENxZVo0bmIwRTE3djFZcnk4b0RJVmMK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDI3RDZDMkI2QzQ4MjZBNzYKUldSMmFvTEV0c0xXSnlLbThmbllmM2UxVXdDQVZYSlE4NUM4RldMbWVzbElVLzZ5cUVFTmtWS20K",
       "endpoints": [
         "https://github.com/qiyuey/bing-wallpaper-now/releases/latest/download/latest.json"
       ]
@@ -49,6 +49,7 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "createUpdaterArtifacts": true,
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

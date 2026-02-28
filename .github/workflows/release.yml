@@ -299,6 +299,7 @@ jobs:
         continue-on-error: false
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           projectPath: src-tauri
           tauriScript: pnpm tauri
@@ -312,7 +313,41 @@ jobs:
             exit 1
           fi
           echo "Build successful. Bundle files:"
-          find src-tauri/target/release/bundle -type f \( -name "*.deb" -o -name "*.rpm" -o -name "*.dmg" -o -name "*.msi" -o -name "*.exe" -o -name "*.AppImage" \) 2>/dev/null | head -n 10 || true
+          find src-tauri/target/release/bundle -type f \( -name "*.deb" -o -name "*.rpm" -o -name "*.dmg" -o -name "*.msi" -o -name "*.exe" -o -name "*.AppImage" -o -name "*.app.tar.gz" \) 2>/dev/null | head -n 20 || true
+
+          echo ""
+          echo "Updater signature files (.sig):"
+          SIG_COUNT=$(find src-tauri/target/release/bundle -type f -name "*.sig" 2>/dev/null | wc -l)
+          if [ "$SIG_COUNT" -gt 0 ]; then
+            find src-tauri/target/release/bundle -type f -name "*.sig" 2>/dev/null
+            echo "✅ Found $SIG_COUNT signature file(s)"
+          else
+            echo "⚠️  No .sig files found. Updater manifest will be skipped."
+            echo "   Ensure TAURI_SIGNING_PRIVATE_KEY (and TAURI_SIGNING_PRIVATE_KEY_PASSWORD if applicable) are correctly configured."
+          fi
+
+      - name: Rename macOS .app.tar.gz to include architecture
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          ARCH=$(uname -m)
+          if [ "$ARCH" = "arm64" ]; then
+            ARCH_LABEL="aarch64"
+          else
+            ARCH_LABEL="x64"
+          fi
+
+          MACOS_DIR="src-tauri/target/release/bundle/macos"
+          for f in "$MACOS_DIR"/*.app.tar.gz; do
+            [ -f "$f" ] || continue
+            base=$(basename "$f" .app.tar.gz)
+            new_name="${base}_${ARCH_LABEL}.app.tar.gz"
+            echo "Renaming: $(basename "$f") -> $new_name"
+            mv "$f" "$MACOS_DIR/$new_name"
+            if [ -f "$f.sig" ]; then
+              mv "$f.sig" "$MACOS_DIR/${new_name}.sig"
+            fi
+          done
 
       - name: Verify macOS code signing
         if: runner.os == 'macOS'
