@@ -1,17 +1,11 @@
 ---
 name: release
-description: 执行标准发布流程并确保发布可追溯。用于版本发布、打 tag、更新变更记录、发布前质量门禁。
-allowed-tools: Read Write Shell Grep Glob AskQuestion
-disable-model-invocation: true
+description: 执行标准发布流程：质量门禁、版本号更新、CHANGELOG、打 tag、推送、监控 CI。当用户请求 release / 发版 / 发布版本 / 打 tag / 发布新版本时使用。
 ---
 
 # 发布流程
 
-执行发布时，先保证质量，再执行发布。不要跳过问题，不要绕过检查。
-
-## When to Use
-
-- 用户请求"release / 发版 / 打 tag / 发布版本"
+质量优先于速度。不要跳过问题，不要绕过检查。
 
 ## 职责分工
 
@@ -34,7 +28,7 @@ AI 负责：确认发布范围、更新 `CHANGELOG.md`、按需更新 `AGENTS.md
 
 1. **工作区预检**
    - 并行获取：当前版本、`git status`、最近 tag 到 HEAD 的提交列表
-   - 未提交变更：`git add -A && git commit -m "chore: pre-release changes"` 并 `git push`
+   - 未提交变更：按语义边界拆分提交（无关变更分开 commit），统一用 Conventional Commits 风格，最后 `git push`
    - 非开发版本（无 `-0` 后缀）：分析提交内容，按推荐规则给出建议级别，以选项形式询问 patch/minor/major，运行 `make <level> YES=1`
    - 预检完成后，工作区应干净且版本为 `X.Y.Z-0`
 
@@ -64,6 +58,9 @@ AI 负责：确认发布范围、更新 `CHANGELOG.md`、按需更新 `AGENTS.md
    - 先用 `gh run list` 获取 workflow run URL，以 **Markdown 超链接** 形式展示给用户（方便直接点击跳转）
    - 然后运行 `bash scripts/monitor-ci.sh <tag>`
    - 脚本会自动轮询并报告结果，构建完成时自动发送 macOS 系统通知
+   - 若脚本超时但 workflow 仍 `in_progress`：用 `gh run watch <run_id> --exit-status` 兜底等到结束
+   - workflow 整体 `success` 后，仍需用 `gh run view <run_id> --json jobs` 检查每个 job 的 `conclusion`：
+     对 `failure` 但被 `continue-on-error` 容忍的 job（如 winget 失败但不阻塞），主动展示并询问是否排查
    - 若脚本报告失败：展示失败信息，询问用户是否排查修复
    - 修复后可 `make retag` 重新触发构建，再次运行监控脚本
 
@@ -89,7 +86,6 @@ AI 负责：确认发布范围、更新 `CHANGELOG.md`、按需更新 `AGENTS.md
 
 ## 执行原则
 
-- 质量检查由 `make release` 保证，不额外运行
 - 遇到不确定或高风险操作，先停下并询问用户
 - 不做破坏性 Git 操作
 - 若 changelog 内容缺少证据，宁可少写，不可猜写
