@@ -9,7 +9,7 @@ use log::info;
 #[cfg(target_os = "macos")]
 use log::{info, warn};
 #[cfg(target_os = "macos")]
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 #[cfg(target_os = "macos")]
 use std::path::PathBuf;
 #[cfg(target_os = "macos")]
@@ -45,6 +45,20 @@ struct WallpaperState {
 #[cfg(target_os = "macos")]
 static WALLPAPER_STATE: LazyLock<Arc<Mutex<WallpaperState>>> =
     LazyLock::new(|| Arc::new(Mutex::new(WallpaperState::default())));
+
+/// 记录"竖屏壁纸缺失，已 fallback 到横屏壁纸"的提示去重状态：
+/// 每次切换横屏壁纸时清空已通知集合，同一张壁纸下每个屏幕索引最多通知一次。
+#[cfg(target_os = "macos")]
+#[derive(Default)]
+struct PortraitFallbackNoticeState {
+    landscape: Option<PathBuf>,
+    notified_screens: HashSet<usize>,
+}
+
+/// 全局 fallback 提示去重状态。
+#[cfg(target_os = "macos")]
+static PORTRAIT_FALLBACK_NOTICE: LazyLock<Mutex<PortraitFallbackNoticeState>> =
+    LazyLock::new(|| Mutex::new(PortraitFallbackNoticeState::default()));
 
 /// 获取指定显示器的当前壁纸路径
 #[cfg(target_os = "macos")]
@@ -116,27 +130,19 @@ define_class!(
                 let actual = get_all_desktop_images();
                 let screen_orientations = get_screen_orientations();
 
-                // 检查是否所有显示器的壁纸都与期望一致（考虑屏幕方向）
-                let all_match = screen_orientations.iter().all(|screen| {
-                    let expected_path = if screen.is_portrait {
-                        // 尝试从横屏路径生成竖屏路径
-                        expected.parent().and_then(|p| {
-                        expected
-                            .file_stem()
-                            .and_then(|s| s.to_str())
-                            .map(|s| p.join(format!("{}r.jpg", s)))
-                        })
-                    } else {
-                        Some(expected.clone())
-                    };
+                // 计算实际可用的竖屏壁纸路径（不存在则视为 None，由 fallback 走横屏）
+                let portrait_path = derive_portrait_path(expected).filter(|p| p.exists());
 
-                    if let Some(expected_path) = expected_path {
-                        actual.get(&screen.screen_index)
-                            .map(|actual_path| actual_path == &expected_path)
-                            .unwrap_or(false)
-                    } else {
-                        !screen.is_portrait // 如果没有竖屏壁纸，跳过竖屏检查
-                    }
+                // 检查是否所有显示器的壁纸都与期望一致（考虑屏幕方向 + 竖屏 fallback）
+                let all_match = screen_orientations.iter().all(|screen| {
+                    let expected_path = expected_path_for_screen(
+                        screen,
+                        expected.as_path(),
+                        portrait_path.as_deref(),
+                    );
+                    actual.get(&screen.screen_index)
+                        .map(|actual_path| actual_path.as_path() == expected_path)
+                        .unwrap_or(false)
                 });
 
                 if all_match {
@@ -153,12 +159,6 @@ define_class!(
 
                 // 壁纸不一致，需要重新设置
                 let path = expected.clone();
-                let portrait_path = path.parent().and_then(|p| {
-                    path.file_stem()
-                        .and_then(|s| s.to_str())
-                        .map(|s| p.join(format!("{}r.jpg", s)))
-                        .filter(|p| p.exists())
-                });
                 drop(state);
                 let _ = set_wallpaper_for_all_screens_by_orientation(&path, portrait_path.as_deref(), &screen_orientations);
             }
@@ -337,23 +337,19 @@ fn set_wallpaper_macos(image_path: &Path, portrait_image_path: Option<&Path>) ->
     let current_wallpapers = get_all_desktop_images();
 
     // 检查是否所有屏幕的壁纸都已正确设置
+    // 注意：当无竖屏壁纸时，竖屏屏幕的期望 = 横屏壁纸（fallback 行为），
+    // 这样能将"竖屏 fallback 成功"识别为成功，不再误报失败。
     let all_match = !current_wallpapers.is_empty()
         && screen_orientations.iter().all(|screen| {
-            let expected_path = if screen.is_portrait {
-                target_portrait_path.as_ref()
-            } else {
-                Some(&target_path)
-            };
-
-            if let Some(expected) = expected_path {
-                current_wallpapers
-                    .get(&screen.screen_index)
-                    .map(|actual| actual == expected)
-                    .unwrap_or(false)
-            } else {
-                // 如果没有竖屏壁纸文件，跳过竖屏检查
-                !screen.is_portrait
-            }
+            let expected = expected_path_for_screen(
+                screen,
+                target_path.as_path(),
+                target_portrait_path.as_deref(),
+            );
+            current_wallpapers
+                .get(&screen.screen_index)
+                .map(|actual| actual.as_path() == expected)
+                .unwrap_or(false)
         });
 
     if all_match {
@@ -390,22 +386,17 @@ fn set_wallpaper_macos(image_path: &Path, portrait_image_path: Option<&Path>) ->
         state.actual_per_screen = actual.clone();
 
         // 检查是否所有显示器都设置成功
+        // 注意：当无竖屏壁纸时，竖屏屏幕的期望 = 横屏壁纸（fallback 行为）。
         let all_success = screen_orientations.iter().all(|screen| {
-            let expected_path = if screen.is_portrait {
-                target_portrait_path.as_ref()
-            } else {
-                Some(&target_path)
-            };
-
-            if let Some(expected) = expected_path {
-                actual
-                    .get(&screen.screen_index)
-                    .map(|actual_path| actual_path == expected)
-                    .unwrap_or(false)
-            } else {
-                // 如果没有竖屏壁纸文件，跳过竖屏检查
-                !screen.is_portrait
-            }
+            let expected = expected_path_for_screen(
+                screen,
+                target_path.as_path(),
+                target_portrait_path.as_deref(),
+            );
+            actual
+                .get(&screen.screen_index)
+                .map(|actual_path| actual_path.as_path() == expected)
+                .unwrap_or(false)
         });
 
         if all_success {
@@ -427,6 +418,20 @@ fn set_wallpaper_for_all_screens_by_orientation(
     portrait_path: Option<&Path>,
     screen_orientations: &[ScreenOrientation],
 ) -> Result<()> {
+    // 重置 / 维护"竖屏 fallback 提示"去重状态：
+    // 同一张横屏壁纸下，每个屏幕索引最多打一次 INFO（避免 observer 频繁触发刷屏）。
+    if let Ok(mut state) = PORTRAIT_FALLBACK_NOTICE.lock() {
+        let need_reset = state
+            .landscape
+            .as_deref()
+            .map(|p| p != landscape_path)
+            .unwrap_or(true);
+        if need_reset {
+            state.landscape = Some(landscape_path.to_path_buf());
+            state.notified_screens.clear();
+        }
+    }
+
     // 获取共享的 NSWorkspace 实例和主线程标记
     // SAFETY: Tauri 在主线程上调用此函数，所有 Objective-C API 调用都是安全的
     unsafe {
@@ -457,11 +462,13 @@ fn set_wallpaper_for_all_screens_by_orientation(
                         if let Some(portrait) = portrait_path {
                             portrait.to_path_buf()
                         } else {
-                            warn!(
-                                target: "wallpaper",
-                                "屏幕 {} 是竖屏，但竖屏壁纸不存在，将使用横屏壁纸",
-                                i
-                            );
+                            if should_emit_portrait_fallback_notice(i) {
+                                info!(
+                                    target: "wallpaper",
+                                    "屏幕 {} 是竖屏，但竖屏壁纸不存在，将使用横屏壁纸",
+                                    i
+                                );
+                            }
                             landscape_path.to_path_buf()
                         }
                     } else {
@@ -573,9 +580,136 @@ pub fn get_screen_orientations() -> Vec<ScreenOrientation> {
     vec![]
 }
 
-// (已移除 get_current_wallpaper 函数以消除未使用警告)
+/// 根据屏幕方向计算"该屏幕期望显示的壁纸路径"。
+///
+/// - 横屏屏幕 → 横屏壁纸 (`landscape`)
+/// - 竖屏屏幕：优先竖屏壁纸 (`portrait`)；若 `portrait = None` 则 fallback 到横屏壁纸
+///
+/// 抽出为纯函数以便：
+/// 1. 在"是否需要重新设置"和"是否设置成功"两处校验之间共享同一份 fallback 语义；
+/// 2. 单元测试覆盖 fallback 逻辑。
+#[cfg(target_os = "macos")]
+fn expected_path_for_screen<'a>(
+    screen: &ScreenOrientation,
+    landscape: &'a Path,
+    portrait: Option<&'a Path>,
+) -> &'a Path {
+    if screen.is_portrait {
+        portrait.unwrap_or(landscape)
+    } else {
+        landscape
+    }
+}
+
+/// 由"横屏壁纸路径"派生"竖屏壁纸路径"（仅做路径推断，不检查文件是否存在）。
+///
+/// 规则：`/foo/20260326.jpg` -> `/foo/20260326r.jpg`
+#[cfg(target_os = "macos")]
+fn derive_portrait_path(landscape: &Path) -> Option<PathBuf> {
+    let parent = landscape.parent()?;
+    let stem = landscape.file_stem()?.to_str()?;
+    Some(parent.join(format!("{}r.jpg", stem)))
+}
+
+/// 判断"竖屏 fallback 提示"是否应当输出（用于降噪）。
+///
+/// 同一张横屏壁纸下，每个屏幕索引最多触发一次。返回 true 表示本次需要打印。
+#[cfg(target_os = "macos")]
+fn should_emit_portrait_fallback_notice(screen_index: usize) -> bool {
+    if let Ok(mut state) = PORTRAIT_FALLBACK_NOTICE.lock() {
+        return state.notified_screens.insert(screen_index);
+    }
+    // 锁中毒等异常：保守起见允许输出
+    true
+}
+
 #[cfg(test)]
 mod tests {
-    // get_current_wallpaper 已移除，测试删除以避免引用不存在的函数
-    // 保留空模块占位，后续可添加新的单元测试。
+    #[cfg(target_os = "macos")]
+    use super::*;
+
+    #[cfg(target_os = "macos")]
+    fn screen(index: usize, portrait: bool) -> ScreenOrientation {
+        ScreenOrientation {
+            screen_index: index,
+            is_portrait: portrait,
+            width: if portrait { 1080.0 } else { 1920.0 },
+            height: if portrait { 1920.0 } else { 1080.0 },
+        }
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn landscape_screen_uses_landscape_path() {
+        let landscape = PathBuf::from("/tmp/20260326.jpg");
+        let portrait = PathBuf::from("/tmp/20260326r.jpg");
+        let s = screen(0, false);
+        assert_eq!(
+            expected_path_for_screen(&s, landscape.as_path(), Some(portrait.as_path())),
+            landscape.as_path()
+        );
+        assert_eq!(
+            expected_path_for_screen(&s, landscape.as_path(), None),
+            landscape.as_path()
+        );
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn portrait_screen_prefers_portrait_path_when_available() {
+        let landscape = PathBuf::from("/tmp/20260326.jpg");
+        let portrait = PathBuf::from("/tmp/20260326r.jpg");
+        let s = screen(2, true);
+        assert_eq!(
+            expected_path_for_screen(&s, landscape.as_path(), Some(portrait.as_path())),
+            portrait.as_path()
+        );
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn portrait_screen_falls_back_to_landscape_when_portrait_missing() {
+        let landscape = PathBuf::from("/tmp/20260326.jpg");
+        let s = screen(2, true);
+        assert_eq!(
+            expected_path_for_screen(&s, landscape.as_path(), None),
+            landscape.as_path()
+        );
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn derive_portrait_path_appends_r_suffix() {
+        assert_eq!(
+            derive_portrait_path(Path::new("/foo/20260326.jpg")),
+            Some(PathBuf::from("/foo/20260326r.jpg"))
+        );
+        assert_eq!(
+            derive_portrait_path(Path::new("/Pictures/Bing/2026-04-11.png")),
+            Some(PathBuf::from("/Pictures/Bing/2026-04-11r.jpg"))
+        );
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn portrait_fallback_notice_emits_once_per_screen_per_landscape() {
+        // 切换到一张新壁纸 -> 模拟 set_wallpaper_for_all_screens_by_orientation 入口的"重置"
+        if let Ok(mut state) = PORTRAIT_FALLBACK_NOTICE.lock() {
+            state.landscape = Some(PathBuf::from("/tmp/test-a.jpg"));
+            state.notified_screens.clear();
+        }
+        assert!(should_emit_portrait_fallback_notice(2));
+        // 同一壁纸 + 同一屏幕 -> 不再触发
+        assert!(!should_emit_portrait_fallback_notice(2));
+        // 不同屏幕 -> 触发一次
+        assert!(should_emit_portrait_fallback_notice(3));
+        assert!(!should_emit_portrait_fallback_notice(3));
+
+        // 切换到另一张壁纸 -> 重置
+        if let Ok(mut state) = PORTRAIT_FALLBACK_NOTICE.lock() {
+            state.landscape = Some(PathBuf::from("/tmp/test-b.jpg"));
+            state.notified_screens.clear();
+        }
+        assert!(should_emit_portrait_fallback_notice(2));
+    }
 }
