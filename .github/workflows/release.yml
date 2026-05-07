@@ -677,5 +677,8 @@ jobs:
       - uses: vedantmgoyal9/winget-releaser@v2
         with:
           identifier: Qiyuey.BingWallpaperNow
-          installers-regex: '\.(msi|exe)$'
+          # 仅提交 MSI：Tauri NSIS .exe 的 WebView2 兜底文案会被 komac 误判为
+          # "aborting entry" 而拒绝提交（"Failed to install WebView2!"）。
+          # MSI 是 winget 推荐格式，且足以覆盖 x64/arm64 安装场景。
+          installers-regex: '\.msi$'
           token: ${{ secrets.WINGET_TOKEN }}
