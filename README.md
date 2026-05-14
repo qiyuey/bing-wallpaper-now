@@ -2,6 +2,10 @@
 
 [English](README.md) | [中文](README.zh.md)
 
+> **For AI agents / CLI assistants**: see [AI_INSTALL.md](AI_INSTALL.md) for
+> copy-paste-runnable install commands across all platforms
+> (macOS / Windows / Linux, x64 / ARM64).
+
 A cross-platform desktop app to automatically fetch and set Bing's daily beautiful wallpapers.
 
 [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)](https://github.com/qiyuey/bing-wallpaper-now/releases)

@@ -2,6 +2,8 @@
 
 [English](README.md) | [中文](README.zh.md)
 
+> **AI 助手 / 命令行代理使用**：请直接阅读 [AI_INSTALL.md](AI_INSTALL.md)，其中提供覆盖全部平台（macOS / Windows / Linux，x64 / ARM64）的可复制即运行的安装命令。
+
 一个跨平台桌面应用，自动获取并设置 Bing 每日精美壁纸。
 
 [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)](https://github.com/qiyuey/bing-wallpaper-now/releases)
