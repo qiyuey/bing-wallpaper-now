@@ -31,9 +31,7 @@ describe("layout", () => {
     });
 
     it("should have positive spacing values", () => {
-      expect(SPACING.ROW_GAP_NARROW).toBeGreaterThan(0);
-      expect(SPACING.ROW_GAP_DESKTOP).toBeGreaterThan(0);
-      expect(SPACING.ROW_MARGIN_BOTTOM).toBeGreaterThan(0);
+      expect(SPACING.CARD_GAP).toBeGreaterThan(0);
     });
   });
 
@@ -50,15 +48,17 @@ describe("layout", () => {
       expect(getCardsPerRow(1024)).toBe(CARDS_PER_ROW.NARROW);
     });
 
-    it("should return DESKTOP for width > TABLET and < DESKTOP_4K (1025-1399)", () => {
+    it('should return DESKTOP for width > TABLET and < DESKTOP_4K (1025-1749, incl. MBP 16" ~1728)', () => {
       expect(getCardsPerRow(1025)).toBe(CARDS_PER_ROW.DESKTOP);
       expect(getCardsPerRow(1200)).toBe(CARDS_PER_ROW.DESKTOP);
-      expect(getCardsPerRow(1399)).toBe(CARDS_PER_ROW.DESKTOP);
+      expect(getCardsPerRow(1400)).toBe(CARDS_PER_ROW.DESKTOP);
+      expect(getCardsPerRow(1728)).toBe(CARDS_PER_ROW.DESKTOP);
+      expect(getCardsPerRow(1749)).toBe(CARDS_PER_ROW.DESKTOP);
     });
 
-    it("should return FOUR_K for width >= DESKTOP_4K (1400+)", () => {
-      expect(getCardsPerRow(1400)).toBe(CARDS_PER_ROW.FOUR_K);
-      expect(getCardsPerRow(2000)).toBe(CARDS_PER_ROW.FOUR_K);
+    it("should return FOUR_K for width >= DESKTOP_4K (1750+)", () => {
+      expect(getCardsPerRow(1750)).toBe(CARDS_PER_ROW.FOUR_K);
+      expect(getCardsPerRow(2560)).toBe(CARDS_PER_ROW.FOUR_K);
       expect(getCardsPerRow(3840)).toBe(CARDS_PER_ROW.FOUR_K);
     });
 

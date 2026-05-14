@@ -377,19 +377,20 @@ body {
 }
 
 /* Virtual List Row - react-window 的 List 组件会自己处理滚动 */
+/* 注意：react-window v2 用 transform: translateY 绝对定位每一行，
+   margin 不影响兄弟元素位置，行间距完全靠 padding-bottom 实现 —— 它会被
+   ResizeObserver 计入 row 实际高度，从而成为虚拟列表的真实行间距来源。
+   列间距 = 行间距 = --card-gap；容器左右 padding = --card-gap × 1.5
+   （边距比卡片间距略大，营造"画布"感）。
+   列数由 React 通过 --cards-per-row 自定义属性传入，与数据切片严格同步，
+   避免 CSS 端的 auto-fill 与 React 端的 cardsPerRow 不一致导致的换行错位。 */
 .wallpaper-row {
   display: grid;
-  grid-template-columns: repeat(
-    auto-fill,
-    minmax(var(--card-min-width-desktop), 1fr)
-  );
-  gap: var(--card-gap-desktop);
-  padding: 0 var(--grid-padding-x-desktop);
+  grid-template-columns: repeat(var(--cards-per-row, 3), minmax(0, 1fr));
+  gap: var(--card-gap);
+  padding-inline: calc(var(--card-gap) * 1.5);
   align-items: start;
-  /* 增加底部间距，确保 Windows 和 macOS 上都有足够的卡片间距 */
-  margin-bottom: var(--card-row-margin-bottom);
-  /* 确保行之间有足够的垂直间距 */
-  padding-bottom: var(--card-row-padding-bottom);
+  padding-bottom: var(--card-gap);
 }
 
 .wallpaper-row-item {
@@ -435,36 +436,8 @@ body {
   line-height: 1.6;
 }
 
-/* Desktop responsive breakpoints */
-/* 使用配置中的断点值，保持与 CSS 变量一致 */
-/* Note: 媒体查询不支持 CSS 变量，需要使用固定值 */
-@media (max-width: 750px) {
-  .wallpaper-row {
-    grid-template-columns: 1fr;
-    gap: var(--card-gap-narrow);
-    padding: 0 var(--grid-padding-x-narrow);
-  }
-}
-
-@media (min-width: 751px) and (max-width: 1024px) {
-  .wallpaper-row {
-    grid-template-columns: repeat(
-      auto-fill,
-      minmax(var(--card-min-width-narrow), 1fr)
-    );
-    gap: var(--card-gap-narrow);
-    padding: 0 var(--grid-padding-x-tablet);
-  }
-}
-
-@media (min-width: 1400px) {
-  .wallpaper-row {
-    grid-template-columns: repeat(
-      auto-fill,
-      minmax(var(--card-min-width-4k), 1fr)
-    );
-  }
-}
+/* 列数由 React 的 cardsPerRow（与窗口宽度断点同源）通过 CSS 变量驱动，
+   无需媒体查询参与列数控制 */
 
 /* Wallpaper Card */
 .wallpaper-card {

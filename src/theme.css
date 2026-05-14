@@ -23,15 +23,12 @@
 
   /* 卡片尺寸 */
   --card-image-height: 240px;
-  --card-min-width-narrow: 320px;
-  --card-min-width-desktop: 380px;
-  --card-min-width-4k: 420px;
 
-  /* 卡片间距 */
-  --card-gap-narrow: 1rem;
-  --card-gap-desktop: 2rem;
-  --card-row-margin-bottom: 0.5rem; /* 8px - 减小以让卡片更紧凑 */
-  --card-row-padding-bottom: 0.5rem; /* 8px - 减小以让卡片更紧凑 */
+  /* 卡片间距 - 列间距 / 行间距 / 容器左右内边距共用同一变量
+     所有断点统一为 16px，唯一变化的是列数。
+     在 react-window v2 的虚拟列表中，行间距由 .wallpaper-row 的 padding-bottom
+     提供（绝对定位下 margin 不生效），所以直接复用此变量保证四向统一。 */
+  --card-gap: 1rem; /* 16px */
 
   /* 卡片内边距 */
   --card-padding-x: 1.5rem;
@@ -48,11 +45,7 @@
   --card-subtitle-font-size: 0.8125rem;
   --card-button-height: 38px;
 
-  /* 网格容器内边距 */
-  --grid-padding-x-narrow: 1rem;
-  --grid-padding-x-tablet: 1.5rem;
-  --grid-padding-x-desktop: 2rem;
-  --grid-padding-x-4k: 2rem;
+  /* 网格容器左右内边距已统一到 --card-gap，无需独立变量 */
 
   /* 虚拟列表行高（通过 JS 计算，这里作为后备值） */
   --virtual-list-row-height: 409px;

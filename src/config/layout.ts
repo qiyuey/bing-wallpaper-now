@@ -3,14 +3,20 @@
 
 /**
  * 响应式断点配置
+ *
+ * 列数规则：
+ * - ≤750px → 1 列（极窄窗口）
+ * - 751–1024px → 2 列（窄窗口/竖屏）
+ * - 1025–1749px → 3 列（含 MacBook Pro 16 寸全屏 ~1728px）
+ * - ≥1750px → 4 列（外接 2K/4K 大屏）
  */
 export const BREAKPOINTS = {
-  /** 极窄窗口（≤750px）显示1张 */
+  /** 极窄窗口阈值 */
   NARROW: 750,
-  /** 窄窗口（751-1024px）显示2张 */
+  /** 窄/中窗口阈值 */
   TABLET: 1024,
-  /** 大屏幕笔记本及以上（≥1400px）显示4张 */
-  DESKTOP_4K: 1400,
+  /** 4 列触发阈值 - 高于 MBP 16" 全屏宽度（1728px），仅外接大屏才 4 列 */
+  DESKTOP_4K: 1750,
 } as const;
 
 /**
@@ -50,32 +56,38 @@ export const CARD_DIMENSIONS = {
   SUBTITLE_FONT_SIZE: 13, // 0.8125rem
   /** 副标题行高（继承 :root 的 line-height: 1.6） */
   SUBTITLE_LINE_HEIGHT: 1.6,
-  /** 按钮高度 */
-  BUTTON_HEIGHT: 38,
+  /**
+   * 按钮渲染高度（含 padding 与 0.5px border）
+   * 公式：padding-y(10) * 2 + ceil(font-size 14 * line-height 1.6 = 22.4) + border 1 = 44
+   * 该值仅作为虚拟列表 `defaultRowHeight` 的初值，实际行高由 ResizeObserver 动态测量
+   */
+  BUTTON_HEIGHT: 44,
 } as const;
 
 /**
  * 间距配置
+ *
+ * 与 CSS 变量 `--card-gap` 保持一致。
+ * 列间距、行间距、容器左右 padding 全部统一为同一个值，所有断点不变；
+ * 行间距通过 `.wallpaper-row` 的 padding-bottom 实现（react-window v2
+ * 的 absolute 定位下 margin 不生效）。
  */
 export const SPACING = {
-  /** 卡片行间距 */
-  ROW_GAP_NARROW: 16, // 1rem
-  ROW_GAP_DESKTOP: 32, // 2rem
-  /** 行底部间距（减小以让卡片更紧凑） */
-  ROW_MARGIN_BOTTOM: 8, // 0.5rem
-  /** 行底部内边距（减小以让卡片更紧凑） */
-  ROW_PADDING_BOTTOM: 8, // 0.5rem
+  /** 卡片网格的统一间距（列/行/容器左右 padding） */
+  CARD_GAP: 16, // 1rem
 } as const;
 
 /**
- * 计算虚拟列表行高
+ * 计算虚拟列表行高（仅作为 useDynamicRowHeight 的 defaultRowHeight 初值，
+ * 真实行高由 ResizeObserver 在挂载后动态测量）
+ *
  * 公式：图片高度 + 信息区域 + 操作区域 + 行间距
  *
  * 详细计算：
  * - 图片高度：240px
  * - 信息区域：顶部内边距 + 标题高度 + 标题间距 + 副标题高度 + 底部内边距
  * - 操作区域：底部内边距 + 按钮高度
- * - 行间距：行底部边距 + 行底部内边距（8px + 8px = 16px）
+ * - 行间距：与列间距统一为 CARD_GAP
  */
 export function calculateRowHeight(): number {
   const imageHeight = CARD_DIMENSIONS.IMAGE_HEIGHT;
@@ -95,10 +107,7 @@ export function calculateRowHeight(): number {
   const actionsHeight =
     CARD_DIMENSIONS.ACTIONS_PADDING_BOTTOM + CARD_DIMENSIONS.BUTTON_HEIGHT;
 
-  // 行间距
-  const rowSpacing = SPACING.ROW_MARGIN_BOTTOM + SPACING.ROW_PADDING_BOTTOM;
-
-  return imageHeight + infoHeight + actionsHeight + rowSpacing;
+  return imageHeight + infoHeight + actionsHeight + SPACING.CARD_GAP;
 }
 
 /**

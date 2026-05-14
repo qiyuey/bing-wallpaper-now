@@ -1,5 +1,12 @@
-import { memo, useCallback, useState, useEffect, useRef } from "react";
-import { List, RowComponentProps } from "react-window";
+import {
+  memo,
+  useCallback,
+  useState,
+  useEffect,
+  useRef,
+  type CSSProperties,
+} from "react";
+import { List, RowComponentProps, useDynamicRowHeight } from "react-window";
 import { WallpaperCard } from "./WallpaperCard";
 import { LocalWallpaper } from "../types";
 import {
@@ -17,8 +24,9 @@ interface WallpaperGridProps {
   wallpaperDirectory: string;
 }
 
-// 使用配置计算行高
-const ROW_HEIGHT = calculateRowHeight();
+// 仅作为 useDynamicRowHeight 的 defaultRowHeight 初值
+// 真实行高由 react-window 内部 ResizeObserver 测量，避免计算误差
+const DEFAULT_ROW_HEIGHT = calculateRowHeight();
 
 // 骨架屏组件
 const SkeletonCard = memo(() => (
@@ -38,6 +46,44 @@ interface RowData {
   cardsPerRow: number;
   onSetWallpaper: (wallpaper: LocalWallpaper) => void;
   wallpaperDirectory: string;
+}
+
+// Row 提取到模块作用域，避免每次 WallpaperGrid 渲染时创建新函数引用，
+// 否则 react-window 内部 memo(Row) 会失效，导致整行频繁卸载/重挂载。
+function Row({
+  index,
+  style,
+  wallpapers,
+  cardsPerRow,
+  onSetWallpaper,
+  wallpaperDirectory,
+}: RowComponentProps<RowData>) {
+  const startIndex = index * cardsPerRow;
+  const rowWallpapers = wallpapers.slice(startIndex, startIndex + cardsPerRow);
+
+  // 把列数通过 CSS 自定义属性透传给 .wallpaper-row，
+  // 让 CSS Grid 的列数与 React 的数据切片完全同步（避免 auto-fill 错位）
+  const rowStyle = {
+    ...style,
+    "--cards-per-row": cardsPerRow,
+  } as CSSProperties;
+
+  return (
+    <div style={rowStyle} className="wallpaper-row">
+      {rowWallpapers.map((wallpaper) => (
+        <div
+          key={`${wallpaper.end_date}-${index}`}
+          className="wallpaper-row-item"
+        >
+          <WallpaperCard
+            wallpaper={wallpaper}
+            onSetWallpaper={onSetWallpaper}
+            wallpaperDirectory={wallpaperDirectory}
+          />
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export const WallpaperGrid = memo(function WallpaperGrid({
@@ -95,38 +141,13 @@ export const WallpaperGrid = memo(function WallpaperGrid({
     [onSetWallpaper],
   );
 
-  // Row 组件
-  const Row = ({
-    index,
-    style,
-    wallpapers,
-    cardsPerRow,
-    onSetWallpaper,
-    wallpaperDirectory,
-  }: RowComponentProps<RowData>) => {
-    const startIndex = index * cardsPerRow;
-    const rowWallpapers = wallpapers.slice(
-      startIndex,
-      startIndex + cardsPerRow,
-    );
-
-    return (
-      <div style={style} className="wallpaper-row">
-        {rowWallpapers.map((wallpaper: LocalWallpaper) => (
-          <div
-            key={`${wallpaper.end_date}-${index}`}
-            className="wallpaper-row-item"
-          >
-            <WallpaperCard
-              wallpaper={wallpaper}
-              onSetWallpaper={onSetWallpaper}
-              wallpaperDirectory={wallpaperDirectory}
-            />
-          </div>
-        ))}
-      </div>
-    );
-  };
+  // 通过 ResizeObserver 自动测量每行实际渲染高度，
+  // 切换 cardsPerRow（窗口宽度跨断点）时以 key 强制清空缓存重新测量，
+  // 避免固定 ROW_HEIGHT 与实际渲染高度不一致引起的行间"幻影/重叠"。
+  const rowHeight = useDynamicRowHeight({
+    defaultRowHeight: DEFAULT_ROW_HEIGHT,
+    key: cardsPerRow,
+  });
 
   if (loading) {
     return (
@@ -158,7 +179,7 @@ export const WallpaperGrid = memo(function WallpaperGrid({
       {containerWidth > 0 && containerHeight > 0 && (
         <List<RowData>
           rowCount={rowCount}
-          rowHeight={ROW_HEIGHT}
+          rowHeight={rowHeight}
           className="wallpaper-virtual-list"
           style={{ width: containerWidth, height: containerHeight }}
           rowComponent={Row}
