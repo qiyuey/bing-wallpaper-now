@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.6
+
+### Fixed
+
+- 修复通过 Homebrew Cask 安装时出现的弃用语法警告
+
 ## 1.4.5
 
 ### Added
