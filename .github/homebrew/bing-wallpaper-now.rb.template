@@ -10,7 +10,7 @@ cask "bing-wallpaper-now" do
   desc "Automatically fetch and set Bing daily wallpapers"
   homepage "https://github.com/qiyuey/bing-wallpaper-now"
 
-  depends_on macos: ">= :catalina"
+  depends_on macos: :catalina
 
   livecheck do
     url :url
