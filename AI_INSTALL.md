@@ -20,7 +20,7 @@
 
 | Target | Command |
 | --- | --- |
-| macOS (Apple Silicon / Intel) | `brew install --cask qiyuey/tap/bing-wallpaper-now` |
+| macOS Apple Silicon | `brew install --cask qiyuey/tap/bing-wallpaper-now` |
 | Windows (x64 / ARM64) | `winget install --exact --id Qiyuey.BingWallpaperNow` |
 | Debian / Ubuntu | use the `.deb` direct-download block below |
 | Fedora / RHEL | use the `.rpm` direct-download block below |
@@ -56,7 +56,7 @@ All asset names follow these patterns (where `<TAG>` is the release tag, e.g. `1
 
 | OS / Format | Filename pattern |
 | --- | --- |
-| macOS DMG | `Bing.Wallpaper.Now_<TAG>_aarch64.dmg` (Apple Silicon) / `_x64.dmg` (Intel) |
+| macOS DMG | `Bing.Wallpaper.Now_<TAG>_aarch64.dmg` (Apple Silicon) |
 | Windows MSI | `Bing.Wallpaper.Now_<TAG>_x64_zh-CN.msi` / `_arm64_zh-CN.msi` |
 | Windows EXE | `Bing.Wallpaper.Now_<TAG>_x64-setup.exe` / `_arm64-setup.exe` |
 | Debian/Ubuntu | `Bing.Wallpaper.Now_<TAG>_amd64.deb` / `_arm64.deb` |
@@ -68,8 +68,9 @@ Common preamble that resolves the latest version and the host architecture (POSI
 ```bash
 LATEST=$(curl -fsSL https://api.github.com/repos/qiyuey/bing-wallpaper-now/releases/latest | jq -r .tag_name)
 BASE="https://github.com/qiyuey/bing-wallpaper-now/releases/download/${LATEST}"
-case "$(uname -m)" in
-  x86_64)            DEB_ARCH=amd64;   RPM_ARCH=x86_64;   APPIMG_ARCH=amd64;    DMG_ARCH=x64 ;;
+ARCH="$(uname -m)"
+case "$ARCH" in
+  x86_64)            DEB_ARCH=amd64;   RPM_ARCH=x86_64;   APPIMG_ARCH=amd64;    DMG_ARCH=unsupported ;;
   aarch64|arm64)     DEB_ARCH=arm64;   RPM_ARCH=aarch64;  APPIMG_ARCH=aarch64;  DMG_ARCH=aarch64 ;;
   *) echo "Unsupported arch: $(uname -m)"; exit 1 ;;
 esac
@@ -78,6 +79,10 @@ esac
 ### macOS DMG (fallback when Homebrew unavailable)
 
 ```bash
+if [ "$DMG_ARCH" = "unsupported" ]; then
+  echo "Current macOS releases require Apple Silicon"
+  exit 1
+fi
 curl -fsSLO "${BASE}/Bing.Wallpaper.Now_${LATEST}_${DMG_ARCH}.dmg"
 hdiutil attach "Bing.Wallpaper.Now_${LATEST}_${DMG_ARCH}.dmg"
 cp -R "/Volumes/Bing Wallpaper Now/Bing Wallpaper Now.app" /Applications/

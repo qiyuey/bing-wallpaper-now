@@ -32,14 +32,13 @@ ${CHANGELOG}
 
 ## 📦 快速安装
 
-| 平台/架构 | 安装包 |
-|-----------|--------|
-| Windows x64 | [msi](https://github.com/${REPOSITORY}/releases/download/${VERSION}/Bing.Wallpaper.Now_${VERSION}_x64_zh-CN.msi) / [exe](https://github.com/${REPOSITORY}/releases/download/${VERSION}/Bing.Wallpaper.Now_${VERSION}_x64-setup.exe) |
-| Windows arm64 | [msi](https://github.com/${REPOSITORY}/releases/download/${VERSION}/Bing.Wallpaper.Now_${VERSION}_arm64_zh-CN.msi) / [exe](https://github.com/${REPOSITORY}/releases/download/${VERSION}/Bing.Wallpaper.Now_${VERSION}_arm64-setup.exe) |
-| macOS Apple Silicon | [arm64 dmg](https://github.com/${REPOSITORY}/releases/download/${VERSION}/Bing.Wallpaper.Now_${VERSION}_aarch64.dmg) |
-| macOS Intel | [x64 dmg](https://github.com/${REPOSITORY}/releases/download/${VERSION}/Bing.Wallpaper.Now_${VERSION}_x64.dmg) |
-| Linux x64 | [deb](https://github.com/${REPOSITORY}/releases/download/${VERSION}/Bing.Wallpaper.Now_${VERSION}_amd64.deb) / [rpm](https://github.com/${REPOSITORY}/releases/download/${VERSION}/Bing.Wallpaper.Now-${VERSION}-1.x86_64.rpm) / [AppImage](https://github.com/${REPOSITORY}/releases/download/${VERSION}/Bing.Wallpaper.Now_${VERSION}_amd64.AppImage) |
-| Linux arm64 | [deb](https://github.com/${REPOSITORY}/releases/download/${VERSION}/Bing.Wallpaper.Now_${VERSION}_arm64.deb) / [rpm](https://github.com/${REPOSITORY}/releases/download/${VERSION}/Bing.Wallpaper.Now-${VERSION}-1.aarch64.rpm) / [AppImage](https://github.com/${REPOSITORY}/releases/download/${VERSION}/Bing.Wallpaper.Now_${VERSION}_aarch64.AppImage) |
+| 平台/架构           | 安装包                                                                                                                                                                                                                                                                                                                                                     |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Windows x64         | [msi](https://github.com/${REPOSITORY}/releases/download/${VERSION}/Bing.Wallpaper.Now_${VERSION}_x64_zh-CN.msi) / [exe](https://github.com/${REPOSITORY}/releases/download/${VERSION}/Bing.Wallpaper.Now_${VERSION}_x64-setup.exe)                                                                                                                        |
+| Windows arm64       | [msi](https://github.com/${REPOSITORY}/releases/download/${VERSION}/Bing.Wallpaper.Now_${VERSION}_arm64_zh-CN.msi) / [exe](https://github.com/${REPOSITORY}/releases/download/${VERSION}/Bing.Wallpaper.Now_${VERSION}_arm64-setup.exe)                                                                                                                    |
+| macOS Apple Silicon | [arm64 dmg](https://github.com/${REPOSITORY}/releases/download/${VERSION}/Bing.Wallpaper.Now_${VERSION}_aarch64.dmg)                                                                                                                                                                                                                                       |
+| Linux x64           | [deb](https://github.com/${REPOSITORY}/releases/download/${VERSION}/Bing.Wallpaper.Now_${VERSION}_amd64.deb) / [rpm](https://github.com/${REPOSITORY}/releases/download/${VERSION}/Bing.Wallpaper.Now-${VERSION}-1.x86_64.rpm) / [AppImage](https://github.com/${REPOSITORY}/releases/download/${VERSION}/Bing.Wallpaper.Now_${VERSION}_amd64.AppImage)    |
+| Linux arm64         | [deb](https://github.com/${REPOSITORY}/releases/download/${VERSION}/Bing.Wallpaper.Now_${VERSION}_arm64.deb) / [rpm](https://github.com/${REPOSITORY}/releases/download/${VERSION}/Bing.Wallpaper.Now-${VERSION}-1.aarch64.rpm) / [AppImage](https://github.com/${REPOSITORY}/releases/download/${VERSION}/Bing.Wallpaper.Now_${VERSION}_aarch64.AppImage) |
 
 ---
 
@@ -59,6 +58,7 @@ winget install Qiyuey.BingWallpaperNow
 ### macOS 安装方法
 
 若出现"应用已损坏"或"无法打开"，在终端执行（需要管理员权限时可在前面加 sudo）：
+
 ```bash
 xattr -rd com.apple.quarantine "/Applications/Bing Wallpaper Now.app"
 ```

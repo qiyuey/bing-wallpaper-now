@@ -16,7 +16,7 @@ A cross-platform desktop app to automatically fetch and set Bing's daily beautif
 Get the latest version from [GitHub Releases](https://github.com/qiyuey/bing-wallpaper-now/releases):
 
 - **Windows**: `.msi` installer or `.exe` portable
-- **macOS**: `.dmg` disk image
+- **macOS Apple Silicon**: `.dmg` disk image
 - **Linux**: `.deb` (Debian/Ubuntu), `.rpm` (Fedora/RedHat), or `.AppImage` (universal)
 
 ### macOS via Homebrew
@@ -45,7 +45,7 @@ xattr -rd com.apple.quarantine "/Applications/Bing Wallpaper Now.app"
 ### Lightweight & Modern
 
 - **Built with Tauri 2.0** — Rust backend + React frontend, not Electron. Low memory, fast startup
-- **6 native platform builds** — macOS (Apple Silicon / Intel), Windows (x64 / ARM64), Linux (x64 / ARM64)
+- **5 native platform builds** — macOS (Apple Silicon), Windows (x64 / ARM64), Linux (x64 / ARM64)
 - **Privacy first** — No telemetry, no tracking. Only talks to Bing API. All data stored locally
 
 ### Portrait Display Support

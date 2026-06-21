@@ -14,7 +14,7 @@
 从 [GitHub Releases](https://github.com/qiyuey/bing-wallpaper-now/releases) 下载最新版本：
 
 - **Windows**: `.msi` 安装包或 `.exe` 便携版本
-- **macOS**: `.dmg` 磁盘镜像
+- **macOS Apple Silicon**: `.dmg` 磁盘镜像
 - **Linux**: `.deb` (Debian/Ubuntu) 或 `.rpm` (Fedora/RedHat) 或 `.AppImage` (通用版本)
 
 ### macOS 通过 Homebrew 安装
@@ -43,7 +43,7 @@ xattr -rd com.apple.quarantine "/Applications/Bing Wallpaper Now.app"
 ### 轻量现代
 
 - **Tauri 2.0 构建** — Rust 后端 + React 前端，非 Electron，内存占用低、启动快
-- **6 平台原生支持** — macOS (Apple Silicon / Intel)、Windows (x64 / ARM64)、Linux (x64 / ARM64)
+- **5 平台原生支持** — macOS (Apple Silicon)、Windows (x64 / ARM64)、Linux (x64 / ARM64)
 - **隐私优先** — 无遥测、无追踪，仅与 Bing API 通信，所有数据本地存储
 
 ### 竖屏壁纸

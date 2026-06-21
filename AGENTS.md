@@ -360,17 +360,17 @@ Verify these paths after structural refactoring or event-related changes:
 - Triggered on PR and push to `main`
 - Jobs: frontend checks (lint, typecheck, test), Rust checks (fmt, clippy, test)
 - Multi-platform release cache warming (push to `main` only):
-  builds `cargo build --release` on all 6 platforms to populate
+  builds `cargo build --release` on all 5 platforms to populate
   Rust cache for subsequent release builds
 
 **Release workflow** (`.github/workflows/release.yml`):
 
 - Triggered when version tags (`[0-9]*.*.*`) are pushed
-- Builds for 6 platforms: Windows (x64, ARM64), macOS (Apple Silicon, Intel), Linux (x64, ARM64)
+- Builds for 5 platforms: Windows (x64, ARM64), macOS (Apple Silicon), Linux (x64, ARM64)
 - macOS builds are code-signed with Apple Developer certificate
 - Updater artifacts (`.sig` files) are generated and uploaded alongside bundles
 - `latest.json` is generated from release assets for the in-app updater
-- macOS `.app.tar.gz` files are renamed to include architecture (`_aarch64` / `_x64`)
+- macOS `.app.tar.gz` files are renamed to include architecture (`_aarch64`)
 
 **Cache strategy**: CI saves Rust release-profile cache on `main`
 (`shared-key: release`). Release workflow reads this cache
