@@ -6,15 +6,12 @@
 
 /// 检测系统语言
 ///
-/// 通过检查环境变量 LANG、LC_ALL、LC_MESSAGES 来检测系统语言
+/// 通过系统 locale 检测当前语言
 /// 返回 "zh-CN" 或 "en-US"
 pub fn detect_system_language() -> &'static str {
-    let system_lang = std::env::var("LANG")
-        .or_else(|_| std::env::var("LC_ALL"))
-        .or_else(|_| std::env::var("LC_MESSAGES"))
-        .unwrap_or_else(|_| String::new());
+    let system_lang = sys_locale::get_locale().unwrap_or_default();
 
-    if system_lang.contains("zh") || system_lang.contains("CN") {
+    if system_lang.to_ascii_lowercase().starts_with("zh") {
         "zh-CN"
     } else {
         "en-US"
