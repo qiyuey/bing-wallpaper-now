@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.8
+
+### Changed
+
+- macOS 版本改为仅提供 Apple Silicon 构建
+
 ## 1.4.7
 
 ### Fixed
