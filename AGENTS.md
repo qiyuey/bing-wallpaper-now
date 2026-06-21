@@ -153,7 +153,7 @@ bing-wallpaper-now/
 ├── .github/workflows/               # CI/CD
 │   ├── ci.yml                       # PR/push checks + multi-platform cache warming
 │   └── release.yml                  # Tag-triggered release builds
-├── .cursor/skills/                  # AI agent skills
+├── .agents/skills/                  # Codex project skills
 │   ├── bump-version/               # Version bump workflow
 │   ├── release/                    # Release workflow
 │   ├── review/                     # Code review workflow

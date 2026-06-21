@@ -80,7 +80,7 @@ cd src-tauri && cargo update
 
 说明文案示例：「是否现在提交并推送？请点击上方选项之一。」
 
-- **用户选择「提交并推送」**：读取 `~/.cursor/skills/commit/SKILL.md`，若文件存在则按其流程执行；若文件不存在，则执行以下回退流程：
+- **用户选择「提交并推送」**：如果 Codex 当前会话可用 `commit` skill，按该 skill 的流程执行；否则执行以下回退流程：
   1. `git add -A`
   2. 根据 diff 生成 Conventional Commits 格式的 commit message
   3. `git commit -m "<message>"`
