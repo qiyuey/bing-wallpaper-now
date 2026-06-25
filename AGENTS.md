@@ -11,7 +11,7 @@
 
 ## Prerequisites
 
-- **Node.js**: 25+
+- **Node.js**: 26+
 - **Rust**: 1.80+ (Edition 2024)
 - **pnpm**: 10.19.0 (specified in `packageManager` field)
 
@@ -396,7 +396,7 @@ Verify these paths after structural refactoring or event-related changes:
 
 **Issue**: Node.js version mismatch
 
-- **Solution**: Ensure Node.js 25+ is installed. Use `node --version` to check.
+- **Solution**: Ensure Node.js 26+ is installed. Use `node --version` to check.
 
 **Issue**: Rust compilation errors
 

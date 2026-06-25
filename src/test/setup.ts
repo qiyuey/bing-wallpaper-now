@@ -8,7 +8,7 @@ afterEach(() => {
 });
 
 // Mock Tauri APIs
-global.window = Object.create(window);
+globalThis.window = Object.create(window);
 Object.defineProperty(window, "__TAURI_INTERNALS__", {
   value: {
     transformCallback: vi.fn(<T>(callback: T) => callback),
@@ -63,7 +63,7 @@ vi.mock("@tauri-apps/api/core", () => {
   return {
     invoke: (cmd: string, args?: unknown) => {
       // Access __TAURI_INTERNALS__ from global context
-      const globalWindow = global.window as {
+      const globalWindow = globalThis.window as {
         __TAURI_INTERNALS__?: {
           invoke: (cmd: string, args?: unknown) => Promise<unknown>;
         };
@@ -103,7 +103,7 @@ Object.defineProperty(window, "matchMedia", {
 });
 
 // Mock ResizeObserver for tests
-global.ResizeObserver = class ResizeObserver {
+globalThis.ResizeObserver = class ResizeObserver {
   observe() {}
   unobserve() {}
   disconnect() {}

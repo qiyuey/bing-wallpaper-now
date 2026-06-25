@@ -9,7 +9,7 @@
 #   make release          # Release official version
 #
 # Requirements:
-# - Node.js >= 24 LTS
+# - Node.js >= 26
 # - Rust 1.80+ (Edition 2024)
 # - pnpm 10+ (required, npm is not supported)
 

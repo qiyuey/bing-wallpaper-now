@@ -1,9 +1,8 @@
 import js from "@eslint/js";
-import tsPlugin from "@typescript-eslint/eslint-plugin";
-import tsParser from "@typescript-eslint/parser";
-import reactPlugin from "eslint-plugin-react";
+import eslintReact from "@eslint-react/eslint-plugin";
 import reactHooksPlugin from "eslint-plugin-react-hooks";
 import prettierConfig from "eslint-config-prettier";
+import tseslint from "typescript-eslint";
 
 export default [
   // 基础 JavaScript 推荐规则
@@ -13,7 +12,7 @@ export default [
   {
     files: ["*.config.{js,ts}", "*.setup.{js,ts}"],
     languageOptions: {
-      parser: tsParser,
+      parser: tseslint.parser,
       parserOptions: {
         ecmaVersion: "latest",
         sourceType: "module",
@@ -25,7 +24,7 @@ export default [
       },
     },
     plugins: {
-      "@typescript-eslint": tsPlugin,
+      "@typescript-eslint": tseslint.plugin,
     },
     rules: {
       "@typescript-eslint/no-unused-vars": "off",
@@ -38,7 +37,7 @@ export default [
   {
     files: ["src/**/*.{ts,tsx}"],
     languageOptions: {
-      parser: tsParser,
+      parser: tseslint.parser,
       parserOptions: {
         ecmaVersion: "latest",
         sourceType: "module",
@@ -65,8 +64,8 @@ export default [
       },
     },
     plugins: {
-      "@typescript-eslint": tsPlugin,
-      react: reactPlugin,
+      "@eslint-react": eslintReact,
+      "@typescript-eslint": tseslint.plugin,
       "react-hooks": reactHooksPlugin,
     },
     rules: {
@@ -83,10 +82,15 @@ export default [
       "@typescript-eslint/explicit-module-boundary-types": "off",
 
       // React 规则
-      "react/react-in-jsx-scope": "off", // React 17+ 不需要
-      "react/prop-types": "off", // TypeScript 已提供类型检查
-      "react/jsx-uses-react": "off",
-      "react/jsx-uses-vars": "error",
+      ...eslintReact.configs["recommended-typescript"].rules,
+      "@eslint-react/exhaustive-deps": "off",
+      "@eslint-react/no-context-provider": "off",
+      "@eslint-react/no-unnecessary-use-prefix": "off",
+      "@eslint-react/no-use-context": "off",
+      "@eslint-react/purity": "off",
+      "@eslint-react/rules-of-hooks": "off",
+      "@eslint-react/set-state-in-effect": "off",
+      "@eslint-react/use-state": "off",
 
       // React Hooks 规则
       "react-hooks/rules-of-hooks": "error",
@@ -97,11 +101,7 @@ export default [
       "no-debugger": "warn",
       "no-unused-vars": "off", // 使用 TypeScript 的版本
     },
-    settings: {
-      react: {
-        version: "detect",
-      },
-    },
+    settings: eslintReact.configs["recommended-typescript"].settings,
   },
 
   // Prettier 配置（必须在最后，避免规则冲突）

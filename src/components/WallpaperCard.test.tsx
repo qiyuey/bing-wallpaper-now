@@ -8,7 +8,7 @@ import type { UnlistenFn } from "@tauri-apps/api/event";
 
 vi.mock("@tauri-apps/plugin-opener");
 vi.mock("@tauri-apps/api/core", () => {
-  const globalWindow = global.window as {
+  const globalWindow = globalThis.window as {
     __TAURI_INTERNALS__?: {
       invoke: (cmd: string, args?: unknown) => Promise<unknown>;
     };

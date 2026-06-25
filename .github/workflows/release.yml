@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: "25"
+  NODE_VERSION: "26"
   RUST_BACKTRACE: short
   CARGO_INCREMENTAL: 0
   CARGO_PROFILE_RELEASE_CODEGEN_UNITS: 16
