@@ -269,10 +269,10 @@ Verify these paths after structural refactoring or event-related changes:
 
 1. **Tray → Manual Update Check → Show Window → Update Dialog**
    - `tray.rs` "check_updates" menu click
-   - → `window.show()` + `window.set_focus()` + `emit("tray-check-updates")`
+   - → `emit("tray-check-updates")`
    - → frontend `useUpdateCheck` hook receives event
    - → `@tauri-apps/plugin-updater` `check()` + `is_version_ignored()`
-   - → `UpdateDialog` renders (or system notification if no update)
+   - → system notification if no update, or `show_main_window` + `UpdateDialog` if an update is available
 
 2. **Tray → Force Update → Wallpaper Refresh**
    - `tray.rs` "refresh" menu click
