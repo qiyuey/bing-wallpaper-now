@@ -285,12 +285,8 @@ pub(crate) fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
                     let _ = app.emit("open-about", ());
                 }
                 "check_updates" => {
-                    // 显示主窗口并通知前端执行更新检查
+                    // 通知前端执行更新检查。
                     // 实际检查逻辑由前端 useUpdateCheck 通过 @tauri-apps/plugin-updater 完成
-                    if let Some(window) = app.get_webview_window("main") {
-                        let _ = window.show();
-                        let _ = window.set_focus();
-                    }
                     if let Err(e) = app.emit("tray-check-updates", ()) {
                         warn!(target: "tray", "Failed to emit tray-check-updates event: {}", e);
                     }

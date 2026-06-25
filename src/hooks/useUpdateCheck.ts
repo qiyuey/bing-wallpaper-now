@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { getVersion } from "@tauri-apps/api/app";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { check, Update } from "@tauri-apps/plugin-updater";
@@ -13,6 +14,38 @@ interface UpdateInfo {
 }
 
 const CHECK_TIMEOUT_MS = 15_000;
+const LATEST_JSON_URL =
+  "https://github.com/qiyuey/bing-wallpaper-now/releases/latest/download/latest.json";
+
+type ManualCheckFallbackResult = "no-update" | "update-available" | "unknown";
+
+interface LatestJson {
+  version?: string;
+}
+
+function parseVersion(version: string) {
+  const [core, preRelease] = version.replace(/^v/i, "").split("-", 2);
+  return {
+    numbers: core.split(".").map((part) => Number.parseInt(part, 10) || 0),
+    preRelease,
+  };
+}
+
+function compareVersions(a: string, b: string): number {
+  const parsedA = parseVersion(a);
+  const parsedB = parseVersion(b);
+  const maxLength = Math.max(parsedA.numbers.length, parsedB.numbers.length);
+
+  for (let i = 0; i < maxLength; i += 1) {
+    const diff = (parsedA.numbers[i] ?? 0) - (parsedB.numbers[i] ?? 0);
+    if (diff !== 0) return diff;
+  }
+
+  if (parsedA.preRelease && !parsedB.preRelease) return -1;
+  if (!parsedA.preRelease && parsedB.preRelease) return 1;
+  if (!parsedA.preRelease && !parsedB.preRelease) return 0;
+  return parsedA.preRelease.localeCompare(parsedB.preRelease);
+}
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return new Promise<T>((resolve, reject) => {
@@ -22,6 +55,27 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
     );
     promise.then(resolve, reject).finally(() => window.clearTimeout(timer));
   });
+}
+
+async function checkLatestJsonFallback(): Promise<ManualCheckFallbackResult> {
+  try {
+    const [currentVersion, response] = await Promise.all([
+      getVersion(),
+      window.fetch(LATEST_JSON_URL, { cache: "no-store" }),
+    ]);
+
+    if (!response.ok) return "unknown";
+
+    const latest = (await response.json()) as LatestJson;
+    if (!latest.version) return "unknown";
+
+    return compareVersions(latest.version, currentVersion) > 0
+      ? "update-available"
+      : "no-update";
+  } catch (err) {
+    console.error("Failed to check latest.json fallback:", err);
+    return "unknown";
+  }
 }
 
 export function useUpdateCheck() {
@@ -82,9 +136,14 @@ export function useUpdateCheck() {
         } catch (err) {
           console.error("Failed to check for updates:", err);
           if (options.showNoUpdate) {
+            const fallbackResult = await checkLatestJsonFallback();
             showSystemNotification(
               currentT("checkForUpdates"),
-              currentT("updateCheckFailed"),
+              currentT(
+                fallbackResult === "no-update"
+                  ? "noUpdateAvailable"
+                  : "updateCheckFailed",
+              ),
             );
           }
           return null;
@@ -112,6 +171,11 @@ export function useUpdateCheck() {
             showNoUpdate: true,
           });
           if (info && mounted) {
+            try {
+              await invoke("show_main_window");
+            } catch (err) {
+              console.error("Failed to show main window for update:", err);
+            }
             setUpdateInfo(info);
           }
         });

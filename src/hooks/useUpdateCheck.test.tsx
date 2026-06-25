@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor, act } from "@testing-library/react";
+import { getVersion } from "@tauri-apps/api/app";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { check, Update } from "@tauri-apps/plugin-updater";
@@ -8,6 +9,7 @@ import { useUpdateCheck } from "./useUpdateCheck";
 import { showSystemNotification } from "../utils/notification";
 import { I18nProvider } from "../i18n/I18nContext";
 
+vi.mock("@tauri-apps/api/app");
 vi.mock("@tauri-apps/api/core");
 vi.mock("@tauri-apps/api/event");
 vi.mock("../utils/notification");
@@ -51,7 +53,12 @@ describe("useUpdateCheck", () => {
 
     vi.mocked(invoke).mockResolvedValue(undefined);
     vi.mocked(check).mockResolvedValue(null);
+    vi.mocked(getVersion).mockResolvedValue("1.4.8");
     vi.mocked(showSystemNotification).mockResolvedValue(undefined);
+    Object.defineProperty(window, "fetch", {
+      writable: true,
+      value: vi.fn().mockRejectedValue(new Error("Network error")),
+    });
   });
 
   it("should initialize with null updateInfo", () => {
@@ -89,6 +96,7 @@ describe("useUpdateCheck", () => {
 
     expect(result.current.updateInfo).not.toBeNull();
     expect(result.current.updateInfo?.version).toBe("2.0.0");
+    expect(invoke).toHaveBeenCalledWith("show_main_window");
   });
 
   it("should show notification when tray check finds no update", async () => {
@@ -107,6 +115,7 @@ describe("useUpdateCheck", () => {
     });
 
     expect(showSystemNotification).toHaveBeenCalledTimes(1);
+    expect(invoke).not.toHaveBeenCalledWith("show_main_window");
   });
 
   it("should show notification when tray check errors", async () => {
@@ -125,6 +134,32 @@ describe("useUpdateCheck", () => {
     });
 
     expect(showSystemNotification).toHaveBeenCalledTimes(1);
+  });
+
+  it("should show no-update notification when plugin check fails but latest.json matches current version", async () => {
+    vi.mocked(check).mockRejectedValue(new Error("TLS error"));
+    vi.mocked(window.fetch).mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({ version: "1.4.8" }),
+    } as unknown as Awaited<ReturnType<typeof window.fetch>>);
+
+    renderHook(() => useUpdateCheck(), { wrapper });
+
+    await waitFor(() => {
+      expect(eventCallbacks.has("tray-check-updates")).toBe(true);
+    });
+
+    await act(async () => {
+      await eventCallbacks.get("tray-check-updates")!({
+        payload: null,
+      });
+    });
+
+    expect(showSystemNotification).toHaveBeenCalledWith(
+      "Check for Updates",
+      "Already up to date",
+    );
+    expect(invoke).not.toHaveBeenCalledWith("show_main_window");
   });
 
   it("should not set updateInfo when tray check finds ignored version", async () => {
