@@ -7,20 +7,25 @@ cask "bing-wallpaper-now" do
   desc "Automatically fetch and set Bing daily wallpapers"
   homepage "https://github.com/qiyuey/bing-wallpaper-now"
 
-  depends_on arch: :arm64
-  depends_on macos: :catalina
-
   livecheck do
     url :url
     strategy :github_latest
   end
 
   auto_updates true
+  depends_on arch: :arm64
+  depends_on macos: :catalina
 
   app "Bing Wallpaper Now.app"
 
-  uninstall quit:      "top.qiyuey.wallpaper",
-            launchctl: "top.qiyuey.wallpaper"
+  postflight do
+    system_command "/usr/bin/xattr",
+                   args:         ["-dr", "com.apple.quarantine", "#{appdir}/Bing Wallpaper Now.app"],
+                   must_succeed: false
+  end
+
+  uninstall launchctl: "top.qiyuey.wallpaper",
+            quit:      "top.qiyuey.wallpaper"
 
   zap trash: [
     "~/Library/Application Support/top.qiyuey.wallpaper",
