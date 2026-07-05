@@ -31,7 +31,6 @@
     "@tauri-apps/plugin-opener": "^2.5.4",
     "@tauri-apps/plugin-process": "^2.3.1",
     "@tauri-apps/plugin-updater": "^2.10.1",
-    "liquid-glass-react": "^1.1.1",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-window": "^2.2.7"

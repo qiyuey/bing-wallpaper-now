@@ -183,18 +183,6 @@ pub(crate) fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
         tauri::image::Image::new_owned(icon_img.to_vec(), icon_img.width(), icon_img.height())
     };
 
-    // Linux 和其他平台使用默认图标
-    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
-    let icon = app
-        .default_window_icon()
-        .ok_or_else(|| {
-            tauri::Error::InvalidIcon(std::io::Error::new(
-                std::io::ErrorKind::NotFound,
-                "Default window icon not found",
-            ))
-        })?
-        .clone();
-
     let tray_builder = {
         let builder = TrayIconBuilder::new()
             .menu(&menu)
@@ -207,7 +195,7 @@ pub(crate) fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
         {
             builder.icon_as_template(true)
         }
-        #[cfg(not(target_os = "macos"))]
+        #[cfg(target_os = "windows")]
         {
             builder
         }

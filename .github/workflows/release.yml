@@ -170,10 +170,6 @@ jobs:
             os: windows-11-arm
           - platform: "macOS (Apple Silicon)"
             os: macos-latest
-          - platform: "Ubuntu (x64)"
-            os: ubuntu-24.04
-          - platform: "Ubuntu (ARM64)"
-            os: ubuntu-24.04-arm
 
     steps:
       - name: Checkout (shallow)
@@ -208,17 +204,6 @@ jobs:
           workspaces: src-tauri
           shared-key: release
           save-if: false
-
-      - name: Install Linux dependencies
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libwebkit2gtk-4.1-dev \
-            libayatana-appindicator3-dev \
-            librsvg2-dev \
-            patchelf \
-            xdg-utils
 
       - name: Import macOS signing certificate
         if: runner.os == 'macOS'
@@ -332,7 +317,7 @@ jobs:
             exit 1
           fi
           echo "Build successful. Bundle files:"
-          find src-tauri/target/release/bundle -type f \( -name "*.deb" -o -name "*.rpm" -o -name "*.dmg" -o -name "*.msi" -o -name "*.exe" -o -name "*.AppImage" -o -name "*.app.tar.gz" \) 2>/dev/null | head -n 20 || true
+          find src-tauri/target/release/bundle -type f \( -name "*.dmg" -o -name "*.msi" -o -name "*.exe" -o -name "*.app.tar.gz" \) 2>/dev/null | head -n 20 || true
 
           echo ""
           echo "Updater signature files (.sig):"
@@ -405,12 +390,8 @@ jobs:
               "src-tauri/target/release/bundle/macos/*.app.tar.gz.sig"
             )
           else
-            PATTERNS=(
-              "src-tauri/target/release/bundle/deb/*.deb"
-              "src-tauri/target/release/bundle/rpm/*.rpm"
-              "src-tauri/target/release/bundle/appimage/*.AppImage"
-              "src-tauri/target/release/bundle/appimage/*.AppImage.sig"
-            )
+            echo "Error: Unexpected runner OS '${{ runner.os }}'"
+            exit 1
           fi
 
           FILES=()
@@ -494,19 +475,6 @@ jobs:
                   target="windows-aarch64"
                 fi
                 if [ -n "$target" ] && [ -z "${PLATFORM_SIG[$target]:-}" ]; then
-                  PLATFORM_SIG["$target"]=$(gh release download "$TAG" --repo "$REPO" -p "$name" -O - 2>/dev/null || echo "")
-                  PLATFORM_URL["$target"]="${RELEASE_URL}/${base}"
-                fi
-                ;;
-              *.AppImage.sig)
-                base="${name%.sig}"
-                target=""
-                if [[ "$name" == *"amd64"* || "$name" == *"x86_64"* || "$name" == *"x64"* ]]; then
-                  target="linux-x86_64"
-                elif [[ "$name" == *"aarch64"* || "$name" == *"arm64"* ]]; then
-                  target="linux-aarch64"
-                fi
-                if [ -n "$target" ]; then
                   PLATFORM_SIG["$target"]=$(gh release download "$TAG" --repo "$REPO" -p "$name" -O - 2>/dev/null || echo "")
                   PLATFORM_URL["$target"]="${RELEASE_URL}/${base}"
                 fi

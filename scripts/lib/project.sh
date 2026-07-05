@@ -286,13 +286,6 @@ project_is_macos() {
     [[ "$OSTYPE" == "darwin"* ]]
 }
 
-# Check if running on Linux
-# Returns: 0 if Linux, 1 otherwise
-# Usage: if project_is_linux; then ... fi
-project_is_linux() {
-    [[ "$OSTYPE" == "linux-gnu"* ]]
-}
-
 # Check if running on Windows (Git Bash/WSL)
 # Returns: 0 if Windows, 1 otherwise
 # Usage: if project_is_windows; then ... fi
@@ -301,13 +294,11 @@ project_is_windows() {
 }
 
 # Get OS name
-# Returns: "macos", "linux", "windows", or "unknown"
+# Returns: "macos", "windows", or "unknown"
 # Usage: os=$(project_get_os)
 project_get_os() {
     if project_is_macos; then
         echo "macos"
-    elif project_is_linux; then
-        echo "linux"
     elif project_is_windows; then
         echo "windows"
     else

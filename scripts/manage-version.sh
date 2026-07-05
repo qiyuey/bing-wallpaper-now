@@ -40,7 +40,7 @@ source "$SCRIPT_DIR/lib/validators.sh"
 # ============================================================================
 
 init_ui
-project_require_tool "jq" "jq is required for JSON manipulation. Install via: brew install jq (macOS) or apt install jq (Linux)"
+project_require_tool "jq" "jq is required for JSON manipulation. Install via: brew install jq (macOS) or choco install jq (Windows)"
 
 # ============================================================================
 # Create Snapshot (Development Version)

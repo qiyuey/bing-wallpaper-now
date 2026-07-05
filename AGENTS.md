@@ -122,7 +122,7 @@ bing-wallpaper-now/
 │   │   ├── main.rs                 # Binary entry point
 │   │   ├── bing_api.rs             # Bing API integration
 │   │   ├── index_manager.rs        # Local metadata index management
-│   │   ├── wallpaper_manager.rs    # Wallpaper setting logic (macOS/Win/Linux)
+│   │   ├── wallpaper_manager.rs    # Wallpaper setting logic (macOS/Win)
 │   │   ├── download_manager.rs     # Image download & caching
 │   │   ├── settings_store.rs       # Persistent app settings store
 │   │   ├── runtime_state.rs        # Runtime state persistence
@@ -317,7 +317,7 @@ Verify these paths after structural refactoring or event-related changes:
   （系统级声明）+ 启动时一次性 `setActivationPolicy(Accessory)` 运行时调用。
   单独依赖 Info.plist 不足以在所有场景下阻止 Dock 运行状态点出现。
   注意：仅在 setup 中调用一次，不要在 focus/reopen 等事件中重复调用以避免竞态
-- **Windows/Linux**: 通过 `tauri.conf.json` 的 `skipTaskbar: true` 隐藏任务栏图标
+- **Windows**: 通过 `tauri.conf.json` 的 `skipTaskbar: true` 隐藏任务栏图标
 
 ## Build & Release Process
 
@@ -366,7 +366,7 @@ Verify these paths after structural refactoring or event-related changes:
 **Release workflow** (`.github/workflows/release.yml`):
 
 - Triggered when version tags (`[0-9]*.*.*`) are pushed
-- Builds for 5 platforms: Windows (x64, ARM64), macOS (Apple Silicon), Linux (x64, ARM64)
+- Builds for 3 platforms: Windows (x64, ARM64), macOS (Apple Silicon)
 - macOS builds are code-signed with Apple Developer certificate
 - Updater artifacts (`.sig` files) are generated and uploaded alongside bundles
 - `latest.json` is generated from release assets for the in-app updater

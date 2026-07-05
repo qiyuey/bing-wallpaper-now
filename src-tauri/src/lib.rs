@@ -3,8 +3,6 @@ mod bing_api;
 mod commands;
 mod download_manager;
 mod index_manager;
-#[cfg(any(test, all(unix, not(target_os = "macos"))))]
-mod linux_wallpaper;
 mod models;
 mod runtime_state;
 mod settings_store;

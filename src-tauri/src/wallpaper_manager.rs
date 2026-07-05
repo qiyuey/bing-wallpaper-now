@@ -263,9 +263,9 @@ pub fn initialize_observer() {
     }
 }
 
-#[cfg(not(target_os = "macos"))]
+#[cfg(target_os = "windows")]
 pub fn initialize_observer() {
-    // 其他平台不需要初始化
+    // Windows 不需要初始化
 }
 
 /// 设置 Workspace 观察者
@@ -310,8 +310,8 @@ pub fn set_wallpaper(image_path: &Path, portrait_image_path: Option<&Path>) -> R
         anyhow::bail!("Wallpaper image does not exist: {:?}", image_path);
     }
 
-    // portrait_image_path 仅在 macOS 上使用（Windows/Linux 暂不支持竖屏壁纸）
-    #[cfg(not(target_os = "macos"))]
+    // portrait_image_path 仅在 macOS 上使用（Windows 暂不支持竖屏壁纸）
+    #[cfg(target_os = "windows")]
     let _ = portrait_image_path;
 
     // macOS 使用 NSWorkspace API 来处理多显示器和全屏场景
@@ -324,12 +324,6 @@ pub fn set_wallpaper(image_path: &Path, portrait_image_path: Option<&Path>) -> R
     #[cfg(windows)]
     {
         set_wallpaper_windows(image_path)
-    }
-
-    // Linux 和其他 Unix 平台实现
-    #[cfg(all(unix, not(target_os = "macos")))]
-    {
-        crate::linux_wallpaper::set_wallpaper(image_path)
     }
 }
 
@@ -588,12 +582,10 @@ pub fn get_screen_orientations() -> Vec<ScreenOrientation> {
     }
 }
 
-/// 获取所有屏幕的方向信息（非 macOS 平台）
-#[cfg(not(target_os = "macos"))]
+/// 获取所有屏幕的方向信息（Windows 平台）
+#[cfg(target_os = "windows")]
 pub fn get_screen_orientations() -> Vec<ScreenOrientation> {
-    // Windows 和 Linux 平台的实现
-    // 这里可以使用 wallpaper crate 或其他系统 API
-    // 暂时返回空数组，后续可以根据需要实现
+    // Windows 平台暂时返回空数组
     vec![]
 }
 

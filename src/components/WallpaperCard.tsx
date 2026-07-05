@@ -175,30 +175,30 @@ export const WallpaperCard = memo(
               )}
             </>
           )}
+          <div className="wallpaper-actions">
+            <button
+              onClick={imageError ? handleManualRetry : handleSetWallpaper}
+              className="btn btn-primary"
+              disabled={imageLoading}
+              title={
+                imageLoading
+                  ? t("loading")
+                  : imageError
+                    ? t("retry")
+                    : t("setWallpaper")
+              }
+            >
+              {imageLoading
+                ? t("loading")
+                : imageError
+                  ? t("retry")
+                  : t("setWallpaper")}
+            </button>
+          </div>
         </div>
         <div className="wallpaper-info">
           <h3 className="wallpaper-title">{title}</h3>
           {subtitle && <p className="wallpaper-subtitle">{subtitle}</p>}
-        </div>
-        <div className="wallpaper-actions">
-          <button
-            onClick={imageError ? handleManualRetry : handleSetWallpaper}
-            className="btn btn-primary"
-            disabled={imageLoading}
-            title={
-              imageLoading
-                ? t("loading")
-                : imageError
-                  ? t("retry")
-                  : t("setWallpaper")
-            }
-          >
-            {imageLoading
-              ? t("loading")
-              : imageError
-                ? t("retry")
-                : t("setWallpaper")}
-          </button>
         </div>
       </div>
     );

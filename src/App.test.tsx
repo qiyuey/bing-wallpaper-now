@@ -966,7 +966,7 @@ describe("App", () => {
         expect(screen.getByText("Bing Wallpaper")).toBeInTheDocument();
       });
 
-      // Press Cmd + , (macOS) or Ctrl + , (Windows/Linux)
+      // Press Cmd + , (macOS) or Ctrl + , (Windows)
       fireEvent.keyDown(window, {
         key: ",",
         metaKey: true, // macOS
@@ -982,14 +982,14 @@ describe("App", () => {
       });
     });
 
-    it("should open settings when Ctrl + , is pressed (Windows/Linux)", async () => {
+    it("should open settings when Ctrl + , is pressed (Windows)", async () => {
       renderWithTheme(<App />);
 
       await waitFor(() => {
         expect(screen.getByText("Bing Wallpaper")).toBeInTheDocument();
       });
 
-      // Press Ctrl + , (Windows/Linux)
+      // Press Ctrl + , (Windows)
       fireEvent.keyDown(window, {
         key: ",",
         metaKey: false,

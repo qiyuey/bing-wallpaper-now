@@ -2,11 +2,11 @@
 
 [English](README.md) | [中文](README.zh.md)
 
-> **AI 助手 / 命令行代理使用**：请直接阅读 [AI_INSTALL.md](AI_INSTALL.md)，其中提供覆盖全部平台（macOS / Windows / Linux，x64 / ARM64）的可复制即运行的安装命令。
+> **AI 助手 / 命令行代理使用**：请直接阅读 [AI_INSTALL.md](AI_INSTALL.md)，其中提供覆盖全部平台（macOS / Windows，x64 / ARM64）的可复制即运行的安装命令。
 
 一个跨平台桌面应用，自动获取并设置 Bing 每日精美壁纸。
 
-[![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)](https://github.com/qiyuey/bing-wallpaper-now/releases)
+[![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgrey)](https://github.com/qiyuey/bing-wallpaper-now/releases)
 [![License](https://img.shields.io/badge/license-Anti--996-blue)](https://github.com/996icu/996.ICU)
 
 ## 📦 下载安装
@@ -15,7 +15,6 @@
 
 - **Windows**: `.msi` 安装包或 `.exe` 便携版本
 - **macOS Apple Silicon**: `.dmg` 磁盘镜像
-- **Linux**: `.deb` (Debian/Ubuntu) 或 `.rpm` (Fedora/RedHat) 或 `.AppImage` (通用版本)
 
 ### macOS 通过 Homebrew 安装
 
@@ -43,7 +42,7 @@ xattr -rd com.apple.quarantine "/Applications/Bing Wallpaper Now.app"
 ### 轻量现代
 
 - **Tauri 2.0 构建** — Rust 后端 + React 前端，非 Electron，内存占用低、启动快
-- **5 平台原生支持** — macOS (Apple Silicon)、Windows (x64 / ARM64)、Linux (x64 / ARM64)
+- **2 平台原生支持** — macOS (Apple Silicon)、Windows (x64 / ARM64)
 - **隐私优先** — 无遥测、无追踪，仅与 Bing API 通信，所有数据本地存储
 
 ### 竖屏壁纸

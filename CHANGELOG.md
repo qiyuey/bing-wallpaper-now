@@ -28,7 +28,7 @@
 
 ### Added
 
-- 新增 [AI_INSTALL.md](AI_INSTALL.md)，为 AI 助手 / 命令行代理提供覆盖 macOS / Windows / Linux（含 ARM64）的可复制即运行安装命令
+- 新增 [AI_INSTALL.md](AI_INSTALL.md)，为 AI 助手 / 命令行代理提供覆盖 macOS / Windows（含 ARM64）的可复制即运行安装命令
 
 ### Changed
 

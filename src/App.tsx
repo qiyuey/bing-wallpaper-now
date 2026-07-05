@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo, type CSSProperties } from "react";
 import "./App.css";
 import { useBingWallpapers } from "./hooks/useBingWallpapers";
 import { WallpaperGrid } from "./components/WallpaperGrid";
@@ -7,7 +7,7 @@ import { About } from "./components/About";
 import { UpdateDialog } from "./components/UpdateDialog";
 import { showSystemNotification } from "./utils/notification";
 import { LocalWallpaper, getWallpaperFilePath } from "./types";
-import { invoke } from "@tauri-apps/api/core";
+import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { version } from "../package.json";
 import { getStandardIconProps } from "./config/icons";
@@ -33,6 +33,16 @@ function App() {
   const [showAbout, setShowAbout] = useState(false);
   const [wallpaperDirectory, setWallpaperDirectory] = useState<string>("");
   const { updateInfo, setUpdateInfo } = useUpdateCheck();
+
+  const ambientBgStyle = useMemo(() => {
+    const first = localWallpapers[0];
+    if (!first || !wallpaperDirectory) return undefined;
+    const filePath = getWallpaperFilePath(wallpaperDirectory, first.end_date);
+    if (!filePath) return undefined;
+    return {
+      "--ambient-bg": `url("${convertFileSrc(filePath)}")`,
+    } as CSSProperties;
+  }, [localWallpapers, wallpaperDirectory]);
 
   // 获取壁纸目录
   useEffect(() => {
@@ -159,7 +169,7 @@ function App() {
   };
 
   return (
-    <div className="app">
+    <div className="app" style={ambientBgStyle}>
       <header
         className="app-header"
         style={{

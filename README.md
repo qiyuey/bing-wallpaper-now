@@ -4,11 +4,11 @@
 
 > **For AI agents / CLI assistants**: see [AI_INSTALL.md](AI_INSTALL.md) for
 > copy-paste-runnable install commands across all platforms
-> (macOS / Windows / Linux, x64 / ARM64).
+> (macOS / Windows, x64 / ARM64).
 
 A cross-platform desktop app to automatically fetch and set Bing's daily beautiful wallpapers.
 
-[![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)](https://github.com/qiyuey/bing-wallpaper-now/releases)
+[![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgrey)](https://github.com/qiyuey/bing-wallpaper-now/releases)
 [![License](https://img.shields.io/badge/license-Anti--996-blue)](https://github.com/996icu/996.ICU)
 
 ## 📦 Download & Install
@@ -17,7 +17,6 @@ Get the latest version from [GitHub Releases](https://github.com/qiyuey/bing-wal
 
 - **Windows**: `.msi` installer or `.exe` portable
 - **macOS Apple Silicon**: `.dmg` disk image
-- **Linux**: `.deb` (Debian/Ubuntu), `.rpm` (Fedora/RedHat), or `.AppImage` (universal)
 
 ### macOS via Homebrew
 
@@ -45,7 +44,7 @@ xattr -rd com.apple.quarantine "/Applications/Bing Wallpaper Now.app"
 ### Lightweight & Modern
 
 - **Built with Tauri 2.0** — Rust backend + React frontend, not Electron. Low memory, fast startup
-- **5 native platform builds** — macOS (Apple Silicon), Windows (x64 / ARM64), Linux (x64 / ARM64)
+- **2 native platform builds** — macOS (Apple Silicon), Windows (x64 / ARM64)
 - **Privacy first** — No telemetry, no tracking. Only talks to Bing API. All data stored locally
 
 ### Portrait Display Support

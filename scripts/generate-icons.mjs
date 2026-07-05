@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * 图标生成脚本
- * 从 SVG 源文件生成 macOS、Windows、Linux 所需的图标文件
+ * 从 SVG 源文件生成 macOS、Windows 所需的图标文件
  * 
  * 使用方法：
  *   node scripts/generate-icons.mjs
