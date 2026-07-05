@@ -5,6 +5,10 @@ import { invoke } from "@tauri-apps/api/core";
 import { Update, DownloadEvent } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { showSystemNotification } from "../utils/notification";
+import { cn } from "../utils/cn";
+import styles from "./UpdateDialog.module.css";
+import modalStyles from "../styles/modal.module.css";
+import btnStyles from "../styles/buttons.module.css";
 
 interface DownloadProgress {
   contentLength?: number;
@@ -120,15 +124,15 @@ export function UpdateDialog({
         : null;
 
   return (
-    <div className="settings-overlay">
-      <div className="settings-modal" style={{ maxWidth: "580px" }}>
-        <div className="settings-header">
-          <div className="settings-header-left">
+    <div className={modalStyles.overlay}>
+      <div className={modalStyles.modal} style={{ maxWidth: "580px" }}>
+        <div className={modalStyles.header}>
+          <div className={modalStyles.headerLeft}>
             <h2>{t("updateAvailable")}</h2>
           </div>
           <button
             onClick={downloading ? handleCancelDownload : onClose}
-            className="btn-close"
+            className={btnStyles.btnClose}
             aria-label={t("close")}
             disabled={downloadComplete}
           >
@@ -136,40 +140,24 @@ export function UpdateDialog({
           </button>
         </div>
 
-        <div className="settings-body">
-          <div style={{ marginBottom: "1rem" }}>
+        <div className={modalStyles.body}>
+          <div className={styles.message}>
             <p>{t("updateAvailableMessage").replace("{version}", version)}</p>
           </div>
 
           {statusText && (
-            <div style={{ marginBottom: "1rem" }}>
-              <p style={{ fontSize: "0.875rem", marginBottom: "0.5rem" }}>
-                {statusText}
-              </p>
+            <div className={styles.statusBlock}>
+              <p className={styles.statusText}>{statusText}</p>
               {downloading && !downloadComplete && (
-                <div
-                  style={{
-                    width: "100%",
-                    height: "6px",
-                    backgroundColor: "var(--border-color, #e0e0e0)",
-                    borderRadius: "3px",
-                    overflow: "hidden",
-                  }}
-                >
+                <div className={styles.progressTrack}>
                   <div
+                    className={cn(
+                      styles.progressFill,
+                      progressPercent == null && styles.progressFillIndeterminate,
+                    )}
                     style={{
                       width:
                         progressPercent != null ? `${progressPercent}%` : "40%",
-                      height: "100%",
-                      backgroundColor: "var(--primary-color, #0078d4)",
-                      borderRadius: "3px",
-                      transition: "width 0.3s ease",
-                      ...(progressPercent == null
-                        ? {
-                            animation:
-                              "indeterminate-progress 1.5s infinite linear",
-                          }
-                        : {}),
                     }}
                   />
                 </div>
@@ -178,32 +166,16 @@ export function UpdateDialog({
           )}
 
           {downloadError && (
-            <div
-              style={{
-                marginBottom: "1rem",
-                padding: "0.5rem",
-                borderRadius: "4px",
-                backgroundColor: "var(--error-bg, #fef2f2)",
-                color: "var(--error-color, #dc2626)",
-                fontSize: "0.875rem",
-              }}
-            >
+            <div className={styles.errorBox}>
               {t("downloadFailed")}: {downloadError}
             </div>
           )}
 
-          <div
-            style={{
-              display: "flex",
-              gap: "0.5rem",
-              justifyContent: "flex-end",
-              flexWrap: "wrap",
-            }}
-          >
+          <div className={styles.actions}>
             {downloading ? (
               <button
                 onClick={handleCancelDownload}
-                className="btn btn-secondary btn-small"
+                className={cn(btnStyles.btn, btnStyles.btnSecondary, btnStyles.btnSmall)}
                 type="button"
                 disabled={downloadComplete}
               >
@@ -212,7 +184,7 @@ export function UpdateDialog({
             ) : (
               <button
                 onClick={handleIgnore}
-                className="btn btn-secondary btn-small"
+                className={cn(btnStyles.btn, btnStyles.btnSecondary, btnStyles.btnSmall)}
                 type="button"
               >
                 {t("ignoreThisVersion")}
@@ -220,7 +192,7 @@ export function UpdateDialog({
             )}
             <button
               onClick={handleViewRelease}
-              className="btn btn-secondary btn-small"
+              className={cn(btnStyles.btn, btnStyles.btnSecondary, btnStyles.btnSmall)}
               type="button"
               disabled={downloading}
             >
@@ -228,7 +200,7 @@ export function UpdateDialog({
             </button>
             <button
               onClick={handleDownloadAndInstall}
-              className="btn btn-primary btn-small"
+              className={cn(btnStyles.btn, btnStyles.btnPrimary, btnStyles.btnSmall)}
               type="button"
               disabled={downloading}
             >

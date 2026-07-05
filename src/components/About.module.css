@@ -1,0 +1,64 @@
+.titleWrapper {
+  margin-bottom: 2rem;
+}
+
+.title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+  color: var(--text-primary);
+}
+
+.version {
+  font-size: 0.875rem;
+  margin-bottom: 0.25rem;
+  color: var(--text-secondary);
+}
+
+.infoBox {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  border-radius: 12px;
+  text-align: left;
+  background: var(--bg-control);
+}
+
+.description {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.githubSection {
+  margin-bottom: 1rem;
+}
+
+.githubLink {
+  text-decoration: none;
+  font-size: 0.875rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  color: var(--text-primary);
+  background: var(--bg-control);
+  border: 0.5px solid var(--border-primary);
+}
+
+.githubLink:hover {
+  background: var(--bg-control-hover);
+  border-color: var(--border-hover);
+}
+
+.copyright {
+  font-size: 0.75rem;
+  margin-top: 1.5rem;
+  color: var(--text-disabled);
+}
+
+.fullWidth {
+  width: 100%;
+}

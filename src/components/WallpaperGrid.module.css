@@ -1,0 +1,192 @@
+.container {
+  flex: 1;
+  min-height: 0;
+}
+
+.virtualList {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  will-change: scroll-position;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  perspective: 1000px;
+  -webkit-perspective: 1000px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99, 102, 241, 0.3) transparent;
+}
+
+.virtualList::-webkit-scrollbar {
+  width: var(--scrollbar-width);
+}
+
+.virtualList::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.virtualList::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.3);
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.virtualList::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.5);
+}
+
+:root[data-theme="dark"] .virtualList {
+  scrollbar-color: rgba(129, 140, 248, 0.3) transparent;
+}
+
+:root[data-theme="dark"] .virtualList::-webkit-scrollbar-thumb {
+  background: rgba(129, 140, 248, 0.3);
+}
+
+:root[data-theme="dark"] .virtualList::-webkit-scrollbar-thumb:hover {
+  background: rgba(129, 140, 248, 0.5);
+}
+
+:root[data-theme="light"] .virtualList {
+  scrollbar-color: rgba(99, 102, 241, 0.4) transparent;
+}
+
+:root[data-theme="light"] .virtualList::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.4);
+}
+
+:root[data-theme="light"] .virtualList::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.6);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: repeat(var(--cards-per-row, 3), minmax(0, 1fr));
+  gap: var(--card-gap);
+  padding-inline: calc(var(--card-gap) * 1.5);
+  align-items: start;
+  padding-bottom: var(--card-gap);
+}
+
+.rowItem {
+  width: 100%;
+  min-width: 0;
+}
+
+.gridStatic {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 1.5rem;
+  padding: 2rem 2.5rem;
+}
+
+.gridLoading,
+.gridEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 400px;
+  color: var(--text-primary);
+  font-size: 1.125rem;
+  font-weight: 500;
+  gap: 1rem;
+  padding: 2rem;
+}
+
+.gridEmptyIcon {
+  font-size: 3rem;
+  opacity: 0.5;
+  margin-bottom: 0.5rem;
+}
+
+.gridEmptyHint {
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--text-tertiary);
+  opacity: 0.75;
+  max-width: 500px;
+  line-height: 1.6;
+}
+
+.cardSkeleton {
+  background: var(--skeleton-base);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border-radius: 20px;
+  overflow: hidden;
+  border: 0.5px solid var(--border-primary);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.skeletonImage {
+  width: 100%;
+  height: 240px;
+  background: linear-gradient(
+    90deg,
+    var(--skeleton-base) 25%,
+    var(--skeleton-shimmer) 50%,
+    var(--skeleton-base) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeletonText {
+  height: 18px;
+  margin: 0 1.5rem;
+  background: linear-gradient(
+    90deg,
+    var(--skeleton-base) 25%,
+    var(--skeleton-shimmer) 50%,
+    var(--skeleton-base) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+.skeletonTextTitle {
+  margin-top: 1.25rem;
+  width: 60%;
+  height: 20px;
+}
+
+.skeletonTextSubtitle {
+  margin-top: 0.5rem;
+  width: 80%;
+  height: 16px;
+}
+
+.skeletonButton {
+  margin: 1.5rem 1.5rem;
+  height: 38px;
+  background: linear-gradient(
+    90deg,
+    var(--skeleton-base) 25%,
+    var(--skeleton-shimmer) 50%,
+    var(--skeleton-base) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 12px;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}

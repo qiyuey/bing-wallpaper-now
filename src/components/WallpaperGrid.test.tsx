@@ -57,9 +57,9 @@ describe("WallpaperGrid", () => {
       />,
     );
 
-    const spinner = container.querySelector(".spinner");
+    const spinner = container.querySelector("[data-testid='spinner']");
     expect(spinner).toBeInTheDocument();
-    const loadingDiv = container.querySelector(".wallpaper-grid-loading");
+    const loadingDiv = spinner?.closest("div");
     expect(loadingDiv).toBeInTheDocument();
   });
 
@@ -106,7 +106,7 @@ describe("WallpaperGrid", () => {
     );
 
     await waitFor(() => {
-      const wallpaperCards = container.querySelectorAll(".wallpaper-card");
+      const wallpaperCards = container.querySelectorAll("h3");
       expect(wallpaperCards.length).toBe(mockWallpapers.length);
     });
   });
@@ -121,7 +121,7 @@ describe("WallpaperGrid", () => {
       />,
     );
 
-    const virtualContainer = container.querySelector(".wallpaper-container");
+    const virtualContainer = container.firstElementChild;
     expect(virtualContainer).toBeInTheDocument();
   });
 

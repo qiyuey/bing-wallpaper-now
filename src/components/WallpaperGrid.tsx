@@ -16,6 +16,8 @@ import {
 } from "../config/layout";
 import { CONTAINER } from "../config/ui";
 import { useI18n } from "../i18n/I18nContext";
+import styles from "./WallpaperGrid.module.css";
+import spinnerStyles from "../styles/spinner.module.css";
 
 interface WallpaperGridProps {
   wallpapers: LocalWallpaper[];
@@ -30,11 +32,11 @@ const DEFAULT_ROW_HEIGHT = calculateRowHeight();
 
 // 骨架屏组件
 const SkeletonCard = memo(() => (
-  <div className="wallpaper-card-skeleton">
-    <div className="skeleton-image" />
-    <div className="skeleton-text skeleton-text-title" />
-    <div className="skeleton-text skeleton-text-subtitle" />
-    <div className="skeleton-button" />
+  <div className={styles.cardSkeleton}>
+    <div className={styles.skeletonImage} />
+    <div className={`${styles.skeletonText} ${styles.skeletonTextTitle}`} />
+    <div className={`${styles.skeletonText} ${styles.skeletonTextSubtitle}`} />
+    <div className={styles.skeletonButton} />
   </div>
 ));
 
@@ -69,11 +71,11 @@ function Row({
   } as CSSProperties;
 
   return (
-    <div style={rowStyle} className="wallpaper-row">
+    <div style={rowStyle} className={styles.row}>
       {rowWallpapers.map((wallpaper) => (
         <div
           key={`${wallpaper.end_date}-${index}`}
-          className="wallpaper-row-item"
+          className={styles.rowItem}
         >
           <WallpaperCard
             wallpaper={wallpaper}
@@ -151,9 +153,9 @@ export const WallpaperGrid = memo(function WallpaperGrid({
 
   if (loading) {
     return (
-      <div ref={containerRef} className="wallpaper-container">
-        <div className="wallpaper-grid-loading">
-          <div className="spinner"></div>
+      <div ref={containerRef} className={styles.container}>
+        <div className={styles.gridLoading}>
+          <div className={spinnerStyles.spinner} data-testid="spinner"></div>
         </div>
       </div>
     );
@@ -161,11 +163,11 @@ export const WallpaperGrid = memo(function WallpaperGrid({
 
   if (wallpapers.length === 0) {
     return (
-      <div ref={containerRef} className="wallpaper-container">
-        <div className="wallpaper-grid-empty">
-          <div className="wallpaper-grid-empty-icon">🖼️</div>
+      <div ref={containerRef} className={styles.container}>
+        <div className={styles.gridEmpty}>
+          <div className={styles.gridEmptyIcon}>🖼️</div>
           <p>{t("noWallpapers")}</p>
-          <p className="wallpaper-grid-empty-hint">{t("noWallpapersHint")}</p>
+          <p className={styles.gridEmptyHint}>{t("noWallpapersHint")}</p>
         </div>
       </div>
     );
@@ -175,12 +177,12 @@ export const WallpaperGrid = memo(function WallpaperGrid({
   const rowCount = Math.ceil(wallpapers.length / cardsPerRow);
 
   return (
-    <div ref={containerRef} className="wallpaper-container">
+    <div ref={containerRef} className={styles.container}>
       {containerWidth > 0 && containerHeight > 0 && (
         <List<RowData>
           rowCount={rowCount}
           rowHeight={rowHeight}
-          className="wallpaper-virtual-list"
+          className={styles.virtualList}
           style={{ width: containerWidth, height: containerHeight }}
           rowComponent={Row}
           rowProps={{

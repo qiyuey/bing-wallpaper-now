@@ -5,6 +5,8 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useI18n } from "../i18n/I18nContext";
 import { showSystemNotification } from "../utils/notification";
+import styles from "./WallpaperCard.module.css";
+import spinnerStyles from "../styles/spinner.module.css";
 
 interface WallpaperCardProps {
   wallpaper: LocalWallpaper;
@@ -141,25 +143,23 @@ export const WallpaperCard = memo(
     }, [filePath, retryCount]);
 
     return (
-      <div className="wallpaper-card">
+      <div className={styles.card}>
         <div
-          className="wallpaper-image-container"
+          className={styles.imageContainer}
           onClick={handleImageClick}
-          style={{ cursor: "pointer" }}
           title={t("clickToViewDetails")}
         >
           {imageError ? (
-            // 图片加载失败 - 仅显示错误状态，重试按钮在底部
-            <div className="wallpaper-image-placeholder">
-              <p className="placeholder-error-text">{t("imageLoadError")}</p>
-              <p className="placeholder-hint-text">{t("imageLoadErrorHint")}</p>
+            <div className={styles.imagePlaceholder}>
+              <p className={styles.placeholderErrorText}>{t("imageLoadError")}</p>
+              <p className={styles.placeholderHintText}>{t("imageLoadErrorHint")}</p>
             </div>
           ) : (
             <>
               {imageLoading && (
-                <div className="wallpaper-image-placeholder">
-                  <div className="spinner"></div>
-                  <p className="placeholder-loading-text">{t("loading")}</p>
+                <div className={styles.imagePlaceholder}>
+                  <div className={spinnerStyles.spinner} data-testid="spinner"></div>
+                  <p className={styles.placeholderLoadingText} data-testid="placeholder-loading">{t("loading")}</p>
                 </div>
               )}
               {imageUrl && (
@@ -167,7 +167,7 @@ export const WallpaperCard = memo(
                   key={`${filePath}-${retryCount}`}
                   src={imageUrl}
                   alt={title}
-                  className="wallpaper-image"
+                  className={styles.image}
                   onLoad={handleImageLoad}
                   onError={handleImageError}
                   style={{ display: imageLoading ? "none" : "block" }}
@@ -175,10 +175,10 @@ export const WallpaperCard = memo(
               )}
             </>
           )}
-          <div className="wallpaper-actions">
+          <div className={styles.actions}>
             <button
               onClick={imageError ? handleManualRetry : handleSetWallpaper}
-              className="btn btn-primary"
+              className={styles.actionButton}
               disabled={imageLoading}
               title={
                 imageLoading
@@ -196,9 +196,9 @@ export const WallpaperCard = memo(
             </button>
           </div>
         </div>
-        <div className="wallpaper-info">
-          <h3 className="wallpaper-title">{title}</h3>
-          {subtitle && <p className="wallpaper-subtitle">{subtitle}</p>}
+        <div className={styles.info}>
+          <h3 className={styles.title}>{title}</h3>
+          {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
         </div>
       </div>
     );

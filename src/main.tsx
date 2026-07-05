@@ -66,6 +66,7 @@ import App from "./App";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { I18nProvider } from "./i18n/I18nContext";
 import "./theme.css";
+import "./styles/globals.css";
 
 // Suppress Tauri listener errors caused by React StrictMode double-mounting
 // These errors are harmless and only occur in development mode

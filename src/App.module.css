@@ -1,0 +1,214 @@
+.app {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+  overflow: hidden;
+  position: relative;
+}
+
+.app::before {
+  content: "";
+  position: absolute;
+  inset: -20px;
+  z-index: -1;
+  background-image: var(--ambient-bg);
+  background-size: cover;
+  background-position: center;
+  filter: blur(24px) saturate(1.4) brightness(0.95);
+  pointer-events: none;
+}
+
+:root[data-theme="dark"] .app::before {
+  filter: blur(24px) saturate(1.2) brightness(0.6);
+}
+
+.appHeader {
+  position: relative;
+  z-index: 10;
+  padding: 1.25rem 2.5rem 0.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  min-width: 0;
+  background: transparent;
+}
+
+.titleGroup {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+.appTitle {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  line-height: 1.3;
+  padding: 0.2rem 0;
+  white-space: nowrap;
+  min-width: 0;
+  margin: 0;
+}
+
+.appTitleMain {
+  font-size: clamp(1.75rem, 4vw, 2.125rem);
+  font-weight: 900;
+  font-variation-settings: "wght" 900;
+  letter-spacing: -0.4px;
+  opacity: 1;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+    "SF Pro Rounded", "Helvetica Neue", "Segoe UI", "Roboto", "MiSans Heavy",
+    "MiSans Bold", "MiSans", "HarmonyOS Sans SC", "PingFang SC",
+    "Hiragino Sans GB", "Source Han Sans SC", "Noto Sans CJK SC",
+    "Microsoft YaHei", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings:
+    "kern" 1,
+    "liga" 1,
+    "clig" 1;
+  font-kerning: normal;
+  font-synthesis: weight;
+  background: linear-gradient(
+    135deg,
+    var(--text-primary) 0%,
+    var(--text-secondary) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  -webkit-text-stroke: 0.35px rgba(15, 23, 42, 0.35);
+}
+
+:root[data-theme="light"] .appTitleMain {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  -webkit-text-stroke: 0.4px rgba(15, 23, 42, 0.35);
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.15))
+    drop-shadow(0 2px 6px rgba(0, 0, 0, 0.12))
+    drop-shadow(0 0 8px rgba(255, 255, 255, 0.4));
+}
+
+:root[data-theme="dark"] .appTitleMain {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 1) 0%,
+    rgba(255, 255, 255, 0.95) 50%,
+    rgba(255, 255, 255, 0.9) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.25))
+    drop-shadow(0 2px 6px rgba(0, 0, 0, 0.2))
+    drop-shadow(0 0 10px rgba(255, 255, 255, 0.15));
+  -webkit-text-stroke: 0.35px rgba(0, 0, 0, 0.25);
+}
+
+.appTitleAccent {
+  font-size: clamp(1.75rem, 4vw, 2.125rem);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Rounded",
+    "Helvetica Neue", "Segoe UI", "Roboto", "MiSans Heavy", "MiSans Bold",
+    "MiSans", "HarmonyOS Sans SC", "PingFang SC", "Source Han Sans SC Bold",
+    "Source Han Sans SC", "Noto Sans CJK SC Bold", "Noto Sans CJK SC",
+    "Microsoft YaHei", "Microsoft YaHei UI", sans-serif;
+  font-weight: 900;
+  font-variation-settings: "wght" 900;
+  letter-spacing: -0.4px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings:
+    "kern" 1,
+    "liga" 1,
+    "clig" 1;
+  font-kerning: normal;
+  font-synthesis: weight;
+  opacity: 1;
+  background: linear-gradient(
+    135deg,
+    var(--accent-color) 0%,
+    var(--accent-active) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  -webkit-text-stroke: 0.2px rgba(99, 102, 241, 0.2);
+  filter: drop-shadow(0 1px 2px rgba(99, 102, 241, 0.25));
+}
+
+:root[data-theme="light"] .appTitleAccent {
+  background: linear-gradient(135deg, #6366f1 0%, #5a5df6 50%, #4f46e5 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  -webkit-text-stroke: 0.2px rgba(99, 102, 241, 0.2);
+  filter: drop-shadow(0 1px 2px rgba(79, 70, 229, 0.2));
+}
+
+:root[data-theme="dark"] .appTitleAccent {
+  background: linear-gradient(135deg, #a5b4fc 0%, #818cf8 50%, #6366f1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  -webkit-text-stroke: 0.2px rgba(129, 140, 248, 0.2);
+  filter: drop-shadow(0 1px 2px rgba(129, 140, 248, 0.25));
+}
+
+.headerActions {
+  display: flex;
+  gap: 0.625rem;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.lastUpdate {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--text-tertiary);
+  letter-spacing: 0.4px;
+  opacity: 0.7;
+  white-space: nowrap;
+  transition: opacity 0.5s ease-in-out;
+}
+
+:root[data-theme="light"] .lastUpdate {
+  opacity: 0.88;
+  font-weight: 500;
+}
+
+:root[data-theme="dark"] .lastUpdate {
+  opacity: 0.7;
+}
+
+.appMain {
+  flex: 1;
+  padding: 0;
+  overflow: hidden;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+}
+
+.errorMessage {
+  background: var(--bg-glass);
+  backdrop-filter: var(--blur-medium);
+  -webkit-backdrop-filter: var(--blur-medium);
+  color: var(--text-primary);
+  padding: 1.25rem 1.5rem;
+  margin: 0 2.5rem;
+  border-radius: 16px;
+  border: 0.5px solid var(--error-border);
+  box-shadow: var(--shadow-md);
+  font-weight: 500;
+}

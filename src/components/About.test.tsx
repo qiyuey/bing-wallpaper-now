@@ -81,11 +81,10 @@ describe("About", () => {
       <About onClose={mockOnClose} version={mockVersion} />,
     );
 
-    expect(container.querySelector(".settings-overlay")).toBeInTheDocument();
-    expect(container.querySelector(".settings-modal")).toBeInTheDocument();
-    expect(container.querySelector(".settings-header")).toBeInTheDocument();
-    expect(container.querySelector(".settings-body")).toBeInTheDocument();
-    expect(container.querySelector(".settings-footer")).toBeInTheDocument();
+    // With CSS Modules, class names are hashed. Verify structure via roles/elements.
+    expect(screen.getByRole("heading", { name: "关于" })).toBeInTheDocument();
+    expect(container.querySelector("h1")).toBeInTheDocument();
+    expect(container.querySelector("a")).toBeInTheDocument();
   });
 
   it("should render GitHub SVG icon", () => {
@@ -98,15 +97,16 @@ describe("About", () => {
   });
 
   it("should have semantic class names for content sections", () => {
-    const { container } = renderWithI18n(
+    renderWithI18n(
       <About onClose={mockOnClose} version={mockVersion} />,
     );
 
-    expect(container.querySelector(".about-title")).toBeInTheDocument();
-    expect(container.querySelector(".about-version")).toBeInTheDocument();
-    expect(container.querySelector(".about-description")).toBeInTheDocument();
-    expect(container.querySelector(".about-github-link")).toBeInTheDocument();
-    expect(container.querySelector(".about-copyright")).toBeInTheDocument();
+    // Verify content presence via text instead of hashed class selectors
+    expect(screen.getByText("Bing Wallpaper Now")).toBeInTheDocument();
+    expect(screen.getByText(`版本 ${mockVersion}`)).toBeInTheDocument();
+    expect(screen.getByText(/每日自动获取并更新必应壁纸/)).toBeInTheDocument();
+    expect(screen.getByText("GitHub 仓库")).toBeInTheDocument();
+    expect(screen.getByText(/© 2025 Bing Wallpaper Now/)).toBeInTheDocument();
   });
 
   it("should prevent multiple close callbacks on rapid clicks", () => {

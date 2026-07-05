@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useRef, useMemo, type CSSProperties } from "react";
-import "./App.css";
 import { useBingWallpapers } from "./hooks/useBingWallpapers";
 import { WallpaperGrid } from "./components/WallpaperGrid";
 import { Settings } from "./components/Settings";
@@ -11,10 +10,12 @@ import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { version } from "../package.json";
 import { getStandardIconProps } from "./config/icons";
-import { INLINE_SPACING } from "./config/ui";
 import { useI18n } from "./i18n/I18nContext";
 import { useUpdateCheck } from "./hooks/useUpdateCheck";
 import { useTrayEvents } from "./hooks/useTrayEvents";
+import { cn } from "./utils/cn";
+import styles from "./App.module.css";
+import btnStyles from "./styles/buttons.module.css";
 
 function App() {
   const {
@@ -169,58 +170,29 @@ function App() {
   };
 
   return (
-    <div className="app" style={ambientBgStyle}>
-      <header
-        className="app-header"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: INLINE_SPACING.TITLE_GAP,
-            minWidth: 0,
-            flexShrink: 1,
-          }}
-        >
-          <h1 style={{ margin: 0 }} className="app-title">
-            <span className="app-title-main">{t("appTitle")}</span>
-            <span className="app-title-accent">{t("appSubtitle")}</span>
+    <div className={styles.app} style={ambientBgStyle}>
+      <header className={styles.appHeader}>
+        <div className={styles.titleGroup}>
+          <h1 className={styles.appTitle}>
+            <span className={styles.appTitleMain}>{t("appTitle")}</span>
+            <span className={styles.appTitleAccent}>{t("appSubtitle")}</span>
           </h1>
-          <div
-            style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}
-          >
-            {lastUpdateTime && (
-              <div className="last-update">
-                {t("lastUpdate")}: {lastUpdateTime}
-                {effectiveMktLabel && (
-                  <>
-                    {" · "}
-                    {t("currentMarket")}: {effectiveMktLabel}
-                  </>
-                )}
-              </div>
-            )}
-          </div>
+          {lastUpdateTime && (
+            <div className={styles.lastUpdate}>
+              {t("lastUpdate")}: {lastUpdateTime}
+              {effectiveMktLabel && (
+                <>
+                  {" · "}
+                  {t("currentMarket")}: {effectiveMktLabel}
+                </>
+              )}
+            </div>
+          )}
         </div>
-        <div
-          className="header-actions"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "flex-end",
-            flex: "0 0 auto",
-            marginLeft: INLINE_SPACING.HEADER_MARGIN_LEFT,
-            gap: "0.625rem",
-          }}
-        >
+        <div className={styles.headerActions}>
           <button
             onClick={handleRefresh}
-            className="btn btn-icon"
+            className={cn(btnStyles.btn, btnStyles.btnIcon)}
             aria-label={t("refresh")}
           >
             <svg
@@ -233,11 +205,11 @@ function App() {
             >
               <path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16" />
             </svg>
-            <span className="btn-tooltip">{t("refresh")}</span>
+            <span className={btnStyles.btnTooltip}>{t("refresh")}</span>
           </button>
           <button
             onClick={handleOpenFolder}
-            className="btn btn-icon"
+            className={cn(btnStyles.btn, btnStyles.btnIcon)}
             aria-label={t("openFolder")}
           >
             <svg
@@ -250,12 +222,12 @@ function App() {
             >
               <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
             </svg>
-            <span className="btn-tooltip">{t("openFolder")}</span>
+            <span className={btnStyles.btnTooltip}>{t("openFolder")}</span>
           </button>
 
           <button
             onClick={() => setShowSettings(true)}
-            className="btn btn-icon"
+            className={cn(btnStyles.btn, btnStyles.btnIcon)}
             aria-label={t("settings")}
           >
             <svg
@@ -268,14 +240,14 @@ function App() {
             >
               <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
             </svg>
-            <span className="btn-tooltip">{t("settings")}</span>
+            <span className={btnStyles.btnTooltip}>{t("settings")}</span>
           </button>
         </div>
       </header>
 
-      {error && <div className="error-message">{error}</div>}
+      {error && <div className={styles.errorMessage}>{error}</div>}
 
-      <main className="app-main">
+      <main className={styles.appMain}>
         <WallpaperGrid
           wallpapers={localWallpapers}
           onSetWallpaper={handleSetWallpaper}

@@ -16,6 +16,10 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { createSafeUnlisten } from "../utils/eventListener";
 import { EVENTS } from "../config/ui";
+import { cn } from "../utils/cn";
+import styles from "./Settings.module.css";
+import modalStyles from "../styles/modal.module.css";
+import btnStyles from "../styles/buttons.module.css";
 
 interface SettingsProps {
   onClose: () => void;
@@ -244,25 +248,25 @@ export function Settings({
     );
 
   if (loading && !settings) {
-    return <div className="settings-loading">{t("settingsLoading")}</div>;
+    return <div className={modalStyles.loading}>{t("settingsLoading")}</div>;
   }
 
   return (
-    <div className="settings-overlay">
-      <div className="settings-modal">
-        <div className="settings-header">
-          <div className="settings-header-left">
+    <div className={modalStyles.overlay}>
+      <div className={modalStyles.modal}>
+        <div className={modalStyles.header}>
+          <div className={modalStyles.headerLeft}>
             <h2>{t("settingsTitle")}</h2>
-            {version && <span className="settings-version">v{version}</span>}
+            {version && <span className={styles.version}>v{version}</span>}
           </div>
-          <button onClick={onClose} className="btn-close">
+          <button onClick={onClose} className={btnStyles.btnClose}>
             ×
           </button>
         </div>
 
-        <div className="settings-body">
-          <div className="settings-section">
-            <label className="settings-label checkbox-label">
+        <div className={modalStyles.body}>
+          <div className={styles.section}>
+            <label className={cn(styles.label, styles.checkboxLabel)}>
               <input
                 type="checkbox"
                 checked={settings?.launch_at_startup ?? false}
@@ -274,8 +278,8 @@ export function Settings({
             </label>
           </div>
 
-          <div className="settings-section">
-            <label className="settings-label checkbox-label">
+          <div className={styles.section}>
+            <label className={cn(styles.label, styles.checkboxLabel)}>
               <input
                 type="checkbox"
                 checked={settings?.auto_update ?? true}
@@ -285,10 +289,10 @@ export function Settings({
             </label>
           </div>
 
-          <div className="settings-section">
-            <label className="settings-label">{t("theme")}:</label>
-            <div className="radio-group">
-              <label className="radio-option">
+          <div className={styles.section}>
+            <label className={styles.label}>{t("theme")}:</label>
+            <div className={styles.radioGroup}>
+              <label className={styles.radioOption}>
                 <input
                   type="radio"
                   name="theme"
@@ -300,7 +304,7 @@ export function Settings({
                 />
                 <span>{t("themeSystem")}</span>
               </label>
-              <label className="radio-option">
+              <label className={styles.radioOption}>
                 <input
                   type="radio"
                   name="theme"
@@ -312,7 +316,7 @@ export function Settings({
                 />
                 <span>{t("themeLight")}</span>
               </label>
-              <label className="radio-option">
+              <label className={styles.radioOption}>
                 <input
                   type="radio"
                   name="theme"
@@ -327,10 +331,10 @@ export function Settings({
             </div>
           </div>
 
-          <div className="settings-section">
-            <label className="settings-label">{t("language")}:</label>
-            <div className="radio-group">
-              <label className="radio-option">
+          <div className={styles.section}>
+            <label className={styles.label}>{t("language")}:</label>
+            <div className={styles.radioGroup}>
+              <label className={styles.radioOption}>
                 <input
                   type="radio"
                   name="language"
@@ -340,7 +344,7 @@ export function Settings({
                 />
                 <span>{t("languageAuto")}</span>
               </label>
-              <label className="radio-option">
+              <label className={styles.radioOption}>
                 <input
                   type="radio"
                   name="language"
@@ -350,7 +354,7 @@ export function Settings({
                 />
                 <span>{t("languageZhCN")}</span>
               </label>
-              <label className="radio-option">
+              <label className={styles.radioOption}>
                 <input
                   type="radio"
                   name="language"
@@ -363,18 +367,16 @@ export function Settings({
             </div>
           </div>
 
-          <div className="settings-section">
-            <label className="settings-label">
+          <div className={styles.section}>
+            <label className={styles.label}>
               {t("market")}:
-              <span className="settings-hint">{t("marketHint")}</span>
+              <span className={styles.hint}>{t("marketHint")}</span>
             </label>
             <select
-              className="settings-select"
+              className={styles.select}
               value={settings?.mkt ?? "zh-CN"}
               onChange={async (e) => {
-                // 先等待保存完成，再触发壁纸刷新，避免刷新时仍读到旧 mkt
                 await handleChange("mkt", e.target.value);
-                // mkt 变更后主动刷新 MarketStatus（清除旧的 mismatch 警告）
                 await fetchMarketStatus();
                 if (onLanguageChange) {
                   onLanguageChange();
@@ -395,14 +397,14 @@ export function Settings({
               ))}
             </select>
             {marketStatus?.is_mismatch && !dismissed && (
-              <div className="settings-mkt-warning">
+              <div className={styles.mktWarning}>
                 <span>
                   {t("marketMismatchWarning")
                     .replace("{actualMkt}", marketStatus.effective_mkt)
                     .replace("{requestedMkt}", marketStatus.requested_mkt)}
                 </span>
                 <button
-                  className="btn-dismiss"
+                  className={styles.btnDismiss}
                   onClick={() => setDismissed(true)}
                   aria-label="dismiss"
                 >
@@ -412,11 +414,11 @@ export function Settings({
             )}
           </div>
 
-          <div className="settings-section">
-            <div className="settings-label">{t("saveDirectory")}:</div>
-            <div className="settings-dir-row">
+          <div className={styles.section}>
+            <div className={styles.label}>{t("saveDirectory")}:</div>
+            <div className={styles.dirRow}>
               <div
-                className="settings-dir-info"
+                className={styles.dirInfo}
                 title={
                   settings?.save_directory ??
                   (defaultDir ? defaultDir : t("loading"))
@@ -427,7 +429,7 @@ export function Settings({
               </div>
               <button
                 onClick={handleSelectFolder}
-                className="btn btn-secondary btn-small"
+                className={cn(btnStyles.btn, btnStyles.btnSecondary, btnStyles.btnSmall)}
                 type="button"
               >
                 {t("selectFolder")}
@@ -437,7 +439,7 @@ export function Settings({
               settings.save_directory !== defaultDir && (
                 <button
                   onClick={() => handleChange("save_directory", null)}
-                  className="btn btn-link btn-small"
+                  className={cn(btnStyles.btn, btnStyles.btnLink, btnStyles.btnSmall)}
                   type="button"
                 >
                   {t("restoreDefault")}
@@ -445,15 +447,15 @@ export function Settings({
               )}
           </div>
 
-          <div className="settings-section">
-            <label className="settings-label">
+          <div className={styles.section}>
+            <label className={styles.label}>
               {t("importData")}:
-              <span className="settings-hint">{t("importDataHint")}</span>
+              <span className={styles.hint}>{t("importDataHint")}</span>
             </label>
-            <div className="settings-dir-row">
+            <div className={styles.dirRow}>
               <button
                 onClick={handleImport}
-                className="btn btn-secondary btn-small"
+                className={cn(btnStyles.btn, btnStyles.btnSecondary, btnStyles.btnSmall)}
                 type="button"
                 disabled={importing}
               >
@@ -464,8 +466,8 @@ export function Settings({
               <div
                 className={
                   importMessage.type === "success"
-                    ? "settings-transfer-success"
-                    : "settings-transfer-error"
+                    ? styles.transferSuccess
+                    : styles.transferError
                 }
               >
                 {importMessage.text}
@@ -473,15 +475,15 @@ export function Settings({
             )}
           </div>
 
-          <div className="settings-section">
-            <label className="settings-label">
+          <div className={styles.section}>
+            <label className={styles.label}>
               {t("exportData")}:
-              <span className="settings-hint">{t("exportDataHint")}</span>
+              <span className={styles.hint}>{t("exportDataHint")}</span>
             </label>
-            <div className="settings-dir-row">
+            <div className={styles.dirRow}>
               <button
                 onClick={handleExport}
-                className="btn btn-secondary btn-small"
+                className={cn(btnStyles.btn, btnStyles.btnSecondary, btnStyles.btnSmall)}
                 type="button"
                 disabled={exporting}
               >
@@ -492,8 +494,8 @@ export function Settings({
               <div
                 className={
                   exportMessage.type === "success"
-                    ? "settings-transfer-success"
-                    : "settings-transfer-error"
+                    ? styles.transferSuccess
+                    : styles.transferError
                 }
               >
                 {exportMessage.text}

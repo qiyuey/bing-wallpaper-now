@@ -164,7 +164,7 @@ describe("WallpaperCard", () => {
     // 文本是 "加载中..."（包含省略号）
     // 使用 within 限制搜索范围到占位符容器
     const placeholder = container.querySelector(
-      ".placeholder-loading-text",
+      "[data-testid='placeholder-loading']",
     ) as HTMLElement;
     expect(placeholder).toBeInTheDocument();
     expect(placeholder).toHaveTextContent(/加载中/i);
@@ -240,7 +240,7 @@ describe("WallpaperCard", () => {
     await waitFor(() => {
       // 检查占位符中的加载文本
       const placeholder = container.querySelector(
-        ".placeholder-loading-text",
+        "[data-testid='placeholder-loading']",
       ) as HTMLElement;
       const retryButtonAfter = screen.queryByRole("button", {
         name: /重新加载/i,
