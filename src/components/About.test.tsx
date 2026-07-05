@@ -53,15 +53,6 @@ describe("About", () => {
     expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
 
-  it("should call onClose when close button is clicked", () => {
-    renderWithI18n(<About onClose={mockOnClose} version={mockVersion} />);
-
-    const closeButton = screen.getByText("关闭");
-    fireEvent.click(closeButton);
-
-    expect(mockOnClose).toHaveBeenCalledTimes(1);
-  });
-
   it("should render with different version numbers", () => {
     const version2 = "2.5.3";
     const { rerender } = renderWithI18n(
@@ -111,12 +102,11 @@ describe("About", () => {
     const mockOnCloseSingle = vi.fn();
     renderWithI18n(<About onClose={mockOnCloseSingle} version={mockVersion} />);
 
-    const closeButton = screen.getByText("关闭");
+    const closeButton = screen.getByText("×");
     fireEvent.click(closeButton);
     fireEvent.click(closeButton);
     fireEvent.click(closeButton);
 
-    // Each click should trigger the callback
     expect(mockOnCloseSingle).toHaveBeenCalledTimes(3);
   });
 });
