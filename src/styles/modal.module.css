@@ -6,7 +6,6 @@
   bottom: 0;
   background: var(--overlay-bg);
   backdrop-filter: blur(24px) saturate(150%);
-  -webkit-backdrop-filter: blur(24px) saturate(150%);
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -29,7 +28,6 @@
   position: relative;
   background: var(--bg-modal);
   backdrop-filter: blur(60px) saturate(120%) brightness(1.1);
-  -webkit-backdrop-filter: blur(60px) saturate(120%) brightness(1.1);
   border: 0.5px solid var(--border-primary);
   border-radius: 20px;
   width: 90%;
@@ -46,7 +44,6 @@
 
 :root[data-theme="dark"] .modal {
   backdrop-filter: blur(60px) saturate(120%) brightness(0.8);
-  -webkit-backdrop-filter: blur(60px) saturate(120%) brightness(0.8);
 }
 
 @keyframes slideUp {
