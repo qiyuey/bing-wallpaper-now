@@ -59,15 +59,18 @@
   font-size: 1.25rem;
   font-weight: 800;
   letter-spacing: -0.4px;
-  background: linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--text-primary) 0%,
+    var(--text-secondary) 100%
+  );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   font-family:
-    -apple-system, BlinkMacSystemFont, "SF Pro Display",
-    "Segoe UI", "MiSans", "HarmonyOS Sans SC", "PingFang SC",
-    "Source Han Sans SC", "Noto Sans CJK SC",
-    "Microsoft YaHei", sans-serif;
+    -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", "MiSans",
+    "HarmonyOS Sans SC", "PingFang SC", "Source Han Sans SC",
+    "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
 }
 
 :root[data-theme="light"] .appTitleMain {
@@ -96,7 +99,7 @@
 }
 
 :root[data-theme="dark"] .appTitleAccent {
-  background: linear-gradient(135deg, #64d2ff 0%, #0A84FF 50%, #5e5ce6 100%);
+  background: linear-gradient(135deg, #64d2ff 0%, #0a84ff 50%, #5e5ce6 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

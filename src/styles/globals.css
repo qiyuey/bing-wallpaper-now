@@ -11,21 +11,10 @@ html {
 
 :root {
   font-family:
-    -apple-system,
-    BlinkMacSystemFont,
-    "SF Pro Text",
-    "SF Pro Display",
-    "Segoe UI",
-    "MiSans",
-    "HarmonyOS Sans SC",
-    "PingFang SC",
-    "Source Han Sans SC",
-    "Noto Sans CJK SC",
-    "Microsoft YaHei",
-    "Helvetica Neue",
-    sans-serif,
-    "Apple Color Emoji",
-    "Segoe UI Emoji";
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+    "Segoe UI", "MiSans", "HarmonyOS Sans SC", "PingFang SC",
+    "Source Han Sans SC", "Noto Sans CJK SC", "Microsoft YaHei",
+    "Helvetica Neue", sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
   font-size: 16px;
   line-height: 1.5;
   font-weight: 400;

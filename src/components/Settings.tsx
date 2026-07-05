@@ -380,7 +380,11 @@ export function Settings({
               </div>
               <button
                 onClick={handleSelectFolder}
-                className={cn(btnStyles.btn, btnStyles.btnSecondary, btnStyles.btnSmall)}
+                className={cn(
+                  btnStyles.btn,
+                  btnStyles.btnSecondary,
+                  btnStyles.btnSmall,
+                )}
                 type="button"
               >
                 {t("selectFolder")}
@@ -390,7 +394,11 @@ export function Settings({
               settings.save_directory !== defaultDir && (
                 <button
                   onClick={() => handleChange("save_directory", null)}
-                  className={cn(btnStyles.btn, btnStyles.btnLink, btnStyles.btnSmall)}
+                  className={cn(
+                    btnStyles.btn,
+                    btnStyles.btnLink,
+                    btnStyles.btnSmall,
+                  )}
                   type="button"
                 >
                   {t("restoreDefault")}
@@ -406,7 +414,11 @@ export function Settings({
             <div className={styles.dirRow}>
               <button
                 onClick={handleImport}
-                className={cn(btnStyles.btn, btnStyles.btnSecondary, btnStyles.btnSmall)}
+                className={cn(
+                  btnStyles.btn,
+                  btnStyles.btnSecondary,
+                  btnStyles.btnSmall,
+                )}
                 type="button"
                 disabled={importing}
               >
@@ -434,7 +446,11 @@ export function Settings({
             <div className={styles.dirRow}>
               <button
                 onClick={handleExport}
-                className={cn(btnStyles.btn, btnStyles.btnSecondary, btnStyles.btnSmall)}
+                className={cn(
+                  btnStyles.btn,
+                  btnStyles.btnSecondary,
+                  btnStyles.btnSmall,
+                )}
                 type="button"
                 disabled={exporting}
               >

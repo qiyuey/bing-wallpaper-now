@@ -4,8 +4,8 @@
   --glass-tint: rgba(255, 255, 255, 0.72);
   --glass-border-opacity: 0.5;
   --glass-radius: 18px;
-  --glass-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.08),
-    0 1px 3px rgba(0, 0, 0, 0.04);
+  --glass-shadow:
+    0 4px 20px -2px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
 
   position: relative;
   border-radius: var(--glass-radius);
@@ -42,8 +42,7 @@
   --glass-tint: rgba(255, 255, 255, 0.42);
   --glass-radius: 16px;
   --glass-border-opacity: 0.4;
-  --glass-shadow: 0 2px 12px rgba(0, 0, 0, 0.06),
-    0 1px 3px rgba(0, 0, 0, 0.03);
+  --glass-shadow: 0 2px 12px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.03);
 }
 
 .button {
@@ -61,8 +60,8 @@
   --glass-tint: rgba(255, 255, 255, 0.52);
   --glass-radius: 20px;
   --glass-border-opacity: 0.3;
-  --glass-shadow: 0 12px 40px -8px rgba(0, 0, 0, 0.12),
-    0 4px 12px rgba(0, 0, 0, 0.06);
+  --glass-shadow:
+    0 12px 40px -8px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.06);
 }
 
 .control {

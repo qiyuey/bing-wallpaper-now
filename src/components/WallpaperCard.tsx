@@ -151,15 +151,27 @@ export const WallpaperCard = memo(
         >
           {imageError ? (
             <div className={styles.imagePlaceholder}>
-              <p className={styles.placeholderErrorText}>{t("imageLoadError")}</p>
-              <p className={styles.placeholderHintText}>{t("imageLoadErrorHint")}</p>
+              <p className={styles.placeholderErrorText}>
+                {t("imageLoadError")}
+              </p>
+              <p className={styles.placeholderHintText}>
+                {t("imageLoadErrorHint")}
+              </p>
             </div>
           ) : (
             <>
               {imageLoading && (
                 <div className={styles.imagePlaceholder}>
-                  <div className={spinnerStyles.spinner} data-testid="spinner"></div>
-                  <p className={styles.placeholderLoadingText} data-testid="placeholder-loading">{t("loading")}</p>
+                  <div
+                    className={spinnerStyles.spinner}
+                    data-testid="spinner"
+                  ></div>
+                  <p
+                    className={styles.placeholderLoadingText}
+                    data-testid="placeholder-loading"
+                  >
+                    {t("loading")}
+                  </p>
                 </div>
               )}
               {imageUrl && (

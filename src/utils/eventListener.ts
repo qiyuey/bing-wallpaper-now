@@ -30,12 +30,9 @@ export function createSafeUnlisten(unlisten: () => void): () => void {
       // These occur when the event system is in an inconsistent state
       const errorMessage =
         error instanceof Error ? error.message : String(error);
-      if (
-        !(
-          errorMessage.includes("listeners") &&
-          errorMessage.includes("handlerId")
-        )
-      ) {
+      if (!(
+        errorMessage.includes("listeners") && errorMessage.includes("handlerId")
+      )) {
         // Re-throw unexpected errors
         throw error;
       }

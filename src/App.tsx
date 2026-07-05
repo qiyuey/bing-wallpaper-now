@@ -1,4 +1,11 @@
-import { useState, useEffect, useCallback, useRef, useMemo, type CSSProperties } from "react";
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useMemo,
+  type CSSProperties,
+} from "react";
 import { useBingWallpapers } from "./hooks/useBingWallpapers";
 import { WallpaperGrid } from "./components/WallpaperGrid";
 import { Settings } from "./components/Settings";
@@ -172,7 +179,13 @@ function App() {
 
   return (
     <div className={styles.app} style={ambientBgStyle}>
-      <header className={cn(styles.appHeader, glassStyles.liquidGlass, glassStyles.nav)}>
+      <header
+        className={cn(
+          styles.appHeader,
+          glassStyles.liquidGlass,
+          glassStyles.nav,
+        )}
+      >
         <div className={styles.titleGroup}>
           <h1 className={styles.appTitle}>
             <span className={styles.appTitleMain}>{t("appTitle")}</span>

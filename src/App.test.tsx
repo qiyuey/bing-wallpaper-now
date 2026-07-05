@@ -1098,8 +1098,7 @@ describe("App", () => {
       vi.mocked(check).mockResolvedValue(mockUpdate);
 
       let trayCheckUpdatesCallback:
-        | ((event: Event<unknown>) => void)
-        | undefined;
+        ((event: Event<unknown>) => void) | undefined;
 
       vi.mocked(listen).mockImplementation(
         (event: string, callback: (event: Event<unknown>) => void) => {
@@ -1177,8 +1176,7 @@ describe("App", () => {
       vi.mocked(check).mockResolvedValue(mockUpdate);
 
       let trayCheckUpdatesCallback:
-        | ((event: Event<unknown>) => void)
-        | undefined;
+        ((event: Event<unknown>) => void) | undefined;
 
       vi.mocked(listen).mockImplementation(
         (event: string, callback: (event: Event<unknown>) => void) => {
@@ -1244,8 +1242,7 @@ describe("App", () => {
       vi.mocked(check).mockResolvedValue(null);
 
       let trayCheckUpdatesCallback:
-        | ((event: Event<unknown>) => void)
-        | undefined;
+        ((event: Event<unknown>) => void) | undefined;
 
       vi.mocked(listen).mockImplementation(
         (event: string, callback: (event: Event<unknown>) => void) => {

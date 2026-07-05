@@ -73,10 +73,7 @@ function Row({
   return (
     <div style={rowStyle} className={styles.row}>
       {rowWallpapers.map((wallpaper) => (
-        <div
-          key={`${wallpaper.end_date}-${index}`}
-          className={styles.rowItem}
-        >
+        <div key={`${wallpaper.end_date}-${index}`} className={styles.rowItem}>
           <WallpaperCard
             wallpaper={wallpaper}
             onSetWallpaper={onSetWallpaper}

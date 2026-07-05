@@ -97,9 +97,7 @@ describe("About", () => {
   });
 
   it("should have semantic class names for content sections", () => {
-    renderWithI18n(
-      <About onClose={mockOnClose} version={mockVersion} />,
-    );
+    renderWithI18n(<About onClose={mockOnClose} version={mockVersion} />);
 
     // Verify content presence via text instead of hashed class selectors
     expect(screen.getByText("Bing Wallpaper Now")).toBeInTheDocument();

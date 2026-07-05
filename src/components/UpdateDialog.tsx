@@ -153,7 +153,8 @@ export function UpdateDialog({
                   <div
                     className={cn(
                       styles.progressFill,
-                      progressPercent == null && styles.progressFillIndeterminate,
+                      progressPercent == null &&
+                        styles.progressFillIndeterminate,
                     )}
                     style={{
                       width:
@@ -175,7 +176,11 @@ export function UpdateDialog({
             {downloading ? (
               <button
                 onClick={handleCancelDownload}
-                className={cn(btnStyles.btn, btnStyles.btnSecondary, btnStyles.btnSmall)}
+                className={cn(
+                  btnStyles.btn,
+                  btnStyles.btnSecondary,
+                  btnStyles.btnSmall,
+                )}
                 type="button"
                 disabled={downloadComplete}
               >
@@ -184,7 +189,11 @@ export function UpdateDialog({
             ) : (
               <button
                 onClick={handleIgnore}
-                className={cn(btnStyles.btn, btnStyles.btnSecondary, btnStyles.btnSmall)}
+                className={cn(
+                  btnStyles.btn,
+                  btnStyles.btnSecondary,
+                  btnStyles.btnSmall,
+                )}
                 type="button"
               >
                 {t("ignoreThisVersion")}
@@ -192,7 +201,11 @@ export function UpdateDialog({
             )}
             <button
               onClick={handleViewRelease}
-              className={cn(btnStyles.btn, btnStyles.btnSecondary, btnStyles.btnSmall)}
+              className={cn(
+                btnStyles.btn,
+                btnStyles.btnSecondary,
+                btnStyles.btnSmall,
+              )}
               type="button"
               disabled={downloading}
             >
@@ -200,7 +213,11 @@ export function UpdateDialog({
             </button>
             <button
               onClick={handleDownloadAndInstall}
-              className={cn(btnStyles.btn, btnStyles.btnPrimary, btnStyles.btnSmall)}
+              className={cn(
+                btnStyles.btn,
+                btnStyles.btnPrimary,
+                btnStyles.btnSmall,
+              )}
               type="button"
               disabled={downloading}
             >
