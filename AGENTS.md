@@ -84,16 +84,30 @@ make clean-all              # Deep clean (including Rust target)
 bing-wallpaper-now/
 ├── src/                              # Frontend (React + TypeScript)
 │   ├── App.tsx                      # Main app component
-│   ├── App.css                      # App styles
+│   ├── App.module.css               # App-level layout styles (CSS Module)
+│   ├── css-modules.d.ts             # TypeScript declaration for *.module.css
 │   ├── main.tsx                     # App entry point
+│   ├── theme.css                    # Design tokens (CSS custom properties, light/dark)
+│   ├── styles/                      # Shared style modules
+│   │   ├── globals.css              # Global reset/font (non-module)
+│   │   ├── buttons.module.css       # Shared button system
+│   │   ├── modal.module.css         # Shared modal overlay/structure
+│   │   ├── spinner.module.css       # Shared loading spinner
+│   │   └── liquid-glass.module.css  # Glass effect system (unused by cards currently)
 │   ├── components/                  # React components
 │   │   ├── Settings.tsx             # Settings dialog
+│   │   ├── Settings.module.css
 │   │   ├── WallpaperCard.tsx        # Wallpaper display card
+│   │   ├── WallpaperCard.module.css
 │   │   ├── WallpaperGrid.tsx        # Virtual-scrolled wallpaper grid
+│   │   ├── WallpaperGrid.module.css
 │   │   ├── UpdateDialog.tsx         # App update dialog
-│   │   └── About.tsx               # About dialog
+│   │   ├── UpdateDialog.module.css
+│   │   ├── About.tsx               # About dialog
+│   │   └── About.module.css
 │   ├── hooks/                       # Custom React hooks
 │   │   ├── useBingWallpapers.ts     # Wallpaper data fetching
+│   │   ├── useLiquidGlass.ts        # Mouse-tracking glass angle effect
 │   │   ├── useSettings.ts          # Settings management
 │   │   ├── useTrayEvents.ts        # System tray event integration
 │   │   ├── useUpdateCheck.ts       # App update checking
@@ -108,6 +122,7 @@ bing-wallpaper-now/
 │   │   ├── I18nContext.tsx          # I18n context provider
 │   │   └── translations.ts         # zh-CN / en-US translation strings
 │   ├── utils/                       # Utility functions
+│   │   ├── cn.ts                   # className concatenation helper
 │   │   ├── eventListener.ts        # Tauri event listener helpers
 │   │   ├── notification.ts         # System notification helpers
 │   │   └── transferHelpers.ts      # Import/export data helpers
@@ -181,6 +196,15 @@ bing-wallpaper-now/
   - Components: PascalCase (`WallpaperCard.tsx`)
   - Hooks: camelCase with "use" prefix (`useBingWallpapers.ts`)
   - Files: Match component/hook name
+- **CSS Architecture**: CSS Modules for style isolation
+  - Design tokens in `src/theme.css` (CSS custom properties, light/dark via `data-theme` attribute)
+  - Global reset/font in `src/styles/globals.css` (non-module)
+  - Shared styles in `src/styles/*.module.css` (buttons, modal, spinner, liquid-glass)
+  - Component styles co-located as `ComponentName.module.css`
+  - Use `cn()` helper from `src/utils/cn.ts` to combine class names
+  - Class names in modules use camelCase (`btnPrimary`, `gridEmpty`)
+  - Theme overrides use `:root[data-theme="dark"] .className` (works in CSS Modules)
+  - Avoid inline styles; put layout values in CSS classes or design tokens
 - **React**: Functional components only, use hooks for state management, React 19+ (no need to import React in JSX files)
 - **ESLint rules**: Unused vars warn (except with `_` prefix), `any` type warn,
   console warn (allow `console.warn` and `console.error`), React Hooks enforce
