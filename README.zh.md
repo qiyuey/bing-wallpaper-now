@@ -15,7 +15,7 @@
 
 从 [GitHub Releases](https://github.com/qiyuey/bing-wallpaper-now/releases) 下载最新版本：
 
-- **Windows**: `.msi` 安装包或 `.exe` 便携版本
+- **Windows**: `.msi` 安装包
 - **macOS Apple Silicon**: `.dmg` 磁盘镜像
 
 ### macOS 通过 Homebrew 安装

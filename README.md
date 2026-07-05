@@ -17,7 +17,7 @@ A cross-platform desktop app to automatically fetch and set Bing's daily beautif
 
 Get the latest version from [GitHub Releases](https://github.com/qiyuey/bing-wallpaper-now/releases):
 
-- **Windows**: `.msi` installer or `.exe` portable
+- **Windows**: `.msi` installer
 - **macOS Apple Silicon**: `.dmg` disk image
 
 ### macOS via Homebrew
