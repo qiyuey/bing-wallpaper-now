@@ -5,39 +5,41 @@
   background: transparent;
   overflow: hidden;
   position: relative;
+  isolation: isolate;
 }
 
 .app::before {
   content: "";
   position: absolute;
-  inset: -20px;
+  inset: -40px;
   z-index: -1;
   background-image: var(--ambient-bg);
   background-size: cover;
   background-position: center;
-  filter: blur(24px) saturate(1.4) brightness(0.95);
+  filter: blur(36px) saturate(1.3);
   pointer-events: none;
 }
 
 :root[data-theme="dark"] .app::before {
-  filter: blur(24px) saturate(1.2) brightness(0.6);
+  filter: blur(36px) saturate(1.2) brightness(0.5);
 }
 
 .appHeader {
   position: relative;
   z-index: 10;
-  padding: 1.25rem 2.5rem 0.5rem;
+  padding: 0.625rem 1rem;
+  margin: 0.75rem calc(var(--card-gap) * 1.5) 0.75rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
   min-width: 0;
-  background: transparent;
 }
 
 .titleGroup {
   display: flex;
-  flex-direction: column;
+  align-items: baseline;
+  gap: 0.5rem;
   min-width: 0;
   flex-shrink: 1;
 }
@@ -45,170 +47,103 @@
 .appTitle {
   display: flex;
   align-items: baseline;
-  gap: 0.5rem;
+  gap: 0.375rem;
   line-height: 1.3;
-  padding: 0.2rem 0;
   white-space: nowrap;
   min-width: 0;
   margin: 0;
+  flex-shrink: 0;
 }
 
 .appTitleMain {
-  font-size: clamp(1.75rem, 4vw, 2.125rem);
-  font-weight: 900;
-  font-variation-settings: "wght" 900;
+  font-size: 1.25rem;
+  font-weight: 800;
   letter-spacing: -0.4px;
-  opacity: 1;
-  font-family:
-    -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
-    "SF Pro Rounded", "Helvetica Neue", "Segoe UI", "Roboto", "MiSans Heavy",
-    "MiSans Bold", "MiSans", "HarmonyOS Sans SC", "PingFang SC",
-    "Hiragino Sans GB", "Source Han Sans SC", "Noto Sans CJK SC",
-    "Microsoft YaHei", sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-  font-feature-settings:
-    "kern" 1,
-    "liga" 1,
-    "clig" 1;
-  font-kerning: normal;
-  font-synthesis: weight;
-  background: linear-gradient(
-    135deg,
-    var(--text-primary) 0%,
-    var(--text-secondary) 100%
-  );
+  background: linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  -webkit-text-stroke: 0.35px rgba(15, 23, 42, 0.35);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "SF Pro Display",
+    "Segoe UI", "MiSans", "HarmonyOS Sans SC", "PingFang SC",
+    "Source Han Sans SC", "Noto Sans CJK SC",
+    "Microsoft YaHei", sans-serif;
 }
 
 :root[data-theme="light"] .appTitleMain {
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+  background: linear-gradient(135deg, #1d1d1f 0%, #3a3a3c 50%, #636366 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  -webkit-text-stroke: 0.4px rgba(15, 23, 42, 0.35);
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.15))
-    drop-shadow(0 2px 6px rgba(0, 0, 0, 0.12))
-    drop-shadow(0 0 8px rgba(255, 255, 255, 0.4));
 }
 
 :root[data-theme="dark"] .appTitleMain {
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 1) 0%,
-    rgba(255, 255, 255, 0.95) 50%,
-    rgba(255, 255, 255, 0.9) 100%
-  );
+  background: linear-gradient(135deg, #f5f5f7 0%, #d1d1d6 50%, #aeaeb2 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.25))
-    drop-shadow(0 2px 6px rgba(0, 0, 0, 0.2))
-    drop-shadow(0 0 10px rgba(255, 255, 255, 0.15));
-  -webkit-text-stroke: 0.35px rgba(0, 0, 0, 0.25);
 }
 
 .appTitleAccent {
-  font-size: clamp(1.75rem, 4vw, 2.125rem);
-  font-family:
-    -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Rounded",
-    "Helvetica Neue", "Segoe UI", "Roboto", "MiSans Heavy", "MiSans Bold",
-    "MiSans", "HarmonyOS Sans SC", "PingFang SC", "Source Han Sans SC Bold",
-    "Source Han Sans SC", "Noto Sans CJK SC Bold", "Noto Sans CJK SC",
-    "Microsoft YaHei", "Microsoft YaHei UI", sans-serif;
-  font-weight: 900;
-  font-variation-settings: "wght" 900;
+  font-size: 1.25rem;
+  font-weight: 800;
   letter-spacing: -0.4px;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-  font-feature-settings:
-    "kern" 1,
-    "liga" 1,
-    "clig" 1;
-  font-kerning: normal;
-  font-synthesis: weight;
-  opacity: 1;
-  background: linear-gradient(
-    135deg,
-    var(--accent-color) 0%,
-    var(--accent-active) 100%
-  );
+  background: linear-gradient(135deg, var(--accent-color) 0%, #5856d6 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  -webkit-text-stroke: 0.2px rgba(99, 102, 241, 0.2);
-  filter: drop-shadow(0 1px 2px rgba(99, 102, 241, 0.25));
-}
-
-:root[data-theme="light"] .appTitleAccent {
-  background: linear-gradient(135deg, #6366f1 0%, #5a5df6 50%, #4f46e5 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  -webkit-text-stroke: 0.2px rgba(99, 102, 241, 0.2);
-  filter: drop-shadow(0 1px 2px rgba(79, 70, 229, 0.2));
+  font-family: inherit;
 }
 
 :root[data-theme="dark"] .appTitleAccent {
-  background: linear-gradient(135deg, #a5b4fc 0%, #818cf8 50%, #6366f1 100%);
+  background: linear-gradient(135deg, #64d2ff 0%, #0A84FF 50%, #5e5ce6 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  -webkit-text-stroke: 0.2px rgba(129, 140, 248, 0.2);
-  filter: drop-shadow(0 1px 2px rgba(129, 140, 248, 0.25));
 }
 
 .headerActions {
   display: flex;
-  gap: 0.625rem;
+  gap: 0.5rem;
   align-items: center;
   flex-shrink: 0;
 }
 
 .lastUpdate {
   margin: 0;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   font-weight: 400;
   color: var(--text-tertiary);
-  letter-spacing: 0.4px;
-  opacity: 0.7;
+  letter-spacing: 0.2px;
   white-space: nowrap;
-  transition: opacity 0.5s ease-in-out;
+  margin-left: 0.75rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-:root[data-theme="light"] .lastUpdate {
-  opacity: 0.88;
-  font-weight: 500;
-}
-
-:root[data-theme="dark"] .lastUpdate {
-  opacity: 0.7;
+@media (max-width: 600px) {
+  .lastUpdate {
+    display: none;
+  }
 }
 
 .appMain {
   flex: 1;
-  padding: 0;
+  padding-top: 0.5rem;
   overflow: hidden;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  background: transparent;
 }
 
 .errorMessage {
-  background: var(--bg-glass);
-  backdrop-filter: var(--blur-medium);
-  -webkit-backdrop-filter: var(--blur-medium);
+  background: var(--bg-card);
   color: var(--text-primary);
-  padding: 1.25rem 1.5rem;
-  margin: 0 2.5rem;
-  border-radius: 16px;
-  border: 0.5px solid var(--error-border);
-  box-shadow: var(--shadow-md);
+  padding: 1rem 1.25rem;
+  margin: 0.75rem 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--error-border);
+  box-shadow: var(--shadow-sm);
   font-weight: 500;
+  font-size: 0.875rem;
 }

@@ -1,316 +1,191 @@
 /* ============================================================================
-   Theme System with CSS Variables
-   主题系统 - 浅色/深色模式切换
+   Theme System — Liquid Glass Redesign
    ============================================================================ */
 
 :root {
-  /* 默认渐变背景 */
-  --bg-gradient: linear-gradient(135deg, #a0b0ff 0%, #c8b0e8 50%, #ffb0dd 100%);
+  --bg-gradient: #e8e8ed;
 
-  /* 主题切换过渡动画 */
   --theme-transition:
-    background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+    background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease,
+    box-shadow 0.3s ease;
 
-  /* ============================================================================
-     Layout & Spacing Variables
-     布局和间距变量
-     ============================================================================ */
-
-  /* 响应式断点 */
+  /* Layout & Spacing */
   --breakpoint-narrow: 750px;
   --breakpoint-tablet: 1024px;
   --breakpoint-desktop: 1400px;
 
-  /* 卡片尺寸 */
   --card-image-height: 240px;
+  --card-gap: 1rem;
+  --card-padding-x: 1rem;
+  --card-padding-y: 0.875rem;
+  --card-info-padding-x: 1rem;
+  --card-info-padding-y: 0.75rem;
+  --card-actions-padding-x: 1rem;
+  --card-actions-padding-y: 1rem;
 
-  /* 卡片间距 - 列间距 / 行间距 / 容器左右内边距共用同一变量
-     所有断点统一为 16px，唯一变化的是列数。
-     在 react-window v2 的虚拟列表中，行间距由 .wallpaper-row 的 padding-bottom
-     提供（绝对定位下 margin 不生效），所以直接复用此变量保证四向统一。 */
-  --card-gap: 1rem; /* 16px */
-
-  /* 卡片内边距 */
-  --card-padding-x: 1.5rem;
-  --card-padding-y: 1.25rem;
-  --card-info-padding-x: 1.5rem;
-  --card-info-padding-y: 0.625rem;
-  --card-actions-padding-x: 1.5rem;
-  --card-actions-padding-y: 1.5rem;
-
-  /* 卡片内容高度 */
-  --card-title-font-size: 1.125rem;
-  --card-title-line-height: 1.3;
-  --card-title-margin-bottom: 0.375rem;
+  --card-title-font-size: 0.9375rem;
+  --card-title-line-height: 1.4;
+  --card-title-margin-bottom: 0.25rem;
   --card-subtitle-font-size: 0.8125rem;
-  --card-button-height: 38px;
+  --card-button-height: 36px;
 
-  /* 网格容器左右内边距已统一到 --card-gap，无需独立变量 */
-
-  /* 虚拟列表行高（通过 JS 计算，这里作为后备值） */
-  --virtual-list-row-height: 409px;
-
-  /* 滚动条宽度 */
-  --scrollbar-width: 8px;
+  --virtual-list-row-height: 380px;
+  --scrollbar-width: 6px;
+  --nav-height: 56px;
 }
 
-/* 系统深色模式偏好 */
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg-gradient: linear-gradient(
-      135deg,
-      #2d2d44 0%,
-      #2a3a5a 50%,
-      #1e4a7a 100%
-    );
+    --bg-gradient: #0a0a0a;
   }
 }
 
 /* ============================================================================
-   Light Theme - 浅色模式
+   Light Theme
    ============================================================================ */
 :root[data-theme="light"] {
-  /* 页面渐变背景 */
-  --bg-gradient: linear-gradient(135deg, #ff8ccc 0%, #aa7bf3 58%, #7c8cff 100%);
+  --bg-gradient: #f0f0f2;
 
-  /* 卡片玻璃态背景 */
-  --bg-glass: rgba(255, 255, 255, 0.58);
+  /* Card - translucent glass */
+  --bg-card: rgba(255, 255, 255, 0.42);
+  --bg-card-hover: rgba(255, 255, 255, 0.52);
 
-  /* 按钮激活状态背景 */
-  --bg-glass-hover: rgba(255, 255, 255, 0.9);
+  /* Glass - nav bar and modal shell only */
+  --bg-glass: rgba(255, 255, 255, 0.48);
+  --bg-glass-hover: rgba(255, 255, 255, 0.62);
 
-  /* 输入框、下拉框等控件背景 */
-  --bg-control: rgba(255, 255, 255, 0.25);
+  /* Controls */
+  --bg-control: rgba(120, 120, 128, 0.08);
+  --bg-control-hover: rgba(120, 120, 128, 0.14);
 
-  /* 控件聚焦/hover 背景 */
-  --bg-control-hover: rgba(255, 255, 255, 0.78);
+  /* Modal - Mica-like: high opacity with tinted wallpaper bleed */
+  --bg-modal: rgba(255, 255, 255, 0.65);
 
-  /* 设置模态框背景 */
-  --bg-modal: rgba(255, 255, 255, 0.58);
+  /* Buttons */
+  --bg-button: rgba(120, 120, 128, 0.08);
+  --bg-button-hover: rgba(120, 120, 128, 0.14);
+  --bg-button-header: rgba(255, 255, 255, 0.4);
+  --bg-button-header-hover: rgba(255, 255, 255, 0.6);
 
-  /* 卡片按钮未选中背景 */
-  --bg-button: rgba(255, 255, 255, 0.25);
+  /* Text — darker for readability */
+  --text-primary: #1a1a1c;
+  --text-secondary: #48484a;
+  --text-tertiary: #6e6e73;
+  --text-disabled: #aeaeb2;
 
-  /* 卡片按钮选中背景 */
-  --bg-button-hover: rgba(255, 255, 255, 1);
+  /* Accent - Apple Blue */
+  --accent-color: #007AFF;
+  --accent-hover: #0066d6;
+  --accent-active: #004eaa;
 
-  /* 头部按钮未选中背景 */
-  --bg-button-header: rgba(255, 255, 255, 0.7);
+  /* Status */
+  --success-color: #34c759;
+  --success-bg: #e8faf0;
+  --success-border: #34c759;
+  --error-color: #ff3b30;
+  --error-bg: #fff0ef;
+  --error-border: #ff3b30;
+  --warning-color: #ff9500;
+  --warning-bg: #fff8ec;
+  --warning-border: #ff9500;
 
-  /* 头部按钮选中背景 */
-  --bg-button-header-hover: rgba(255, 255, 255, 0.92);
+  /* Overlay */
+  --overlay-bg: rgba(0, 0, 0, 0.4);
 
-  /* 主要文字颜色 */
-  --text-primary: #000000;
+  /* Skeleton */
+  --skeleton-base: rgba(120, 120, 128, 0.08);
+  --skeleton-shimmer: rgba(120, 120, 128, 0.14);
 
-  /* 次要文字颜色 */
-  --text-secondary: rgba(37, 42, 59, 0.78);
+  /* Borders */
+  --border-primary: rgba(0, 0, 0, 0.06);
+  --border-secondary: rgba(0, 0, 0, 0.04);
+  --border-hover: rgba(0, 0, 0, 0.1);
 
-  /* 三级文字颜色 */
-  --text-tertiary: rgba(37, 42, 59, 0.58);
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.04);
+  --shadow-xl: 0 12px 40px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.06);
 
-  /* 禁用文字颜色 */
-  --text-disabled: rgba(37, 42, 59, 0.38);
-
-  /* 主强调色 */
-  --accent-color: #6366f1;
-
-  /* 强调色 hover */
-  --accent-hover: #4f46e5;
-
-  /* 强调色 active */
-  --accent-active: #4338ca;
-
-  /* 成功状态文字色 */
-  --success-color: #16a34a;
-
-  /* 成功状态背景色 */
-  --success-bg: #dcfce7;
-
-  /* 成功状态边框色 */
-  --success-border: #16a34a;
-
-  /* 错误状态文字色 */
-  --error-color: #dc2626;
-
-  /* 错误状态背景色 */
-  --error-bg: #fef2f2;
-
-  /* 错误状态边框色 */
-  --error-border: #ef4444;
-
-  /* 警告状态文字色 */
-  --warning-color: #ea580c;
-
-  /* 警告状态背景色 */
-  --warning-bg: #fff7ed;
-
-  /* 警告状态边框色 */
-  --warning-border: #f97316;
-
-  /* 模态框遮罩层 */
-  --overlay-bg: rgba(0, 0, 0, 0.5);
-
-  /* 骨架屏基础色 */
-  --skeleton-base: rgba(37, 42, 59, 0.08);
-
-  /* 骨架屏闪烁色 */
-  --skeleton-shimmer: rgba(37, 42, 59, 0.15);
-
-  /* 主边框 */
-  --border-primary: rgba(37, 42, 59, 0.18);
-
-  /* 次边框 */
-  --border-secondary: rgba(37, 42, 59, 0.12);
-
-  /* hover 边框 */
-  --border-hover: rgba(37, 42, 59, 0.28);
-
-  /* 小阴影 - 按钮、小卡片 */
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.1);
-
-  /* 中等阴影 - 一般卡片 */
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.12);
-
-  /* 大阴影 - 悬浮卡片 */
-  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.15);
-
-  /* 超大阴影 - 模态框 */
-  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.18);
-
-  /* 轻度背景模糊 */
+  /* Blur */
   --blur-light: blur(20px) saturate(180%);
-
-  /* 中度背景模糊 */
-  --blur-medium: blur(40px) saturate(180%);
-
-  /* 重度背景模糊 */
-  --blur-heavy: blur(60px) saturate(180%);
+  --blur-medium: blur(30px) saturate(180%);
+  --blur-heavy: blur(40px) saturate(180%);
 }
 
 /* ============================================================================
-   Dark Theme - 深色模式
+   Dark Theme
    ============================================================================ */
 :root[data-theme="dark"] {
-  /* 页面渐变背景 */
-  --bg-gradient: linear-gradient(135deg, #2d2d44 0%, #2a3a5a 55%, #1a5a8a 100%);
+  --bg-gradient: #0a0a0a;
 
-  /* 卡片玻璃态背景 */
-  --bg-glass: rgba(55, 55, 75, 0.98);
+  /* Card - translucent */
+  --bg-card: rgba(44, 44, 46, 0.45);
+  --bg-card-hover: rgba(58, 58, 60, 0.55);
 
-  /* 按钮激活状态背景 */
-  --bg-glass-hover: rgba(75, 75, 95, 0.98);
+  /* Glass */
+  --bg-glass: rgba(44, 44, 46, 0.5);
+  --bg-glass-hover: rgba(58, 58, 60, 0.6);
 
-  /* 输入框、下拉框等控件背景 */
-  --bg-control: rgba(255, 255, 255, 0.15);
+  /* Controls */
+  --bg-control: rgba(120, 120, 128, 0.18);
+  --bg-control-hover: rgba(120, 120, 128, 0.26);
 
-  /* 控件聚焦/hover 背景 */
-  --bg-control-hover: rgba(255, 255, 255, 0.22);
+  /* Modal */
+  --bg-modal: rgba(28, 28, 30, 0.65);
 
-  /* 设置模态框背景 */
-  --bg-modal: rgba(30, 30, 40, 0.98);
+  /* Buttons */
+  --bg-button: rgba(120, 120, 128, 0.18);
+  --bg-button-hover: rgba(120, 120, 128, 0.28);
+  --bg-button-header: rgba(255, 255, 255, 0.1);
+  --bg-button-header-hover: rgba(255, 255, 255, 0.18);
 
-  /* 卡片按钮未选中背景 */
-  --bg-button: rgba(255, 255, 255, 0.04);
+  /* Text */
+  --text-primary: #f5f5f7;
+  --text-secondary: #98989d;
+  --text-tertiary: #636366;
+  --text-disabled: #48484a;
 
-  /* 卡片按钮选中背景 */
-  --bg-button-hover: rgba(255, 255, 255, 0.12);
+  /* Accent */
+  --accent-color: #0A84FF;
+  --accent-hover: #409cff;
+  --accent-active: #64b5f6;
 
-  /* 头部按钮未选中背景 */
-  --bg-button-header: rgba(255, 255, 255, 0.18);
+  /* Status */
+  --success-color: #30d158;
+  --success-bg: rgba(48, 209, 88, 0.12);
+  --success-border: #30d158;
+  --error-color: #ff453a;
+  --error-bg: rgba(255, 69, 58, 0.12);
+  --error-border: #ff453a;
+  --warning-color: #ff9f0a;
+  --warning-bg: rgba(255, 159, 10, 0.12);
+  --warning-border: #ff9f0a;
 
-  /* 头部按钮选中背景 */
-  --bg-button-header-hover: rgba(255, 255, 255, 0.28);
+  /* Overlay */
+  --overlay-bg: rgba(0, 0, 0, 0.5);
 
-  /* 主要文字颜色 */
-  --text-primary: rgba(255, 255, 255, 0.85);
+  /* Skeleton */
+  --skeleton-base: rgba(120, 120, 128, 0.12);
+  --skeleton-shimmer: rgba(120, 120, 128, 0.2);
 
-  /* 次要文字颜色 */
-  --text-secondary: rgba(255, 255, 255, 0.68);
+  /* Borders */
+  --border-primary: rgba(255, 255, 255, 0.08);
+  --border-secondary: rgba(255, 255, 255, 0.05);
+  --border-hover: rgba(255, 255, 255, 0.15);
 
-  /* 三级文字颜色 */
-  --text-tertiary: rgba(255, 255, 255, 0.52);
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0, 0, 0, 0.15);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.25), 0 1px 3px rgba(0, 0, 0, 0.15);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.3), 0 2px 4px rgba(0, 0, 0, 0.2);
+  --shadow-xl: 0 12px 40px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.25);
 
-  /* 禁用文字颜色 */
-  --text-disabled: rgba(255, 255, 255, 0.38);
-
-  /* 主强调色 */
-  --accent-color: #818cf8;
-
-  /* 强调色 hover */
-  --accent-hover: #a5b4fc;
-
-  /* 强调色 active */
-  --accent-active: #c7d2fe;
-
-  /* 成功状态文字色 */
-  --success-color: #22c55e;
-
-  /* 成功状态背景色 */
-  --success-bg: rgba(34, 197, 94, 0.15);
-
-  /* 成功状态边框色 */
-  --success-border: #22c55e;
-
-  /* 错误状态文字色 */
-  --error-color: #f87171;
-
-  /* 错误状态背景色 */
-  --error-bg: rgba(248, 113, 113, 0.15);
-
-  /* 错误状态边框色 */
-  --error-border: #ef4444;
-
-  /* 警告状态文字色 */
-  --warning-color: #fb923c;
-
-  /* 警告状态背景色 */
-  --warning-bg: rgba(251, 146, 60, 0.15);
-
-  /* 警告状态边框色 */
-  --warning-border: #f97316;
-
-  /* 模态框遮罩层 */
-  --overlay-bg: rgba(0, 0, 0, 0.6);
-
-  /* 骨架屏基础色 */
-  --skeleton-base: rgba(255, 255, 255, 0.08);
-
-  /* 骨架屏闪烁色 */
-  --skeleton-shimmer: rgba(255, 255, 255, 0.15);
-
-  /* 主边框 */
-  --border-primary: rgba(255, 255, 255, 0.06);
-
-  /* 次边框 */
-  --border-secondary: rgba(255, 255, 255, 0.12);
-
-  /* hover 边框 */
-  --border-hover: rgba(255, 255, 255, 0.3);
-
-  /* 小阴影 - 按钮、小卡片 */
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
-
-  /* 中等阴影 - 一般卡片 */
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.35);
-
-  /* 大阴影 - 悬浮卡片 */
-  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
-
-  /* 超大阴影 - 模态框 */
-  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.5);
-
-  /* 轻度背景模糊 */
+  /* Blur */
   --blur-light: blur(20px) saturate(150%);
-
-  /* 中度背景模糊 */
-  --blur-medium: blur(40px) saturate(150%);
-
-  /* 重度背景模糊 */
-  --blur-heavy: blur(60px) saturate(150%);
+  --blur-medium: blur(30px) saturate(150%);
+  --blur-heavy: blur(40px) saturate(150%);
 }
 
-/* 全局主题切换过渡动画 */
 * {
   transition: var(--theme-transition);
 }

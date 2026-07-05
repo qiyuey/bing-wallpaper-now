@@ -177,7 +177,14 @@ export const WallpaperCard = memo(
           )}
           <div className={styles.actions}>
             <button
-              onClick={imageError ? handleManualRetry : handleSetWallpaper}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (imageError) {
+                  handleManualRetry();
+                } else {
+                  handleSetWallpaper();
+                }
+              }}
               className={styles.actionButton}
               disabled={imageLoading}
               title={

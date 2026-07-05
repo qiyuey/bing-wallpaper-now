@@ -1,6 +1,5 @@
 import { getSmallIconProps } from "../config/icons";
 import { useI18n } from "../i18n/I18nContext";
-import { cn } from "../utils/cn";
 import styles from "./About.module.css";
 import modalStyles from "../styles/modal.module.css";
 import btnStyles from "../styles/buttons.module.css";
@@ -50,15 +49,6 @@ export function About({ onClose, version }: AboutProps) {
           </div>
 
           <p className={styles.copyright}>{t("aboutCopyright")}</p>
-        </div>
-
-        <div className={modalStyles.footer}>
-          <button
-            onClick={onClose}
-            className={cn(btnStyles.btn, btnStyles.btnPrimary, styles.fullWidth)}
-          >
-            {t("close")}
-          </button>
         </div>
       </div>
     </div>

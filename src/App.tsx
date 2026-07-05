@@ -16,6 +16,7 @@ import { useTrayEvents } from "./hooks/useTrayEvents";
 import { cn } from "./utils/cn";
 import styles from "./App.module.css";
 import btnStyles from "./styles/buttons.module.css";
+import glassStyles from "./styles/liquid-glass.module.css";
 
 function App() {
   const {
@@ -171,7 +172,7 @@ function App() {
 
   return (
     <div className={styles.app} style={ambientBgStyle}>
-      <header className={styles.appHeader}>
+      <header className={cn(styles.appHeader, glassStyles.liquidGlass, glassStyles.nav)}>
         <div className={styles.titleGroup}>
           <h1 className={styles.appTitle}>
             <span className={styles.appTitleMain}>{t("appTitle")}</span>

@@ -17,6 +17,7 @@ import { listen } from "@tauri-apps/api/event";
 import { createSafeUnlisten } from "../utils/eventListener";
 import { EVENTS } from "../config/ui";
 import { cn } from "../utils/cn";
+import { SegmentedControl } from "./SegmentedControl";
 import styles from "./Settings.module.css";
 import modalStyles from "../styles/modal.module.css";
 import btnStyles from "../styles/buttons.module.css";
@@ -290,86 +291,36 @@ export function Settings({
           </div>
 
           <div className={styles.section}>
-            <label className={styles.label}>{t("theme")}:</label>
-            <div className={styles.radioGroup}>
-              <label className={styles.radioOption}>
-                <input
-                  type="radio"
-                  name="theme"
-                  value="system"
-                  checked={(settings?.theme ?? "system") === "system"}
-                  onChange={(e) =>
-                    handleChange("theme", e.target.value as Theme)
-                  }
-                />
-                <span>{t("themeSystem")}</span>
-              </label>
-              <label className={styles.radioOption}>
-                <input
-                  type="radio"
-                  name="theme"
-                  value="light"
-                  checked={(settings?.theme ?? "system") === "light"}
-                  onChange={(e) =>
-                    handleChange("theme", e.target.value as Theme)
-                  }
-                />
-                <span>{t("themeLight")}</span>
-              </label>
-              <label className={styles.radioOption}>
-                <input
-                  type="radio"
-                  name="theme"
-                  value="dark"
-                  checked={(settings?.theme ?? "system") === "dark"}
-                  onChange={(e) =>
-                    handleChange("theme", e.target.value as Theme)
-                  }
-                />
-                <span>{t("themeDark")}</span>
-              </label>
-            </div>
+            <label className={styles.label}>{t("theme")}</label>
+            <SegmentedControl
+              name="theme"
+              options={[
+                { value: "system", label: t("themeSystem") },
+                { value: "light", label: t("themeLight") },
+                { value: "dark", label: t("themeDark") },
+              ]}
+              value={(settings?.theme ?? "system") as string}
+              onChange={(v) => handleChange("theme", v as Theme)}
+            />
           </div>
 
           <div className={styles.section}>
-            <label className={styles.label}>{t("language")}:</label>
-            <div className={styles.radioGroup}>
-              <label className={styles.radioOption}>
-                <input
-                  type="radio"
-                  name="language"
-                  value="auto"
-                  checked={(settings?.language ?? "auto") === "auto"}
-                  onChange={(e) => handleChange("language", e.target.value)}
-                />
-                <span>{t("languageAuto")}</span>
-              </label>
-              <label className={styles.radioOption}>
-                <input
-                  type="radio"
-                  name="language"
-                  value="zh-CN"
-                  checked={(settings?.language ?? "auto") === "zh-CN"}
-                  onChange={(e) => handleChange("language", e.target.value)}
-                />
-                <span>{t("languageZhCN")}</span>
-              </label>
-              <label className={styles.radioOption}>
-                <input
-                  type="radio"
-                  name="language"
-                  value="en-US"
-                  checked={(settings?.language ?? "auto") === "en-US"}
-                  onChange={(e) => handleChange("language", e.target.value)}
-                />
-                <span>{t("languageEnUS")}</span>
-              </label>
-            </div>
+            <label className={styles.label}>{t("language")}</label>
+            <SegmentedControl
+              name="language"
+              options={[
+                { value: "auto", label: t("languageAuto") },
+                { value: "zh-CN", label: t("languageZhCN") },
+                { value: "en-US", label: t("languageEnUS") },
+              ]}
+              value={(settings?.language ?? "auto") as string}
+              onChange={(v) => handleChange("language", v)}
+            />
           </div>
 
           <div className={styles.section}>
             <label className={styles.label}>
-              {t("market")}:
+              {t("market")}
               <span className={styles.hint}>{t("marketHint")}</span>
             </label>
             <select
@@ -415,7 +366,7 @@ export function Settings({
           </div>
 
           <div className={styles.section}>
-            <div className={styles.label}>{t("saveDirectory")}:</div>
+            <div className={styles.label}>{t("saveDirectory")}</div>
             <div className={styles.dirRow}>
               <div
                 className={styles.dirInfo}

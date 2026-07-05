@@ -1,12 +1,11 @@
 .liquidGlass {
-  --glass-angle: 180deg;
-  --glass-blur: 12px;
-  --glass-saturation: 1.4;
-  --glass-tint: rgba(255, 255, 255, 0.08);
-  --glass-border-opacity: 0.6;
-  --glass-radius: 16px;
-  --glass-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.12),
-    0 1px 4px rgba(0, 0, 0, 0.08);
+  --glass-blur: 20px;
+  --glass-saturation: 1.8;
+  --glass-tint: rgba(255, 255, 255, 0.72);
+  --glass-border-opacity: 0.5;
+  --glass-radius: 18px;
+  --glass-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.08),
+    0 1px 3px rgba(0, 0, 0, 0.04);
 
   position: relative;
   border-radius: var(--glass-radius);
@@ -15,40 +14,10 @@
   -webkit-backdrop-filter: blur(var(--glass-blur))
     saturate(var(--glass-saturation));
   box-shadow: var(--glass-shadow);
+  border: 0.5px solid rgba(255, 255, 255, var(--glass-border-opacity));
   transition:
     transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
     box-shadow 0.2s ease;
-}
-
-.liquidGlass::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  padding: 1.5px;
-  background: conic-gradient(
-    from var(--glass-angle),
-    transparent 25%,
-    rgba(255, 255, 255, var(--glass-border-opacity)) 30%,
-    white 35%,
-    rgba(255, 255, 255, var(--glass-border-opacity)) 40%,
-    transparent 50%,
-    transparent 75%,
-    rgba(255, 255, 255, calc(var(--glass-border-opacity) * 0.5)) 80%,
-    rgba(255, 255, 255, calc(var(--glass-border-opacity) * 0.7)) 85%,
-    rgba(255, 255, 255, calc(var(--glass-border-opacity) * 0.5)) 90%,
-    transparent 100%
-  );
-  mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  mask-composite: exclude;
-  -webkit-mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  pointer-events: none;
-  z-index: 1;
 }
 
 .liquidGlass::after {
@@ -56,74 +25,76 @@
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  box-shadow:
-    inset 0 1px 1px rgba(255, 255, 255, 0.35),
-    inset 0 -1px 1px rgba(0, 0, 0, 0.04);
+  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.4);
   pointer-events: none;
-  z-index: 1;
 }
 
 .interactive:active {
   transform: scale(0.97);
   box-shadow:
-    0 2px 12px -2px rgba(0, 0, 0, 0.1),
-    0 1px 2px rgba(0, 0, 0, 0.06);
+    0 2px 8px -2px rgba(0, 0, 0, 0.06),
+    0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
-.header {
-  --glass-blur: 20px;
-  --glass-saturation: 1.5;
-  --glass-tint: rgba(255, 255, 255, 0.12);
-  --glass-radius: 22px;
+.nav {
+  --glass-blur: 24px;
+  --glass-saturation: 1.9;
+  --glass-tint: rgba(255, 255, 255, 0.42);
+  --glass-radius: 16px;
   --glass-border-opacity: 0.4;
-  --glass-shadow: 0 8px 32px -4px rgba(0, 0, 0, 0.1),
-    0 2px 8px rgba(0, 0, 0, 0.06);
+  --glass-shadow: 0 2px 12px rgba(0, 0, 0, 0.06),
+    0 1px 3px rgba(0, 0, 0, 0.03);
 }
 
 .button {
-  --glass-blur: 8px;
-  --glass-saturation: 1.3;
-  --glass-tint: rgba(255, 255, 255, 0.14);
+  --glass-blur: 12px;
+  --glass-saturation: 1.5;
+  --glass-tint: rgba(255, 255, 255, 0.5);
   --glass-radius: 100px;
-  --glass-border-opacity: 0.5;
-  --glass-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --glass-border-opacity: 0.4;
+  --glass-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
 }
 
 .modalVariant {
-  --glass-blur: 24px;
-  --glass-saturation: 1.5;
-  --glass-tint: rgba(248, 249, 252, 0.72);
-  --glass-radius: 26px;
-  --glass-border-opacity: 0.5;
-  --glass-shadow: 0 16px 48px -8px rgba(0, 0, 0, 0.18),
-    0 4px 12px rgba(0, 0, 0, 0.08);
+  --glass-blur: 28px;
+  --glass-saturation: 1.8;
+  --glass-tint: rgba(255, 255, 255, 0.52);
+  --glass-radius: 20px;
+  --glass-border-opacity: 0.3;
+  --glass-shadow: 0 12px 40px -8px rgba(0, 0, 0, 0.12),
+    0 4px 12px rgba(0, 0, 0, 0.06);
 }
 
 .control {
   --glass-blur: 8px;
-  --glass-saturation: 1.2;
-  --glass-tint: rgba(255, 255, 255, 0.16);
-  --glass-radius: 12px;
+  --glass-saturation: 1.3;
+  --glass-tint: rgba(255, 255, 255, 0.3);
+  --glass-radius: 10px;
   --glass-border-opacity: 0.3;
-  --glass-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  --glass-shadow: none;
 }
 
 :root[data-theme="dark"] .liquidGlass {
-  --glass-tint: rgba(255, 255, 255, 0.04);
-  --glass-border-opacity: 0.3;
+  --glass-tint: rgba(44, 44, 46, 0.45);
+  --glass-border-opacity: 0.15;
+  border-color: rgba(255, 255, 255, var(--glass-border-opacity));
 }
 
-:root[data-theme="dark"] .header {
-  --glass-tint: rgba(24, 26, 34, 0.4);
-  --glass-border-opacity: 0.2;
+:root[data-theme="dark"] .liquidGlass::after {
+  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.12);
+}
+
+:root[data-theme="dark"] .nav {
+  --glass-tint: rgba(28, 28, 30, 0.45);
+  --glass-border-opacity: 0.1;
 }
 
 :root[data-theme="dark"] .modalVariant {
-  --glass-tint: rgba(16, 18, 25, 0.72);
-  --glass-border-opacity: 0.25;
+  --glass-tint: rgba(28, 28, 30, 0.55);
+  --glass-border-opacity: 0.12;
 }
 
 :root[data-theme="dark"] .control {
-  --glass-tint: rgba(255, 255, 255, 0.06);
-  --glass-border-opacity: 0.15;
+  --glass-tint: rgba(255, 255, 255, 0.08);
+  --glass-border-opacity: 0.08;
 }

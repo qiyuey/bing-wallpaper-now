@@ -11,33 +11,28 @@ html {
 
 :root {
   font-family:
-    "Smiley Sans",
+    -apple-system,
+    BlinkMacSystemFont,
+    "SF Pro Text",
+    "SF Pro Display",
+    "Segoe UI",
     "MiSans",
-    "Mi Sans",
     "HarmonyOS Sans SC",
     "PingFang SC",
-    "Hiragino Sans GB",
-    "Hiragino Maru Gothic ProN",
-    "Source Han Sans Rounded SC",
     "Source Han Sans SC",
     "Noto Sans CJK SC",
     "Microsoft YaHei",
-    "Microsoft YaHei UI",
-    "Segoe UI",
-    -apple-system,
-    BlinkMacSystemFont,
-    "SF Pro Rounded",
     "Helvetica Neue",
     sans-serif,
     "Apple Color Emoji",
     "Segoe UI Emoji";
   font-size: 16px;
-  line-height: 1.6;
-  font-weight: 350;
-  letter-spacing: 0.5px;
+  line-height: 1.5;
+  font-weight: 400;
+  letter-spacing: -0.1px;
   color-scheme: light dark;
-  -webkit-font-smoothing: subpixel-antialiased;
-  -moz-osx-font-smoothing: auto;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   font-feature-settings: "kern" 1;
   font-kerning: normal;
