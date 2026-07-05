@@ -23,7 +23,7 @@ export function SegmentedControl<T extends string>({
     const container = containerRef.current;
     if (!container) return;
     const idx = optionValues.indexOf(value);
-    const items = container.querySelectorAll<HTMLLabelElement>(
+    const items = container.querySelectorAll<HTMLElement>(
       `.${styles.option}`,
     );
     const item = items[idx];
