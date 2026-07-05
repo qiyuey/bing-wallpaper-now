@@ -11,6 +11,8 @@ A cross-platform desktop app to automatically fetch and set Bing's daily beautif
 [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgrey)](https://github.com/qiyuey/bing-wallpaper-now/releases)
 [![License](https://img.shields.io/badge/license-Anti--996-blue)](https://github.com/996icu/996.ICU)
 
+![Bing Wallpaper Now](docs/images/screenshot.png)
+
 ## 📦 Download & Install
 
 Get the latest version from [GitHub Releases](https://github.com/qiyuey/bing-wallpaper-now/releases):
