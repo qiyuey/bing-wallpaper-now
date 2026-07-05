@@ -408,23 +408,21 @@ export function Settings({
 
           <div className={styles.section}>
             <label className={styles.label}>
-              {t("importData")}:
+              {t("importData")}
               <span className={styles.hint}>{t("importDataHint")}</span>
             </label>
-            <div className={styles.dirRow}>
-              <button
-                onClick={handleImport}
-                className={cn(
-                  btnStyles.btn,
-                  btnStyles.btnSecondary,
-                  btnStyles.btnSmall,
-                )}
-                type="button"
-                disabled={importing}
-              >
-                {importing ? t("importInProgress") : t("importSelectDirectory")}
-              </button>
-            </div>
+            <button
+              onClick={handleImport}
+              className={cn(
+                btnStyles.btn,
+                btnStyles.btnSecondary,
+                styles.actionBtn,
+              )}
+              type="button"
+              disabled={importing}
+            >
+              {importing ? t("importInProgress") : t("importSelectDirectory")}
+            </button>
             {importMessage && (
               <div
                 className={
@@ -440,23 +438,21 @@ export function Settings({
 
           <div className={styles.section}>
             <label className={styles.label}>
-              {t("exportData")}:
+              {t("exportData")}
               <span className={styles.hint}>{t("exportDataHint")}</span>
             </label>
-            <div className={styles.dirRow}>
-              <button
-                onClick={handleExport}
-                className={cn(
-                  btnStyles.btn,
-                  btnStyles.btnSecondary,
-                  btnStyles.btnSmall,
-                )}
-                type="button"
-                disabled={exporting}
-              >
-                {exporting ? t("exportInProgress") : t("exportSelectDirectory")}
-              </button>
-            </div>
+            <button
+              onClick={handleExport}
+              className={cn(
+                btnStyles.btn,
+                btnStyles.btnSecondary,
+                styles.actionBtn,
+              )}
+              type="button"
+              disabled={exporting}
+            >
+              {exporting ? t("exportInProgress") : t("exportSelectDirectory")}
+            </button>
             {exportMessage && (
               <div
                 className={
