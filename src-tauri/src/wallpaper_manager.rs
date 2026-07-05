@@ -1,11 +1,9 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
 #[cfg(target_os = "windows")]
-use log::info;
-#[cfg(all(unix, not(target_os = "macos")))]
-use log::info;
+use log::{info, warn};
 #[cfg(target_os = "macos")]
 use log::{info, warn};
 #[cfg(target_os = "macos")]
@@ -28,6 +26,16 @@ use objc2_foundation::{MainThreadMarker, NSDictionary, NSString, NSURL};
 
 #[cfg(target_os = "macos")]
 use std::sync::LazyLock;
+
+#[cfg(windows)]
+use std::iter;
+#[cfg(windows)]
+use std::os::windows::ffi::OsStrExt;
+#[cfg(windows)]
+use windows_sys::Win32::UI::WindowsAndMessaging::{
+    SPI_GETDESKWALLPAPER, SPI_SETDESKWALLPAPER, SPIF_SENDCHANGE, SPIF_UPDATEINIFILE,
+    SystemParametersInfoW,
+};
 
 /// 壁纸状态：记录期望壁纸和各显示器实际壁纸
 #[cfg(target_os = "macos")]
@@ -59,6 +67,83 @@ struct PortraitFallbackNoticeState {
 #[cfg(target_os = "macos")]
 static PORTRAIT_FALLBACK_NOTICE: LazyLock<Mutex<PortraitFallbackNoticeState>> =
     LazyLock::new(|| Mutex::new(PortraitFallbackNoticeState::default()));
+
+/// 获取 Windows 当前桌面壁纸路径。
+#[cfg(windows)]
+fn get_current_wallpaper_windows() -> Result<String> {
+    let mut buffer = [0u16; 260];
+    let successful = unsafe {
+        SystemParametersInfoW(
+            SPI_GETDESKWALLPAPER,
+            buffer.len() as u32,
+            buffer.as_mut_ptr().cast(),
+            0,
+        ) == 1
+    };
+
+    if !successful {
+        return Err(std::io::Error::last_os_error()).context("Failed to get current wallpaper");
+    }
+
+    let len = buffer
+        .iter()
+        .position(|&ch| ch == 0)
+        .unwrap_or(buffer.len());
+    Ok(String::from_utf16_lossy(&buffer[..len]))
+}
+
+/// 规范化 Windows 路径用于比较，避免大小写和分隔符差异导致重复设置。
+#[cfg(windows)]
+fn normalize_windows_path(path: &Path) -> String {
+    let canonical = path
+        .canonicalize()
+        .unwrap_or_else(|_| path.to_path_buf())
+        .to_string_lossy()
+        .replace('/', "\\");
+    canonical.to_lowercase()
+}
+
+/// 使用 Win32 API 设置 Windows 桌面壁纸。
+#[cfg(windows)]
+fn set_wallpaper_windows(image_path: &Path) -> Result<()> {
+    let current_wallpaper = get_current_wallpaper_windows().unwrap_or_else(|e| {
+        warn!(target: "wallpaper", "读取当前 Windows 壁纸失败，将继续设置新壁纸: {e}");
+        String::new()
+    });
+
+    let current_normalized = normalize_windows_path(Path::new(&current_wallpaper));
+    let target_normalized = normalize_windows_path(image_path);
+
+    if !current_wallpaper.is_empty() && current_normalized == target_normalized {
+        info!(target: "wallpaper", "壁纸已设置为 {:?}，跳过设置", image_path);
+        return Ok(());
+    }
+
+    info!(target: "wallpaper", "设置 Windows 壁纸为 {:?} (current: {:?})",
+        image_path, current_wallpaper
+    );
+
+    let wide_path = image_path
+        .as_os_str()
+        .encode_wide()
+        .chain(iter::once(0))
+        .collect::<Vec<u16>>();
+
+    let successful = unsafe {
+        SystemParametersInfoW(
+            SPI_SETDESKWALLPAPER,
+            0,
+            wide_path.as_ptr() as *mut std::ffi::c_void,
+            SPIF_UPDATEINIFILE | SPIF_SENDCHANGE,
+        ) == 1
+    };
+
+    if successful {
+        Ok(())
+    } else {
+        Err(std::io::Error::last_os_error()).context("设置 Windows 壁纸失败")
+    }
+}
 
 /// 获取指定显示器的当前壁纸路径
 #[cfg(target_os = "macos")]
@@ -238,81 +323,13 @@ pub fn set_wallpaper(image_path: &Path, portrait_image_path: Option<&Path>) -> R
     // Windows 平台实现
     #[cfg(windows)]
     {
-        // 获取当前壁纸路径
-        let current_wallpaper = wallpaper::get().unwrap_or_else(|_e| String::new());
-
-        // Windows: 使用规范化路径进行比较
-        let target_path = image_path
-            .to_str()
-            .ok_or_else(|| anyhow::anyhow!("Invalid path encoding"))?;
-
-        // Windows 文件系统不区分大小写，需要规范化路径
-        // 1. 统一使用反斜杠
-        // 2. 转换为小写
-        // 3. 尝试规范化为绝对路径
-        let normalize_windows_path = |path: &str| -> String {
-            let normalized = path.replace('/', "\\").to_lowercase();
-            // 尝试获取绝对路径
-            if let Ok(abs_path) = std::path::Path::new(path).canonicalize() {
-                abs_path.to_string_lossy().to_lowercase()
-            } else {
-                normalized
-            }
-        };
-
-        let current_normalized = normalize_windows_path(&current_wallpaper);
-        let target_normalized = normalize_windows_path(target_path);
-
-        if !current_wallpaper.is_empty() && current_normalized == target_normalized {
-            info!(target: "wallpaper", "壁纸已设置为 {:?}，跳过设置", target_path);
-            return Ok(());
-        }
-
-        // 设置新壁纸
-        info!(target: "wallpaper", "设置壁纸为 {:?} (current: {:?})",
-            target_path, current_wallpaper
-        );
-        wallpaper::set_from_path(target_path)
-            .map_err(|e| anyhow::anyhow!("设置壁纸失败: {}", e))?;
-        Ok(())
+        set_wallpaper_windows(image_path)
     }
 
     // Linux 和其他 Unix 平台实现
     #[cfg(all(unix, not(target_os = "macos")))]
     {
-        // 获取当前壁纸路径
-        let current_wallpaper = wallpaper::get().unwrap_or_else(|_| String::new());
-
-        let target_path = image_path
-            .to_str()
-            .ok_or_else(|| anyhow::anyhow!("Invalid path encoding"))?;
-
-        // Linux: 文件系统区分大小写，使用规范化的绝对路径比较
-        let normalize_unix_path = |path: &str| -> String {
-            // 尝试获取规范化的绝对路径
-            if let Ok(canonical) = std::path::Path::new(path).canonicalize() {
-                canonical.to_string_lossy().to_string()
-            } else {
-                // 如果无法规范化，至少确保路径格式一致
-                path.to_string()
-            }
-        };
-
-        let current_normalized = normalize_unix_path(&current_wallpaper);
-        let target_normalized = normalize_unix_path(target_path);
-
-        if !current_wallpaper.is_empty() && current_normalized == target_normalized {
-            info!(target: "wallpaper", "壁纸已设置为 {:?}，跳过设置", target_path);
-            return Ok(());
-        }
-
-        // 设置新壁纸
-        info!(target: "wallpaper", "设置壁纸为 {:?} (current: {:?})",
-            target_path, current_wallpaper
-        );
-        wallpaper::set_from_path(target_path)
-            .map_err(|e| anyhow::anyhow!("Failed to set wallpaper: {}", e))?;
-        Ok(())
+        crate::linux_wallpaper::set_wallpaper(image_path)
     }
 }
 
@@ -625,8 +642,21 @@ fn should_emit_portrait_fallback_notice(screen_index: usize) -> bool {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(windows)]
+    use super::normalize_windows_path;
     #[cfg(target_os = "macos")]
     use super::*;
+    #[cfg(windows)]
+    use std::path::Path;
+
+    #[cfg(windows)]
+    #[test]
+    fn windows_path_normalization_is_case_insensitive_and_uses_backslashes() {
+        assert_eq!(
+            normalize_windows_path(Path::new("C:/Temp/WallPaper.JPG")),
+            r"c:\temp\wallpaper.jpg"
+        );
+    }
 
     #[cfg(target_os = "macos")]
     fn screen(index: usize, portrait: bool) -> ScreenOrientation {

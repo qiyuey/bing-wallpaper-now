@@ -1,5 +1,4 @@
 use anyhow::{Context, Result};
-use futures::stream::StreamExt;
 use log::{error, info};
 use reqwest::Client;
 use std::path::Path;
@@ -213,7 +212,7 @@ async fn download_image_internal(url: &str, save_path: &Path) -> Result<()> {
     }
 
     // 使用全局客户端发起请求，提供更详细的错误信息
-    let response = HTTP_CLIENT.get(url).send().await.map_err(|e| {
+    let mut response = HTTP_CLIENT.get(url).send().await.map_err(|e| {
         // 提供更详细的错误信息，帮助诊断问题
         let error_msg = if e.is_connect() {
             format!("Connection failed: {}", e)
@@ -236,14 +235,12 @@ async fn download_image_internal(url: &str, save_path: &Path) -> Result<()> {
     let content_length = response.content_length();
 
     // 流式下载：边下载边写入磁盘，减少内存占用
-    let mut stream = response.bytes_stream();
     let temp_path = save_path.with_extension("tmp");
     let mut file = fs::File::create(&temp_path)
         .await
         .context("Failed to create temporary file")?;
 
-    while let Some(chunk) = stream.next().await {
-        let chunk = chunk.context("Failed to read chunk")?;
+    while let Some(chunk) = response.chunk().await.context("Failed to read chunk")? {
         file.write_all(&chunk)
             .await
             .context("Failed to write chunk")?;
