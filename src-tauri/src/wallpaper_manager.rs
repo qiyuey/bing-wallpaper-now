@@ -1,5 +1,6 @@
-#[cfg_attr(not(windows), allow(unused_imports))]
-use anyhow::{Context, Result};
+use anyhow::Result;
+#[cfg(windows)]
+use anyhow::Context;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
