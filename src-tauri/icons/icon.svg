@@ -1,41 +1,62 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Bing Wallpaper Now app icon</title>
+  <desc id="desc">A rounded-square wallpaper icon with sun, mountains, and a clean landscape silhouette.</desc>
   <defs>
-    <!-- 天空渐变 -->
-    <linearGradient id="sky" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" style="stop-color:#64B5F6;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#1976D2;stop-opacity:1" />
+    <linearGradient id="sky" x1="512" y1="56" x2="512" y2="968" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7CEAF2"/>
+      <stop offset="0.52" stop-color="#3AA6EF"/>
+      <stop offset="1" stop-color="#1750B5"/>
     </linearGradient>
-    
-    <!-- 山体渐变 -->
-    <linearGradient id="mountain" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" style="stop-color:#1565C0;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#0D47A1;stop-opacity:1" />
+
+    <radialGradient id="sun" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(704 304) scale(154)">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="0.58" stop-color="#FFE889"/>
+      <stop offset="1" stop-color="#FFB43D"/>
+    </radialGradient>
+
+    <linearGradient id="backMountain" x1="320" y1="380" x2="456" y2="792" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#B9F5E6"/>
+      <stop offset="1" stop-color="#279CCC"/>
     </linearGradient>
-    
-    <!-- 遮罩：圆角矩形 -->
-    <clipPath id="roundedRect">
-      <rect x="0" y="0" width="32" height="32" rx="6" />
+
+    <linearGradient id="frontMountain" x1="516" y1="408" x2="556" y2="836" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#38D4C2"/>
+      <stop offset="0.56" stop-color="#1688C4"/>
+      <stop offset="1" stop-color="#123B96"/>
+    </linearGradient>
+
+    <linearGradient id="meadow" x1="320" y1="650" x2="592" y2="878" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#72EC91"/>
+      <stop offset="0.58" stop-color="#28B6A0"/>
+      <stop offset="1" stop-color="#104E9E"/>
+    </linearGradient>
+
+    <linearGradient id="rim" x1="116" y1="72" x2="908" y2="956" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.72"/>
+      <stop offset="0.46" stop-color="#FFFFFF" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#082465" stop-opacity="0.32"/>
+    </linearGradient>
+
+    <clipPath id="shape">
+      <rect x="56" y="56" width="912" height="912" rx="210"/>
     </clipPath>
+
+    <filter id="shadow" x="-8%" y="-8%" width="116%" height="116%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="24" stdDeviation="28" flood-color="#05245B" flood-opacity="0.22"/>
+    </filter>
   </defs>
-  
-  <!-- 整个图标缩小到 75%，周围留出边距 -->
-  <g transform="translate(4, 4) scale(0.75)">
-    <!-- 圆角矩形背景 -->
-    <rect x="0" y="0" width="32" height="32" rx="6" fill="url(#sky)"/>
-    
-    <!-- 内容区域（应用遮罩） -->
-    <g clip-path="url(#roundedRect)">
-      <!-- 山景 -->
-      <path d="M 0 21 L 10 7 L 18 16 L 24 9 L 32 16 L 32 32 L 0 32 Z" 
-            fill="url(#mountain)"/>
-      
-      <!-- 太阳 -->
-      <circle cx="25" cy="8.5" r="4.5" fill="#FFFFFF" opacity="0.95"/>
+
+  <g filter="url(#shadow)">
+    <g clip-path="url(#shape)">
+      <rect x="56" y="56" width="912" height="912" rx="210" fill="url(#sky)"/>
+      <circle cx="704" cy="304" r="134" fill="url(#sun)"/>
+
+      <path d="M56 654L286 392C326 346 364 350 402 400L612 682V968H56V654Z" fill="url(#backMountain)" opacity="0.92"/>
+      <path d="M282 778L492 438C524 386 568 386 600 438L826 778V968H282V778Z" fill="url(#frontMountain)"/>
+      <path d="M56 748C220 654 386 652 534 708C688 766 798 710 968 606V968H56V748Z" fill="url(#meadow)"/>
+
+      <rect x="56" y="56" width="912" height="912" rx="210" fill="none" stroke="url(#rim)" stroke-width="16"/>
     </g>
-    
-    <!-- 圆角矩形边框 -->
-    <rect x="0" y="0" width="32" height="32" rx="6" 
-          fill="none" stroke="#0D47A1" stroke-width="1" opacity="0.3"/>
   </g>
 </svg>

@@ -1,129 +1,102 @@
 #!/usr/bin/env node
 /**
  * 图标生成脚本
- * 从 SVG 源文件生成 macOS、Windows 所需的图标文件
- * 
+ * 使用 Tauri CLI 从单一 SVG 源文件生成各平台图标。
+ *
  * 使用方法：
  *   node scripts/generate-icons.mjs
- * 
+ *
  * 依赖：
- *   - @tauri-apps/cli: 用于生成主要图标（icns, ico, png）
- * 
- * 说明：
- *   - macOS 使用 icon.svg（带 0.75 缩放）
- *   - Windows 使用 icon-windows.svg（无缩放，完整大小）
+ *   - @tauri-apps/cli
  */
 
-import { execSync } from 'child_process';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
-import { existsSync, copyFileSync, unlinkSync } from 'fs';
+import { execSync } from "child_process";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
+import { existsSync, copyFileSync } from "fs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const rootDir = join(__dirname, '..');
-const iconsDir = join(rootDir, 'src-tauri', 'icons');
-const svgPath = join(iconsDir, 'icon.svg');
-const svgWindowsPath = join(iconsDir, 'icon-windows.svg');
+const rootDir = join(__dirname, "..");
+const iconsDir = join(rootDir, "src-tauri", "icons");
+const publicDir = join(rootDir, "public");
+const svgPath = join(iconsDir, "icon.svg");
 
 /**
- * 使用 Tauri CLI 生成 Windows 图标（.ico）
+ * 使用 Tauri CLI 生成标准图标集。
  */
-function generateWindowsIcons() {
-  console.log('生成 Windows 图标（使用完整大小 SVG）...');
-  
-  if (!existsSync(svgWindowsPath)) {
-    throw new Error(`Windows SVG 文件不存在: ${svgWindowsPath}`);
+function generateIcons() {
+  console.log("使用 Tauri CLI 生成标准图标集...");
+
+  if (!existsSync(svgPath)) {
+    throw new Error(`SVG 源文件不存在: ${svgPath}`);
   }
-  
+
   try {
-    execSync(`pnpm tauri icon "${svgWindowsPath}" -o "${iconsDir}"`, {
-      stdio: 'inherit',
-      cwd: rootDir
+    execSync(`pnpm tauri icon "${svgPath}" -o "${iconsDir}"`, {
+      stdio: "inherit",
+      cwd: rootDir,
     });
-    
-    // 从生成的 128x128.png 创建 Windows 托盘图标
-    const png128Path = join(iconsDir, '128x128.png');
-    const trayIconWindowsPath = join(iconsDir, 'tray-icon-windows.png');
-    if (existsSync(png128Path)) {
-      copyFileSync(png128Path, trayIconWindowsPath);
-      console.log('✓ 已生成 Windows 托盘图标 (tray-icon-windows.png)');
-    }
-    
-    console.log('✓ 已生成 Windows 图标 (.ico)');
+    console.log("✓ 已生成标准图标集");
   } catch (error) {
-    throw new Error(`Windows 图标生成失败: ${error.message}`);
+    throw new Error(`图标生成失败: ${error.message}`);
   }
 }
 
 /**
- * 使用 Tauri CLI 生成 macOS 图标（.icns）
+ * 从标准图标集中同步项目自定义的 Windows 托盘图标。
  */
-function generateMacOSIcons() {
-  console.log('生成 macOS 图标（使用缩放 SVG）...');
-  
-  if (!existsSync(svgPath)) {
-    throw new Error(`macOS SVG 文件不存在: ${svgPath}`);
+function syncWindowsTrayIcon() {
+  const png128Path = join(iconsDir, "128x128.png");
+  const trayIconWindowsPath = join(iconsDir, "tray-icon-windows.png");
+
+  if (!existsSync(png128Path)) {
+    throw new Error(`无法同步 Windows 托盘图标，缺少: ${png128Path}`);
   }
-  
-  try {
-    execSync(`pnpm tauri icon "${svgPath}" -o "${iconsDir}"`, {
-      stdio: 'inherit',
-      cwd: rootDir
-    });
-    console.log('✓ 已生成 macOS 图标 (.icns)');
-  } catch (error) {
-    throw new Error(`macOS 图标生成失败: ${error.message}`);
+
+  copyFileSync(png128Path, trayIconWindowsPath);
+  console.log("✓ 已同步 Windows 托盘图标 (tray-icon-windows.png)");
+}
+
+/**
+ * 同步前端静态图标，确保浏览器预览与桌面应用图标一致。
+ */
+function syncFrontendIcons() {
+  const png128Path = join(iconsDir, "128x128.png");
+  const png512Path = join(iconsDir, "icon.png");
+  const publicIconPath = join(publicDir, "icon.png");
+  const publicAppIconPath = join(publicDir, "app-icon.png");
+
+  if (!existsSync(png128Path) || !existsSync(png512Path)) {
+    throw new Error("无法同步前端图标，缺少 Tauri 生成的 PNG 产物");
   }
+
+  copyFileSync(png128Path, publicIconPath);
+  copyFileSync(png512Path, publicAppIconPath);
+  console.log("✓ 已同步前端静态图标 (public/icon.png, public/app-icon.png)");
 }
 
 /**
  * 主函数
  */
 function main() {
-  console.log('开始生成图标...\n');
-  
-  const icoPath = join(iconsDir, 'icon.ico');
-  const icoBackupPath = join(iconsDir, 'icon.ico.backup');
-  
+  console.log("开始生成图标...\n");
+
   try {
-    // 先生成 Windows 图标（.ico）
-    generateWindowsIcons();
-    
-    // 备份 Windows 的 .ico 文件
-    if (existsSync(icoPath)) {
-      copyFileSync(icoPath, icoBackupPath);
-      console.log('✓ 已备份 Windows 图标文件');
-    }
-    
-    // 再生成 macOS 图标（.icns）
-    // `tauri icon` 不支持只生成特定格式，每次都会覆盖所有输出文件，
-    // 因此需要先备份 Windows .ico 再恢复。
-    generateMacOSIcons();
-    
-    // 恢复 Windows 的 .ico 文件
-    if (existsSync(icoBackupPath)) {
-      copyFileSync(icoBackupPath, icoPath);
-      unlinkSync(icoBackupPath);
-      console.log('✓ 已恢复 Windows 图标文件');
-    }
-    
-    console.log('\n✓ 所有图标生成完成！');
-    console.log('  - Windows: icon.ico (完整大小)');
-    console.log('  - Windows 托盘: tray-icon-windows.png (完整大小)');
-    console.log('  - macOS: icon.icns (0.75 缩放)');
-    console.log('  - macOS 托盘: tray-icon-macos@2x.png (保持不变)');
-    console.log('  - PNG 文件: 使用 macOS 版本生成');
+    generateIcons();
+    syncWindowsTrayIcon();
+    syncFrontendIcons();
+
+    console.log("\n✓ 所有图标生成完成！");
+    console.log("  - Source: icon.svg");
+    console.log("  - macOS: icon.icns");
+    console.log("  - Windows: icon.ico");
+    console.log("  - Windows tray: tray-icon-windows.png");
+    console.log("  - Frontend: public/icon.png, public/app-icon.png");
   } catch (error) {
-    // 如果出错，尝试恢复备份
-    if (existsSync(icoBackupPath) && !existsSync(icoPath)) {
-      copyFileSync(icoBackupPath, icoPath);
-      unlinkSync(icoBackupPath);
-    }
-    console.error('\n✗ 生成图标时出错:', error);
+    console.error("\n✗ 生成图标时出错:", error);
     process.exit(1);
   }
 }
 
 main();
-

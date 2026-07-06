@@ -157,7 +157,7 @@ pub(crate) fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
     info!(target: "tray", "菜单创建完成，正在创建托盘图标");
 
     // Windows 高 DPI 下托盘图标优化：使用完整大小的托盘图标
-    // 使用 tray-icon-windows.png（从 icon-windows.svg 生成，无缩放）
+    // 使用从标准应用图标集同步出的 Windows 托盘图标
     // 在 200% 缩放下，128x128 的图标可以提供清晰的显示效果（等效 64x64 物理像素）
     #[cfg(target_os = "windows")]
     let icon = {
