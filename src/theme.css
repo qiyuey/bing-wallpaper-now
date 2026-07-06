@@ -43,6 +43,7 @@
 /* ============================================================================
    Light Theme
    ============================================================================ */
+:root,
 :root[data-theme="light"] {
   --bg-gradient: #f0f0f2;
 
@@ -111,6 +112,7 @@
   --blur-light: blur(20px) saturate(180%);
   --blur-medium: blur(30px) saturate(180%);
   --blur-heavy: blur(40px) saturate(180%);
+  color-scheme: light;
 }
 
 /* ============================================================================
@@ -184,6 +186,7 @@
   --blur-light: blur(20px) saturate(150%);
   --blur-medium: blur(30px) saturate(150%);
   --blur-heavy: blur(40px) saturate(150%);
+  color-scheme: dark;
 }
 
 * {

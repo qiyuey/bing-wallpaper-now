@@ -29,6 +29,14 @@ endif
 VERSION_SCRIPT := scripts/manage-version.sh
 CHECK_SCRIPT := scripts/check-quality.sh
 
+# macOS AppKit occasionally emits harmless NSSoftLinking diagnostics to stderr
+# while processing menu/keyboard input in development runs.
+UNAME_S := $(shell uname -s 2>/dev/null)
+MACOS_DEV_ENV :=
+ifeq ($(UNAME_S),Darwin)
+MACOS_DEV_ENV := OS_ACTIVITY_MODE=disable
+endif
+
 # ============================================================================
 # Phony Targets
 # ============================================================================
@@ -57,7 +65,7 @@ all: check
 dev:
 	@echo Starting development mode...
 	$(if $(MV),@echo "Mock version: $(MV) (via DEV_OVERRIDE_VERSION)")
-	$(if $(MV),DEV_OVERRIDE_VERSION=$(MV)) $(PKG_MANAGER) run tauri dev
+	$(MACOS_DEV_ENV) $(if $(MV),DEV_OVERRIDE_VERSION=$(MV)) $(PKG_MANAGER) run tauri dev
 
 # ============================================================================
 # Dependency Management

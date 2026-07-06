@@ -1,0 +1,4 @@
+interface:
+  display_name: "App Icons"
+  short_description: "Generate iterative Tauri app icons"
+  default_prompt: "Use $app-icons to design and install a modern minimalist Tauri app icon."

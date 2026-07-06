@@ -57,10 +57,8 @@ describe("WallpaperGrid", () => {
       />,
     );
 
-    const spinner = container.querySelector("[data-testid='spinner']");
-    expect(spinner).toBeInTheDocument();
-    const loadingDiv = spinner?.closest("div");
-    expect(loadingDiv).toBeInTheDocument();
+    expect(container.firstElementChild).toBeInTheDocument();
+    expect(screen.queryByText("暂无壁纸")).not.toBeInTheDocument();
   });
 
   it("should render empty state when no wallpapers are provided", () => {
@@ -77,6 +75,20 @@ describe("WallpaperGrid", () => {
     expect(
       screen.getByText(/点击上方刷新按钮获取最新壁纸/),
     ).toBeInTheDocument();
+  });
+
+  it("should suppress empty state when requested", () => {
+    renderWithI18n(
+      <WallpaperGrid
+        wallpapers={[]}
+        onSetWallpaper={mockOnSetWallpaper}
+        loading={false}
+        showEmptyState={false}
+        wallpaperDirectory={mockWallpaperDirectory}
+      />,
+    );
+
+    expect(screen.queryByText("暂无壁纸")).not.toBeInTheDocument();
   });
 
   it("should render wallpapers when provided", async () => {

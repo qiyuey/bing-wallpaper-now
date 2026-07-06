@@ -5,12 +5,14 @@ import { renderWithI18n } from "../test/test-utils";
 import { Settings } from "./Settings";
 import { ThemeProvider } from "../contexts/ThemeContext";
 import * as dialog from "@tauri-apps/plugin-dialog";
+import { openPath } from "@tauri-apps/plugin-opener";
 import * as useSettingsModule from "../hooks/useSettings";
 import { invoke } from "@tauri-apps/api/core";
 import type { AppSettings } from "../types";
 
 vi.mock("@tauri-apps/api/core");
 vi.mock("@tauri-apps/plugin-dialog");
+vi.mock("@tauri-apps/plugin-opener");
 
 // Helper to render with ThemeProvider and I18nProvider
 const renderWithTheme = (component: React.ReactElement) => {
@@ -35,6 +37,11 @@ describe("Settings", () => {
     language: "zh-CN" as const,
     resolved_language: "zh-CN" as const,
     mkt: "zh-CN" as const,
+  };
+  const mockWallpaperDataStats = {
+    count: 3,
+    earliest_end_date: "20240101",
+    latest_end_date: "20240103",
   };
 
   beforeEach(() => {
@@ -66,6 +73,9 @@ describe("Settings", () => {
             markets: [{ code: "en-US", label: "United States" }],
           },
         ]);
+      }
+      if (cmd === "get_wallpaper_data_stats") {
+        return Promise.resolve(mockWallpaperDataStats);
       }
       return Promise.resolve(undefined);
     });
@@ -168,7 +178,7 @@ describe("Settings", () => {
     renderWithTheme(<Settings onClose={mockOnClose} />);
 
     const selectButton = await screen.findByText(
-      /选择文件夹/i,
+      /更改/i,
       {},
       { timeout: 3000 },
     );
@@ -191,7 +201,7 @@ describe("Settings", () => {
     renderWithTheme(<Settings onClose={mockOnClose} />);
 
     const selectButton = await screen.findByText(
-      /选择文件夹/i,
+      /更改/i,
       {},
       { timeout: 3000 },
     );
@@ -213,7 +223,7 @@ describe("Settings", () => {
     renderWithTheme(<Settings onClose={mockOnClose} />);
 
     const selectButton = await screen.findByText(
-      /选择文件夹/i,
+      /更改/i,
       {},
       { timeout: 3000 },
     );
@@ -228,6 +238,55 @@ describe("Settings", () => {
     expect(mockUpdateSettings).not.toHaveBeenCalled();
   });
 
+  it("should open current save directory when open button clicked", async () => {
+    const mockFolderPath = "/Users/Test/Pictures/BingWallpapers";
+    vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "get_wallpaper_directory") {
+        return Promise.resolve(mockFolderPath);
+      }
+      if (cmd === "ensure_wallpaper_directory_exists") {
+        return Promise.resolve(undefined);
+      }
+      if (cmd === "get_settings") {
+        return Promise.resolve(mockSettings);
+      }
+      if (cmd === "get_market_status") {
+        return Promise.resolve({
+          requested_mkt: "zh-CN",
+          effective_mkt: "zh-CN",
+          is_mismatch: false,
+        });
+      }
+      if (cmd === "get_supported_mkts") {
+        return Promise.resolve([
+          {
+            region: "asia_pacific",
+            markets: [{ code: "zh-CN", label: "中国大陆" }],
+          },
+        ]);
+      }
+      if (cmd === "get_wallpaper_data_stats") {
+        return Promise.resolve(mockWallpaperDataStats);
+      }
+      return Promise.resolve(undefined);
+    });
+
+    renderWithTheme(<Settings onClose={mockOnClose} />);
+
+    const openButton = await screen.findByText(
+      /^打开$/i,
+      {},
+      { timeout: 3000 },
+    );
+    fireEvent.click(openButton);
+
+    await waitFor(() => {
+      expect(invoke).toHaveBeenCalledWith("get_wallpaper_directory");
+      expect(invoke).toHaveBeenCalledWith("ensure_wallpaper_directory_exists");
+      expect(openPath).toHaveBeenCalledWith(mockFolderPath);
+    });
+  });
+
   it("should handle folder selection error", async () => {
     const mockOpen = vi.fn().mockRejectedValue(new Error("Permission denied"));
     vi.mocked(dialog.open).mockImplementation(mockOpen);
@@ -240,7 +299,7 @@ describe("Settings", () => {
     renderWithTheme(<Settings onClose={mockOnClose} />);
 
     const selectButton = await screen.findByText(
-      /选择文件夹/i,
+      /更改/i,
       {},
       { timeout: 3000 },
     );
@@ -270,7 +329,7 @@ describe("Settings", () => {
     renderWithTheme(<Settings onClose={mockOnClose} />);
 
     // Wait for component to render
-    await screen.findByText(/选择文件夹/i, {}, { timeout: 3000 });
+    await screen.findByText(/更改/i, {}, { timeout: 3000 });
 
     // Restore default button should appear
     expect(screen.getByText(/恢复默认目录/i)).toBeInTheDocument();
@@ -290,7 +349,7 @@ describe("Settings", () => {
     renderWithTheme(<Settings onClose={mockOnClose} />);
 
     // Wait for component to render
-    await screen.findByText(/选择文件夹/i, {}, { timeout: 3000 });
+    await screen.findByText(/更改/i, {}, { timeout: 3000 });
 
     // Click restore default
     const restoreButton = screen.getByText(/恢复默认目录/i);
@@ -310,7 +369,7 @@ describe("Settings", () => {
     renderWithTheme(<Settings onClose={mockOnClose} />);
 
     // Wait for component to render
-    await screen.findByText(/选择文件夹/i, {}, { timeout: 3000 });
+    await screen.findByText(/更改/i, {}, { timeout: 3000 });
 
     // Find and click light theme radio
     const lightThemeRadio = screen.getByLabelText(/浅色/i) as HTMLInputElement; // eslint-disable-line no-undef
@@ -329,7 +388,7 @@ describe("Settings", () => {
     renderWithTheme(<Settings onClose={mockOnClose} />);
 
     // Wait for component to render
-    await screen.findByText(/选择文件夹/i, {}, { timeout: 3000 });
+    await screen.findByText(/更改/i, {}, { timeout: 3000 });
 
     // Find and click dark theme radio
     const darkThemeRadio = screen.getByLabelText(/深色/i) as HTMLInputElement; // eslint-disable-line no-undef
@@ -364,7 +423,7 @@ describe("Settings", () => {
     );
 
     // Wait for component to render
-    await screen.findByText(/选择文件夹/i, {}, { timeout: 3000 });
+    await screen.findByText(/更改/i, {}, { timeout: 3000 });
 
     // Find and click English language radio
     const enRadio = screen.getByLabelText(/English/i) as HTMLInputElement; // eslint-disable-line no-undef
@@ -429,7 +488,7 @@ describe("Settings", () => {
     renderWithTheme(<Settings onClose={mockOnClose} />);
 
     // Component should still render even if getDefaultDirectory fails
-    await screen.findByText(/选择文件夹/i, {}, { timeout: 3000 });
+    await screen.findByText(/更改/i, {}, { timeout: 3000 });
 
     // Check for settings title or loading state
     const title = screen.queryByRole("heading", { name: /设置/i });
@@ -477,6 +536,9 @@ describe("Settings", () => {
           },
         ]);
       }
+      if (cmd === "get_wallpaper_data_stats") {
+        return Promise.resolve(mockWallpaperDataStats);
+      }
       return Promise.resolve(undefined);
     });
 
@@ -495,7 +557,7 @@ describe("Settings", () => {
     // 默认 mock 已返回 is_mismatch: false
     renderWithTheme(<Settings onClose={mockOnClose} />);
 
-    await screen.findByText(/选择文件夹/i, {}, { timeout: 3000 });
+    await screen.findByText(/更改/i, {}, { timeout: 3000 });
 
     // 不应有 dismiss 按钮（即没有告警）
     expect(screen.queryByLabelText("dismiss")).not.toBeInTheDocument();
@@ -521,6 +583,9 @@ describe("Settings", () => {
             markets: [{ code: "zh-CN", label: "中国大陆" }],
           },
         ]);
+      }
+      if (cmd === "get_wallpaper_data_stats") {
+        return Promise.resolve(mockWallpaperDataStats);
       }
       return Promise.resolve(undefined);
     });
@@ -557,7 +622,7 @@ describe("Settings", () => {
       />,
     );
 
-    await screen.findByText(/选择文件夹/i, {}, { timeout: 3000 });
+    await screen.findByText(/更改/i, {}, { timeout: 3000 });
 
     // 找到 mkt 下拉选择器并切换
     const mktSelect = screen.getByDisplayValue(/中国大陆/i);
@@ -575,7 +640,7 @@ describe("Settings", () => {
   it("should update mkt setting when market dropdown is changed", async () => {
     renderWithTheme(<Settings onClose={mockOnClose} />);
 
-    await screen.findByText(/选择文件夹/i, {}, { timeout: 3000 });
+    await screen.findByText(/更改/i, {}, { timeout: 3000 });
 
     const mktSelect = screen.getByDisplayValue(/中国大陆/i);
     fireEvent.change(mktSelect, { target: { value: "en-US" } });
@@ -609,6 +674,9 @@ describe("Settings", () => {
           },
         ]);
       }
+      if (cmd === "get_wallpaper_data_stats") {
+        return Promise.resolve(mockWallpaperDataStats);
+      }
       const result = handler(cmd);
       if (result !== undefined) return result as Promise<unknown>;
       return Promise.resolve(undefined);
@@ -617,14 +685,18 @@ describe("Settings", () => {
 
   // ─── 数据导入 ───
 
-  it("should render import data section", async () => {
+  it("should render import action in data section", async () => {
     renderWithTheme(<Settings onClose={mockOnClose} />);
 
-    await screen.findByText(/数据导入/i, {}, { timeout: 3000 });
+    await screen.findByText(/^数据$/i, {}, { timeout: 3000 });
+    expect(
+      screen.getByText(/^3 张壁纸 · 2024\.01\.01 - 2024\.01\.03$/i),
+    ).toBeInTheDocument();
 
-    const importButton = screen.getByText(/选择目录并导入/i);
+    const importButton = screen.getByText(/^导入$/i);
     expect(importButton).toBeInTheDocument();
     expect(importButton).not.toBeDisabled();
+    expect(screen.queryByText(/^数据导入$/i)).not.toBeInTheDocument();
   });
 
   it("should open directory picker when import button clicked", async () => {
@@ -634,7 +706,7 @@ describe("Settings", () => {
     renderWithTheme(<Settings onClose={mockOnClose} />);
 
     const importButton = await screen.findByText(
-      /选择目录并导入/i,
+      /^导入$/i,
       {},
       { timeout: 3000 },
     );
@@ -669,7 +741,7 @@ describe("Settings", () => {
     renderWithTheme(<Settings onClose={mockOnClose} />);
 
     const importButton = await screen.findByText(
-      /选择目录并导入/i,
+      /^导入$/i,
       {},
       { timeout: 3000 },
     );
@@ -700,7 +772,7 @@ describe("Settings", () => {
     renderWithTheme(<Settings onClose={mockOnClose} />);
 
     const importButton = await screen.findByText(
-      /选择目录并导入/i,
+      /^导入$/i,
       {},
       { timeout: 3000 },
     );
@@ -730,7 +802,7 @@ describe("Settings", () => {
     renderWithTheme(<Settings onClose={mockOnClose} />);
 
     const importButton = await screen.findByText(
-      /选择目录并导入/i,
+      /^导入$/i,
       {},
       { timeout: 3000 },
     );
@@ -753,7 +825,7 @@ describe("Settings", () => {
     renderWithTheme(<Settings onClose={mockOnClose} />);
 
     const importButton = await screen.findByText(
-      /选择目录并导入/i,
+      /^导入$/i,
       {},
       { timeout: 3000 },
     );
@@ -771,7 +843,7 @@ describe("Settings", () => {
     renderWithTheme(<Settings onClose={mockOnClose} />);
 
     const importButton = await screen.findByText(
-      /选择目录并导入/i,
+      /^导入$/i,
       {},
       { timeout: 3000 },
     );
@@ -789,14 +861,18 @@ describe("Settings", () => {
 
   // ─── 数据导出 ───
 
-  it("should render export data section", async () => {
+  it("should render export action in data section", async () => {
     renderWithTheme(<Settings onClose={mockOnClose} />);
 
-    await screen.findByText(/数据导出/i, {}, { timeout: 3000 });
+    await screen.findByText(/^数据$/i, {}, { timeout: 3000 });
+    expect(
+      screen.getByText(/^3 张壁纸 · 2024\.01\.01 - 2024\.01\.03$/i),
+    ).toBeInTheDocument();
 
-    const exportButton = screen.getByText(/选择目录并导出/i);
+    const exportButton = screen.getByText(/^导出$/i);
     expect(exportButton).toBeInTheDocument();
     expect(exportButton).not.toBeDisabled();
+    expect(screen.queryByText(/^数据导出$/i)).not.toBeInTheDocument();
   });
 
   it("should open directory picker when export button clicked", async () => {
@@ -806,7 +882,7 @@ describe("Settings", () => {
     renderWithTheme(<Settings onClose={mockOnClose} />);
 
     const exportButton = await screen.findByText(
-      /选择目录并导出/i,
+      /^导出$/i,
       {},
       { timeout: 3000 },
     );
@@ -841,7 +917,7 @@ describe("Settings", () => {
     renderWithTheme(<Settings onClose={mockOnClose} />);
 
     const exportButton = await screen.findByText(
-      /选择目录并导出/i,
+      /^导出$/i,
       {},
       { timeout: 3000 },
     );
@@ -871,7 +947,7 @@ describe("Settings", () => {
     renderWithTheme(<Settings onClose={mockOnClose} />);
 
     const exportButton = await screen.findByText(
-      /选择目录并导出/i,
+      /^导出$/i,
       {},
       { timeout: 3000 },
     );
@@ -896,7 +972,7 @@ describe("Settings", () => {
     renderWithTheme(<Settings onClose={mockOnClose} />);
 
     const exportButton = await screen.findByText(
-      /选择目录并导出/i,
+      /^导出$/i,
       {},
       { timeout: 3000 },
     );
@@ -914,7 +990,7 @@ describe("Settings", () => {
     renderWithTheme(<Settings onClose={mockOnClose} />);
 
     const exportButton = await screen.findByText(
-      /选择目录并导出/i,
+      /^导出$/i,
       {},
       { timeout: 3000 },
     );

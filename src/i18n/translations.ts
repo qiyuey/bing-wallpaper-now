@@ -32,7 +32,8 @@ export const translations = {
     folderError: "打开文件夹失败",
     wallpaperDirectoryError: "无法获取壁纸目录",
     openFolder: "打开目录",
-    selectFolder: "选择文件夹",
+    openAction: "打开",
+    selectFolder: "更改",
     restoreDefault: "恢复默认目录",
     selectDirectory: "选择壁纸保存目录",
 
@@ -60,6 +61,12 @@ export const translations = {
     marketMismatchWarning:
       "注意：Bing 实际返回了 {actualMkt} 的壁纸，与您选择的 {requestedMkt} 不同。这通常是因为您所在地区的 Bing 不支持该市场。",
     saveDirectory: "保存目录",
+    dataActions: "数据",
+    dataStatsSummary: "{count} 张壁纸 · {range}",
+    dataStatsSummaryOne: "1 张壁纸 · {range}",
+    dataStatsEmpty: "0 张壁纸",
+    dataStatsUnknownRange: "日期未知",
+    dataStatsError: "无法读取壁纸数据",
     settingsLoading: "加载设置中...",
     settingsSaveError: "保存设置失败",
     settingsFolderSelectError: "选择文件夹失败",
@@ -67,6 +74,7 @@ export const translations = {
     // 导入
     importData: "数据导入",
     importDataHint: "从其他 Bing Wallpaper Now 的壁纸目录导入历史数据",
+    importAction: "导入",
     importSelectDirectory: "选择目录并导入",
     importInProgress: "导入中...",
     importSuccess:
@@ -83,6 +91,7 @@ export const translations = {
     // 导出
     exportData: "数据导出",
     exportDataHint: "将壁纸信息和图片导出到指定目录，可用于备份或迁移",
+    exportAction: "导出",
     exportSelectDirectory: "选择目录并导出",
     exportInProgress: "导出中...",
     exportSuccess:
@@ -165,7 +174,8 @@ export const translations = {
     folderError: "Failed to open folder",
     wallpaperDirectoryError: "Failed to get wallpaper directory",
     openFolder: "Open Folder",
-    selectFolder: "Select Folder",
+    openAction: "Open",
+    selectFolder: "Change",
     restoreDefault: "Restore Default",
     selectDirectory: "Select Wallpaper Save Directory",
 
@@ -194,6 +204,12 @@ export const translations = {
     marketMismatchWarning:
       "Note: Bing returned wallpapers for {actualMkt} instead of your selected {requestedMkt}. This usually happens when Bing in your region does not support the selected market.",
     saveDirectory: "Save Directory",
+    dataActions: "Data",
+    dataStatsSummary: "{count} wallpapers · {range}",
+    dataStatsSummaryOne: "1 wallpaper · {range}",
+    dataStatsEmpty: "0 wallpapers",
+    dataStatsUnknownRange: "Unknown date",
+    dataStatsError: "Failed to read wallpaper data",
     settingsLoading: "Loading settings...",
     settingsSaveError: "Failed to save settings",
     settingsFolderSelectError: "Failed to select folder",
@@ -202,6 +218,7 @@ export const translations = {
     importData: "Data Import",
     importDataHint:
       "Import historical data from another Bing Wallpaper Now wallpaper directory",
+    importAction: "Import",
     importSelectDirectory: "Select Directory & Import",
     importInProgress: "Importing...",
     importSuccess:
@@ -219,6 +236,7 @@ export const translations = {
     exportData: "Data Export",
     exportDataHint:
       "Export current wallpaper data to a specified directory for backup or migration",
+    exportAction: "Export",
     exportSelectDirectory: "Select Directory & Export",
     exportInProgress: "Exporting...",
     exportSuccess:

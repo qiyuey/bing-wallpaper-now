@@ -131,6 +131,7 @@ pub fn run() {
             commands::settings::get_settings,
             commands::settings::update_settings,
             commands::storage::get_wallpaper_directory,
+            commands::storage::get_wallpaper_data_stats,
             commands::storage::get_default_wallpaper_directory,
             commands::storage::get_last_update_time,
             commands::storage::get_update_in_progress,

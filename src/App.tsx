@@ -40,6 +40,7 @@ function App() {
   const { t } = useI18n();
   const [showSettings, setShowSettings] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
+  const [showEmptyState, setShowEmptyState] = useState(false);
   const [wallpaperDirectory, setWallpaperDirectory] = useState<string>("");
   const { updateInfo, setUpdateInfo } = useUpdateCheck();
 
@@ -154,17 +155,21 @@ function App() {
 
   // 刷新壁纸列表与触发后端更新
   const handleRefresh = async () => {
+    setShowEmptyState(false);
     await fetchLocalWallpapers();
     try {
       await forceUpdate(true);
     } catch (err) {
       console.error("Force update failed:", err);
       await showSystemNotification(t("wallpaperError"), String(err));
+    } finally {
+      setShowEmptyState(true);
     }
   };
 
   // 语言切换时的刷新（强制更新）
   const handleLanguageChangeRefresh = async () => {
+    setShowEmptyState(false);
     try {
       // 先立即刷新一次列表，显示当前语言的现有数据
       await fetchLocalWallpapers(true);
@@ -174,6 +179,8 @@ function App() {
     } catch (err) {
       console.error("Language change refresh failed:", err);
       await showSystemNotification(t("wallpaperError"), String(err));
+    } finally {
+      setShowEmptyState(true);
     }
   };
 
@@ -222,24 +229,6 @@ function App() {
             <span className={btnStyles.btnTooltip}>{t("refresh")}</span>
           </button>
           <button
-            onClick={handleOpenFolder}
-            className={cn(btnStyles.btn, btnStyles.btnIcon)}
-            aria-label={t("openFolder")}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              {...getStandardIconProps()}
-              fill="none"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-            </svg>
-            <span className={btnStyles.btnTooltip}>{t("openFolder")}</span>
-          </button>
-
-          <button
             onClick={() => setShowSettings(true)}
             className={cn(btnStyles.btn, btnStyles.btnIcon)}
             aria-label={t("settings")}
@@ -266,6 +255,7 @@ function App() {
           wallpapers={localWallpapers}
           onSetWallpaper={handleSetWallpaper}
           loading={loading}
+          showEmptyState={showEmptyState}
           wallpaperDirectory={wallpaperDirectory}
         />
       </main>

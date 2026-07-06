@@ -9,7 +9,6 @@ import {
 import React from "react";
 import App from "./App";
 import { invoke } from "@tauri-apps/api/core";
-import { openPath } from "@tauri-apps/plugin-opener";
 import { listen, type Event } from "@tauri-apps/api/event";
 import { check, Update } from "@tauri-apps/plugin-updater";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -144,8 +143,8 @@ describe("App", () => {
     await waitFor(() => {
       expect(screen.getByLabelText("更新")).toBeInTheDocument();
     });
-    expect(screen.getByLabelText("打开目录")).toBeInTheDocument();
     expect(screen.getByLabelText("设置")).toBeInTheDocument();
+    expect(screen.queryByLabelText("打开目录")).not.toBeInTheDocument();
   });
 
   it("should open settings modal when settings button is clicked", async () => {
@@ -179,50 +178,6 @@ describe("App", () => {
     await waitFor(() => {
       // Should call get_local_wallpapers at least once
       expect(invoke).toHaveBeenCalledWith("get_local_wallpapers");
-    });
-  });
-
-  it("should open folder when folder button is clicked", async () => {
-    const mockFolderPath = "C:\\Users\\Test\\Wallpapers";
-    vi.mocked(invoke).mockImplementation((cmd: string) => {
-      if (cmd === "get_wallpaper_directory") {
-        return Promise.resolve(mockFolderPath);
-      }
-      if (cmd === "ensure_wallpaper_directory_exists") {
-        return Promise.resolve();
-      }
-      if (cmd === "get_wallpaper_directory") {
-        return Promise.resolve("/path/to/wallpapers");
-      }
-      if (cmd === "get_local_wallpapers") {
-        return Promise.resolve(mockWallpapersRaw);
-      }
-      if (cmd === "get_settings") {
-        return Promise.resolve({
-          auto_update: true,
-          save_directory: null,
-          launch_at_startup: false,
-          language: "zh-CN",
-          resolved_language: "zh-CN",
-          mkt: "zh-CN",
-        });
-      }
-      return Promise.resolve(null);
-    });
-
-    renderWithTheme(<App />);
-
-    await waitFor(() => {
-      expect(screen.getByLabelText("打开目录")).toBeInTheDocument();
-    });
-
-    const folderButton = screen.getByLabelText("打开目录");
-    fireEvent.click(folderButton);
-
-    await waitFor(() => {
-      expect(invoke).toHaveBeenCalledWith("get_wallpaper_directory");
-      expect(invoke).toHaveBeenCalledWith("ensure_wallpaper_directory_exists");
-      expect(openPath).toHaveBeenCalledWith(mockFolderPath);
     });
   });
 
@@ -598,6 +553,16 @@ describe("App", () => {
     const consoleErrorSpy = vi
       .spyOn(console, "error")
       .mockImplementation(() => {});
+    let openFolderCallback: ((event: Event<unknown>) => void) | undefined;
+
+    vi.mocked(listen).mockImplementation(
+      (event: string, callback: (event: Event<unknown>) => void) => {
+        if (event === "open-folder") {
+          openFolderCallback = callback;
+        }
+        return Promise.resolve(() => {});
+      },
+    );
 
     vi.mocked(invoke).mockImplementation((cmd: string) => {
       if (cmd === "get_wallpaper_directory") {
@@ -627,13 +592,14 @@ describe("App", () => {
 
     renderWithTheme(<App />);
 
-    // Wait for component to be ready
     await waitFor(() => {
-      expect(screen.getByLabelText("打开目录")).toBeInTheDocument();
+      expect(listen).toHaveBeenCalledWith("open-folder", expect.any(Function));
     });
 
-    const folderButton = screen.getByLabelText("打开目录");
-    fireEvent.click(folderButton);
+    openFolderCallback?.({
+      event: "open-folder",
+      payload: undefined,
+    } as Event<unknown>);
 
     await waitFor(
       () => {
@@ -676,6 +642,16 @@ describe("App", () => {
     const consoleErrorSpy = vi
       .spyOn(console, "error")
       .mockImplementation(() => {});
+    let openFolderCallback: ((event: Event<unknown>) => void) | undefined;
+
+    vi.mocked(listen).mockImplementation(
+      (event: string, callback: (event: Event<unknown>) => void) => {
+        if (event === "open-folder") {
+          openFolderCallback = callback;
+        }
+        return Promise.resolve(() => {});
+      },
+    );
 
     vi.mocked(invoke).mockImplementation((cmd: string) => {
       if (cmd === "get_wallpaper_directory") {
@@ -708,13 +684,14 @@ describe("App", () => {
 
     renderWithTheme(<App />);
 
-    // Wait for component to be ready
     await waitFor(() => {
-      expect(screen.getByLabelText("打开目录")).toBeInTheDocument();
+      expect(listen).toHaveBeenCalledWith("open-folder", expect.any(Function));
     });
 
-    const folderButton = screen.getByLabelText("打开目录");
-    fireEvent.click(folderButton);
+    openFolderCallback?.({
+      event: "open-folder",
+      payload: undefined,
+    } as Event<unknown>);
 
     await waitFor(
       () => {

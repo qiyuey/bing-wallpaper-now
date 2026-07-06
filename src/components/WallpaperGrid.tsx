@@ -17,30 +17,18 @@ import {
 import { CONTAINER } from "../config/ui";
 import { useI18n } from "../i18n/I18nContext";
 import styles from "./WallpaperGrid.module.css";
-import spinnerStyles from "../styles/spinner.module.css";
 
 interface WallpaperGridProps {
   wallpapers: LocalWallpaper[];
   onSetWallpaper: (wallpaper: LocalWallpaper) => void;
   loading?: boolean;
+  showEmptyState?: boolean;
   wallpaperDirectory: string;
 }
 
 // 仅作为 useDynamicRowHeight 的 defaultRowHeight 初值
 // 真实行高由 react-window 内部 ResizeObserver 测量，避免计算误差
 const DEFAULT_ROW_HEIGHT = calculateRowHeight();
-
-// 骨架屏组件
-const SkeletonCard = memo(() => (
-  <div className={styles.cardSkeleton}>
-    <div className={styles.skeletonImage} />
-    <div className={`${styles.skeletonText} ${styles.skeletonTextTitle}`} />
-    <div className={`${styles.skeletonText} ${styles.skeletonTextSubtitle}`} />
-    <div className={styles.skeletonButton} />
-  </div>
-));
-
-SkeletonCard.displayName = "SkeletonCard";
 
 // Row 渲染组件的额外数据类型
 interface RowData {
@@ -89,6 +77,7 @@ export const WallpaperGrid = memo(function WallpaperGrid({
   wallpapers,
   onSetWallpaper,
   loading = false,
+  showEmptyState = true,
   wallpaperDirectory,
 }: WallpaperGridProps) {
   const { t } = useI18n();
@@ -149,21 +138,18 @@ export const WallpaperGrid = memo(function WallpaperGrid({
   });
 
   if (loading) {
-    return (
-      <div ref={containerRef} className={styles.container}>
-        <div className={styles.gridLoading}>
-          <div className={spinnerStyles.spinner} data-testid="spinner"></div>
-        </div>
-      </div>
-    );
+    return <div ref={containerRef} className={styles.container} />;
+  }
+
+  if (wallpapers.length === 0 && !showEmptyState) {
+    return <div ref={containerRef} className={styles.container} />;
   }
 
   if (wallpapers.length === 0) {
     return (
       <div ref={containerRef} className={styles.container}>
         <div className={styles.gridEmpty}>
-          <div className={styles.gridEmptyIcon}>🖼️</div>
-          <p>{t("noWallpapers")}</p>
+          <p className={styles.stateTitle}>{t("noWallpapers")}</p>
           <p className={styles.gridEmptyHint}>{t("noWallpapersHint")}</p>
         </div>
       </div>

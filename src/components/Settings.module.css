@@ -1,26 +1,48 @@
 .section {
-  margin-bottom: 1.25rem;
+  --settings-row-min-height: 2.25rem;
+  --settings-field-height: 2.25rem;
+  --settings-segmented-height: 2.25rem;
+  --settings-button-height: 2rem;
+  --settings-switch-width: 2.25rem;
+  --settings-switch-height: 1.125rem;
+  --settings-switch-thumb-width: 1.375rem;
+  --settings-switch-thumb-height: 0.875rem;
+  --settings-switch-thumb-inset: 2px;
+  --settings-control-radius: 10px;
+  --settings-label-font-size: 0.875rem;
+  --settings-control-font-size: 0.8125rem;
+  --settings-supporting-font-size: 0.8125rem;
+  --settings-message-font-size: 0.8125rem;
+  --settings-row-gap: 0.5rem;
+
+  margin-bottom: 1.125rem;
+}
+
+.section:last-child {
+  margin-bottom: 0;
 }
 
 .label {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  font-size: 0.875rem;
+  gap: 0.375rem;
+  font-size: var(--settings-label-font-size);
+  line-height: 1.35;
   font-weight: 500;
   color: var(--text-primary);
-  letter-spacing: -0.1px;
+  letter-spacing: 0;
 }
 
 .checkboxLabel {
   flex-direction: row;
   align-items: center;
-  gap: 0.625rem;
+  gap: 0.75rem;
+  min-height: var(--settings-row-min-height);
 }
 
 .label input[type="checkbox"] {
-  width: 36px;
-  height: 17px;
+  width: var(--settings-switch-width);
+  height: var(--settings-switch-height);
   cursor: pointer;
   margin: 0;
   -webkit-appearance: none;
@@ -28,25 +50,33 @@
   appearance: none;
   border: none;
   border-radius: 100px;
-  background: rgba(120, 120, 128, 0.48);
+  background: rgba(120, 120, 128, 0.24);
   position: relative;
-  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transition:
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
   flex-shrink: 0;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+}
+
+:root[data-theme="dark"] .label input[type="checkbox"] {
+  background: rgba(120, 120, 128, 0.32);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 
 .label input[type="checkbox"]::before {
   content: "";
   position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 13px;
-  height: 13px;
-  border-radius: 50%;
+  top: var(--settings-switch-thumb-inset);
+  left: var(--settings-switch-thumb-inset);
+  width: var(--settings-switch-thumb-width);
+  height: var(--settings-switch-thumb-height);
+  border-radius: calc(var(--settings-switch-thumb-height) / 2);
   background: #ffffff;
   box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.15),
-    0 0.5px 1px rgba(0, 0, 0, 0.1);
-  transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    0 1px 3px rgba(0, 0, 0, 0.22),
+    0 0 1px rgba(0, 0, 0, 0.12);
+  transition: transform 0.2s ease;
 }
 
 .label input[type="checkbox"]:checked {
@@ -54,11 +84,23 @@
 }
 
 :root[data-theme="dark"] .label input[type="checkbox"]:checked {
-  background: rgba(10, 132, 255, 0.6);
+  background: var(--accent-color);
 }
 
 .label input[type="checkbox"]:checked::before {
-  transform: translateX(19px);
+  transform: translateX(
+    calc(
+      var(--settings-switch-width) - var(--settings-switch-thumb-width) -
+        (var(--settings-switch-thumb-inset) * 2)
+    )
+  );
+}
+
+.label input[type="checkbox"]:focus-visible {
+  outline: none;
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.04),
+    0 0 0 3px rgba(0, 122, 255, 0.14);
 }
 
 .label > span {
@@ -66,15 +108,19 @@
 }
 
 .input {
-  padding: 0.625rem 0.875rem;
+  width: 100%;
+  height: var(--settings-field-height);
+  padding: 0 0.875rem;
   background: var(--bg-control);
   border: 1px solid var(--border-secondary);
-  border-radius: 10px;
-  font-size: 0.875rem;
+  border-radius: var(--settings-control-radius);
+  font-size: var(--settings-control-font-size);
   font-weight: 400;
   color: var(--text-primary);
   transition: all 0.2s ease;
   font-family: inherit;
+  line-height: 1.2;
+  box-sizing: border-box;
 }
 
 .input:focus {
@@ -95,18 +141,20 @@
 
 .select {
   width: 100%;
-  height: 2.25rem;
+  height: var(--settings-field-height);
   padding: 0 0.875rem;
-  margin-top: 0.5rem;
+  margin-top: var(--settings-row-gap);
   border: 0.5px solid var(--border-primary);
-  border-radius: 10px;
+  border-radius: var(--settings-control-radius);
   background: var(--bg-control);
   color: var(--text-primary);
-  font-size: 0.8125rem;
+  font-size: var(--settings-control-font-size);
+  line-height: 1.2;
   font-family: inherit;
   cursor: pointer;
   transition: all 0.2s ease;
   appearance: auto;
+  box-sizing: border-box;
 }
 
 .select:hover {
@@ -147,28 +195,47 @@
 }
 
 .dirRow {
-  display: flex;
-  gap: 0.5rem;
-  align-items: stretch;
-  margin-top: 0.5rem;
-  height: 2.25rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  margin-top: var(--settings-row-gap);
 }
 
-.actionBtn {
-  margin-top: 0.5rem;
-  height: 2.25rem;
-  padding: 0 0.875rem;
-  font-size: 0.8125rem;
+.directoryActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 0.625rem;
+}
+
+.controlButton.controlButton {
+  height: var(--settings-button-height);
+  min-height: var(--settings-button-height);
+  width: 4.5rem;
+  padding: 0 0.75rem;
+  border-radius: 8px;
+  font-size: var(--settings-control-font-size);
+  line-height: 1.2;
+  letter-spacing: 0;
   white-space: nowrap;
-  align-self: flex-start;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  max-width: 100%;
 }
 
 .dirInfo {
   flex: 1;
+  min-width: 0;
+  height: var(--settings-field-height);
   padding: 0 0.875rem;
   background: var(--bg-control);
-  border-radius: 10px;
-  font-size: 0.8125rem;
+  border-radius: var(--settings-control-radius);
+  font-size: var(--settings-control-font-size);
   font-weight: 400;
   color: var(--text-secondary);
   border: 1px solid var(--border-secondary);
@@ -177,14 +244,15 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  box-sizing: border-box;
 }
 
 .hint {
-  font-size: 0.75rem;
+  font-size: var(--settings-supporting-font-size);
   font-weight: 400;
   color: var(--text-tertiary);
-  margin-top: 0.25rem;
-  line-height: 1.4;
+  margin-top: 0.125rem;
+  line-height: 1.35;
   display: block;
 }
 
@@ -204,7 +272,7 @@
   background: var(--warning-bg);
   border: 1px solid var(--warning-border);
   color: var(--warning-color);
-  font-size: 0.75rem;
+  font-size: var(--settings-message-font-size);
   line-height: 1.4;
 }
 
@@ -231,7 +299,7 @@
   background: var(--success-bg);
   border: 1px solid var(--success-border);
   color: var(--success-color);
-  font-size: 0.75rem;
+  font-size: var(--settings-message-font-size);
   line-height: 1.4;
   white-space: pre-line;
 }
@@ -243,7 +311,13 @@
   background: var(--error-bg);
   border: 1px solid var(--error-border);
   color: var(--error-color);
-  font-size: 0.75rem;
+  font-size: var(--settings-message-font-size);
   line-height: 1.4;
   white-space: pre-line;
+}
+
+@media (max-width: 480px) {
+  .controlButton {
+    width: 100%;
+  }
 }

@@ -21,6 +21,15 @@ export interface LocalWallpaper {
 }
 
 /**
+ * 当前壁纸目录中的全量唯一壁纸数据统计
+ */
+export interface WallpaperDataStats {
+  count: number;
+  earliest_end_date: string | null;
+  latest_end_date: string | null;
+}
+
+/**
  * 将后端返回的短字段名格式转换为前端使用的完整字段名格式
  */
 export function normalizeWallpaper(raw: LocalWallpaperRaw): LocalWallpaper {

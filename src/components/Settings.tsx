@@ -1,5 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
-import { AppSettings, MarketStatus, MarketGroup } from "../types";
+import {
+  AppSettings,
+  MarketStatus,
+  MarketGroup,
+  WallpaperDataStats,
+} from "../types";
 import { useSettings } from "../hooks/useSettings";
 import { useTheme, Theme } from "../contexts/ThemeContext";
 import { useI18n } from "../i18n/I18nContext";
@@ -14,6 +19,7 @@ import {
 import { open } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { openPath } from "@tauri-apps/plugin-opener";
 import { createSafeUnlisten } from "../utils/eventListener";
 import { EVENTS } from "../config/ui";
 import { cn } from "../utils/cn";
@@ -26,6 +32,15 @@ interface SettingsProps {
   onClose: () => void;
   version?: string;
   onLanguageChange?: () => void;
+}
+
+function formatEndDate(value: string | null): string | null {
+  if (!value) return null;
+
+  const match = /^(\d{4})(\d{2})(\d{2})$/.exec(value);
+  if (!match) return value;
+
+  return `${match[1]}.${match[2]}.${match[3]}`;
 }
 
 export function Settings({
@@ -54,6 +69,9 @@ export function Settings({
   const [exportMessage, setExportMessage] = useState<TransferMessage | null>(
     null,
   );
+  const [wallpaperDataStats, setWallpaperDataStats] =
+    useState<WallpaperDataStats | null>(null);
+  const [wallpaperDataStatsError, setWallpaperDataStatsError] = useState(false);
 
   useEffect(() => {
     getDefaultDirectory()
@@ -77,13 +95,27 @@ export function Settings({
     }
   }, []);
 
+  const fetchWallpaperDataStats = useCallback(async () => {
+    try {
+      const stats = await invoke<WallpaperDataStats>(
+        "get_wallpaper_data_stats",
+      );
+      setWallpaperDataStats(stats);
+      setWallpaperDataStatsError(false);
+    } catch (err) {
+      console.error("Failed to fetch wallpaper data stats:", err);
+      setWallpaperDataStatsError(true);
+    }
+  }, []);
+
   // Settings 打开时从后端加载市场列表和 mkt 状态
   useEffect(() => {
     fetchMarketStatus();
+    fetchWallpaperDataStats();
     invoke<MarketGroup[]>("get_supported_mkts")
       .then(setMarketGroups)
       .catch((err) => console.error("Failed to load market groups:", err));
-  }, [fetchMarketStatus]);
+  }, [fetchMarketStatus, fetchWallpaperDataStats]);
 
   // 监听 mkt-status-changed 事件，收到后重新 pull
   useEffect(() => {
@@ -115,6 +147,35 @@ export function Settings({
     };
   }, [fetchMarketStatus]);
 
+  useEffect(() => {
+    let mounted = true;
+    let unlisten: (() => void) | undefined;
+
+    (async () => {
+      try {
+        const unlistenFn = await listen("wallpaper-updated", () => {
+          if (mounted) {
+            fetchWallpaperDataStats();
+          }
+        });
+        const safeUnlisten = createSafeUnlisten(unlistenFn);
+
+        if (mounted) {
+          unlisten = safeUnlisten;
+        } else {
+          safeUnlisten();
+        }
+      } catch (e) {
+        console.error("Failed to bind wallpaper-updated event:", e);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+      unlisten?.();
+    };
+  }, [fetchWallpaperDataStats]);
+
   // 后端 region ID → 翻译 key 映射
   const regionI18nKey: Record<string, Parameters<typeof t>[0]> = {
     asia_pacific: "marketRegionAsiaPacific",
@@ -143,6 +204,9 @@ export function Settings({
         if (onLanguageChange) {
           onLanguageChange();
         }
+      }
+      if (field === "save_directory") {
+        await fetchWallpaperDataStats();
       }
     } catch (err) {
       console.error("Update settings error:", err);
@@ -176,12 +240,27 @@ export function Settings({
     }
   };
 
+  const handleOpenFolder = async () => {
+    try {
+      const folderPath = await invoke<string>("get_wallpaper_directory");
+      await invoke("ensure_wallpaper_directory_exists");
+      await openPath(folderPath);
+    } catch (err) {
+      console.error("Failed to open folder:", err);
+      await showSystemNotification(
+        t("folderError"),
+        `${t("folderError")}: ${String(err)}`,
+      );
+    }
+  };
+
   const handleTransfer = async (
     command: string,
     paramKey: string,
     translations: TransferTranslations,
     setMessage: (msg: TransferMessage | null) => void,
     setLoading: (v: boolean) => void,
+    onSuccess?: () => Promise<void>,
   ) => {
     setMessage(null);
 
@@ -203,6 +282,7 @@ export function Settings({
       setMessage(
         buildTransferMessage(result, translations, t("warningSeparator")),
       );
+      await onSuccess?.();
     } catch (err) {
       setMessage(buildTransferErrorMessage(err, translations));
     } finally {
@@ -227,6 +307,7 @@ export function Settings({
       },
       setImportMessage,
       setImporting,
+      fetchWallpaperDataStats,
     );
 
   const handleExport = () =>
@@ -247,6 +328,38 @@ export function Settings({
       setExportMessage,
       setExporting,
     );
+
+  const dataStatsText = (() => {
+    if (wallpaperDataStatsError) {
+      return t("dataStatsError");
+    }
+
+    if (!wallpaperDataStats) {
+      return t("loading");
+    }
+
+    if (wallpaperDataStats.count === 0) {
+      return t("dataStatsEmpty");
+    }
+
+    const earliest = formatEndDate(wallpaperDataStats.earliest_end_date);
+    const latest = formatEndDate(wallpaperDataStats.latest_end_date);
+    const range =
+      earliest && latest
+        ? earliest === latest
+          ? latest
+          : `${earliest} - ${latest}`
+        : null;
+
+    const template =
+      wallpaperDataStats.count === 1
+        ? t("dataStatsSummaryOne")
+        : t("dataStatsSummary");
+
+    return template
+      .replace("{count}", String(wallpaperDataStats.count))
+      .replace("{range}", range ?? t("dataStatsUnknownRange"));
+  })();
 
   if (loading && !settings) {
     return <div className={modalStyles.loading}>{t("settingsLoading")}</div>;
@@ -378,12 +491,27 @@ export function Settings({
                 {settings?.save_directory ??
                   (defaultDir ? defaultDir : t("loading"))}
               </div>
+            </div>
+            <div className={styles.directoryActions}>
+              <button
+                onClick={handleOpenFolder}
+                className={cn(
+                  btnStyles.btn,
+                  btnStyles.btnSecondary,
+                  btnStyles.btnSmall,
+                  styles.controlButton,
+                )}
+                type="button"
+              >
+                {t("openAction")}
+              </button>
               <button
                 onClick={handleSelectFolder}
                 className={cn(
                   btnStyles.btn,
                   btnStyles.btnSecondary,
                   btnStyles.btnSmall,
+                  styles.controlButton,
                 )}
                 type="button"
               >
@@ -407,22 +535,42 @@ export function Settings({
           </div>
 
           <div className={styles.section}>
-            <label className={styles.label}>
-              {t("importData")}
-              <span className={styles.hint}>{t("importDataHint")}</span>
-            </label>
-            <button
-              onClick={handleImport}
-              className={cn(
-                btnStyles.btn,
-                btnStyles.btnSecondary,
-                styles.actionBtn,
-              )}
-              type="button"
-              disabled={importing}
-            >
-              {importing ? t("importInProgress") : t("importSelectDirectory")}
-            </button>
+            <div className={styles.label}>{t("dataActions")}</div>
+            <div className={styles.dirRow}>
+              <div className={styles.dirInfo} title={dataStatsText}>
+                {dataStatsText}
+              </div>
+            </div>
+            <div className={styles.directoryActions}>
+              <button
+                onClick={handleImport}
+                className={cn(
+                  btnStyles.btn,
+                  btnStyles.btnSecondary,
+                  btnStyles.btnSmall,
+                  styles.controlButton,
+                )}
+                type="button"
+                title={t("importSelectDirectory")}
+                disabled={importing}
+              >
+                {importing ? t("importInProgress") : t("importAction")}
+              </button>
+              <button
+                onClick={handleExport}
+                className={cn(
+                  btnStyles.btn,
+                  btnStyles.btnSecondary,
+                  btnStyles.btnSmall,
+                  styles.controlButton,
+                )}
+                type="button"
+                title={t("exportSelectDirectory")}
+                disabled={exporting}
+              >
+                {exporting ? t("exportInProgress") : t("exportAction")}
+              </button>
+            </div>
             {importMessage && (
               <div
                 className={
@@ -434,25 +582,6 @@ export function Settings({
                 {importMessage.text}
               </div>
             )}
-          </div>
-
-          <div className={styles.section}>
-            <label className={styles.label}>
-              {t("exportData")}
-              <span className={styles.hint}>{t("exportDataHint")}</span>
-            </label>
-            <button
-              onClick={handleExport}
-              className={cn(
-                btnStyles.btn,
-                btnStyles.btnSecondary,
-                styles.actionBtn,
-              )}
-              type="button"
-              disabled={exporting}
-            >
-              {exporting ? t("exportInProgress") : t("exportSelectDirectory")}
-            </button>
             {exportMessage && (
               <div
                 className={
