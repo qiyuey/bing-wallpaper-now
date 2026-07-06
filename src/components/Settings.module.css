@@ -53,8 +53,8 @@
   background: rgba(120, 120, 128, 0.24);
   position: relative;
   transition:
-    background-color 0.2s ease,
-    box-shadow 0.2s ease;
+    background-color var(--motion-duration-fast) ease,
+    box-shadow var(--motion-duration-fast) ease;
   flex-shrink: 0;
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
 }
@@ -76,7 +76,7 @@
   box-shadow:
     0 1px 3px rgba(0, 0, 0, 0.22),
     0 0 1px rgba(0, 0, 0, 0.12);
-  transition: transform 0.2s ease;
+  transition: transform var(--motion-duration-fast) ease;
 }
 
 .label input[type="checkbox"]:checked {
@@ -117,7 +117,11 @@
   font-size: var(--settings-control-font-size);
   font-weight: 400;
   color: var(--text-primary);
-  transition: all 0.2s ease;
+  transition:
+    background-color var(--motion-duration-fast) ease,
+    border-color var(--motion-duration-fast) ease,
+    box-shadow var(--motion-duration-fast) ease,
+    color var(--motion-duration-fast) ease;
   font-family: inherit;
   line-height: 1.2;
   box-sizing: border-box;
@@ -152,7 +156,11 @@
   line-height: 1.2;
   font-family: inherit;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition:
+    background-color var(--motion-duration-fast) ease,
+    border-color var(--motion-duration-fast) ease,
+    box-shadow var(--motion-duration-fast) ease,
+    color var(--motion-duration-fast) ease;
   appearance: auto;
   box-sizing: border-box;
 }
@@ -285,7 +293,7 @@
   font-size: 0.875rem;
   padding: 0 0.25rem;
   opacity: 0.6;
-  transition: opacity 0.15s;
+  transition: opacity var(--motion-duration-press) ease;
 }
 
 .btnDismiss:hover {

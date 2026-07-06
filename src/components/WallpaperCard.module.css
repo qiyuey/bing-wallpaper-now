@@ -4,28 +4,23 @@
   overflow: hidden;
   box-shadow: var(--shadow-md);
   transition:
-    transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94),
-    box-shadow 0.25s ease;
+    background-color var(--motion-duration-normal) ease,
+    transform var(--motion-duration-normal) var(--ease-hover),
+    box-shadow var(--motion-duration-normal) ease,
+    border-color var(--motion-duration-normal) ease;
   border: 0.5px solid var(--border-primary);
 }
 
 :root[data-theme="light"] .card {
-  background: rgba(255, 255, 255, 0.38);
-  backdrop-filter: blur(20px) saturate(1.6);
-  box-shadow:
-    var(--shadow-md),
-    inset 0 0.5px 0 rgba(255, 255, 255, 0.5);
+  background: var(--bg-card);
 }
 
 :root[data-theme="dark"] .card {
-  background: rgba(44, 44, 46, 0.4);
-  backdrop-filter: blur(20px) saturate(1.4);
-  box-shadow:
-    var(--shadow-md),
-    inset 0 0.5px 0 rgba(255, 255, 255, 0.08);
+  background: var(--bg-card);
 }
 
 .card:hover {
+  background: var(--bg-card-hover);
   transform: translateY(-2px);
   box-shadow: var(--shadow-lg);
 }
@@ -61,7 +56,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transition: transform var(--motion-duration-image) var(--ease-hover);
 }
 
 .image:hover {
@@ -89,9 +84,9 @@
     inset 0 0.5px 0 rgba(255, 255, 255, 0.4);
   cursor: pointer;
   transition:
-    background 0.2s ease,
-    transform 0.15s ease,
-    box-shadow 0.15s ease;
+    background var(--motion-duration-fast) ease,
+    transform var(--motion-duration-press) ease,
+    box-shadow var(--motion-duration-press) ease;
 }
 
 .actionButton:hover {

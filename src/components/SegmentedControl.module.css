@@ -27,8 +27,8 @@
     inset 0 0.5px 0 rgba(255, 255, 255, 0.8);
   border: 0.5px solid rgba(0, 0, 0, 0.08);
   transition:
-    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-    width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transform var(--motion-duration-slow) var(--ease-standard),
+    width var(--motion-duration-slow) var(--ease-standard);
   z-index: 0;
 }
 
@@ -55,7 +55,7 @@
   border-radius: 8px;
   position: relative;
   z-index: 1;
-  transition: color 0.2s ease;
+  transition: color var(--motion-duration-fast) ease;
   user-select: none;
   box-sizing: border-box;
 }

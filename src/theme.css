@@ -5,9 +5,26 @@
 :root {
   --bg-gradient: #e8e8ed;
 
+  /* Motion */
+  --motion-duration-press: 0.15s;
+  --motion-duration-fast: 0.2s;
+  --motion-duration-normal: 0.25s;
+  --motion-duration-slow: 0.3s;
+  --motion-duration-image: 0.4s;
+  --motion-duration-spin-fast: 0.6s;
+  --motion-duration-spin: 0.7s;
+  --motion-duration-progress: 1.5s;
+  --motion-delay-tooltip: 0.4s;
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-emphasized: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-enter: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-hover: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
   --theme-transition:
-    background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease,
-    box-shadow 0.3s ease;
+    background-color var(--motion-duration-slow) ease,
+    color var(--motion-duration-slow) ease,
+    border-color var(--motion-duration-slow) ease,
+    box-shadow var(--motion-duration-slow) ease;
 
   /* Layout & Spacing */
   --breakpoint-narrow: 750px;
@@ -47,9 +64,9 @@
 :root[data-theme="light"] {
   --bg-gradient: #f0f0f2;
 
-  /* Card - translucent glass */
-  --bg-card: rgba(255, 255, 255, 0.42);
-  --bg-card-hover: rgba(255, 255, 255, 0.52);
+  /* Card - quiet content surface */
+  --bg-card: rgba(255, 255, 255, 0.84);
+  --bg-card-hover: rgba(255, 255, 255, 0.92);
 
   /* Glass - nav bar and modal shell only */
   --bg-glass: rgba(255, 255, 255, 0.48);
@@ -121,9 +138,9 @@
 :root[data-theme="dark"] {
   --bg-gradient: #0a0a0a;
 
-  /* Card - translucent */
-  --bg-card: rgba(44, 44, 46, 0.45);
-  --bg-card-hover: rgba(58, 58, 60, 0.55);
+  /* Card - quiet content surface */
+  --bg-card: rgba(28, 28, 30, 0.84);
+  --bg-card-hover: rgba(44, 44, 46, 0.92);
 
   /* Glass */
   --bg-glass: rgba(44, 44, 46, 0.5);
@@ -189,6 +206,35 @@
   color-scheme: dark;
 }
 
-* {
-  transition: var(--theme-transition);
+@media (prefers-reduced-transparency: reduce) {
+  :root,
+  :root[data-theme="light"] {
+    --bg-card: rgba(255, 255, 255, 0.96);
+    --bg-card-hover: #ffffff;
+    --bg-glass: rgba(255, 255, 255, 0.92);
+    --bg-glass-hover: #ffffff;
+    --bg-modal: rgba(255, 255, 255, 0.98);
+    --overlay-bg: rgba(0, 0, 0, 0.48);
+  }
+
+  :root[data-theme="dark"] {
+    --bg-card: rgba(28, 28, 30, 0.96);
+    --bg-card-hover: #2c2c2e;
+    --bg-glass: rgba(28, 28, 30, 0.92);
+    --bg-glass-hover: #2c2c2e;
+    --bg-modal: rgba(28, 28, 30, 0.98);
+    --overlay-bg: rgba(0, 0, 0, 0.62);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-delay: 0ms !important;
+    transition-duration: 0.001ms !important;
+  }
 }

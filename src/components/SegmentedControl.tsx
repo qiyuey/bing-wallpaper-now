@@ -1,4 +1,11 @@
-import { useRef, useEffect, useState, useMemo, type ReactNode } from "react";
+import {
+  useRef,
+  useLayoutEffect,
+  useState,
+  useMemo,
+  useCallback,
+  type ReactNode,
+} from "react";
 import styles from "./SegmentedControl.module.css";
 
 interface SegmentedControlProps<T extends string> {
@@ -19,19 +26,46 @@ export function SegmentedControl<T extends string>({
 
   const optionValues = useMemo(() => options.map((o) => o.value), [options]);
 
-  useEffect(() => {
+  const updateIndicator = useCallback(() => {
     const container = containerRef.current;
-    if (!container) return;
+    if (!container) return [];
+
     const idx = optionValues.indexOf(value);
     const items = container.querySelectorAll<HTMLElement>(`.${styles.option}`);
     const item = items[idx];
+
     if (item) {
-      setIndicator({
+      const next = {
         left: item.offsetLeft,
         width: item.offsetWidth,
+      };
+      setIndicator((prev) => {
+        if (prev.left === next.left && prev.width === next.width) {
+          return prev;
+        }
+        return next;
       });
     }
-  }, [value, optionValues]);
+
+    return Array.from(items);
+  }, [optionValues, value]);
+
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const items = updateIndicator();
+    const resizeObserver = new ResizeObserver(() => {
+      updateIndicator();
+    });
+
+    resizeObserver.observe(container);
+    items.forEach((item) => resizeObserver.observe(item));
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [updateIndicator]);
 
   return (
     <div className={styles.container} ref={containerRef}>

@@ -27,11 +27,12 @@
   height: 100%;
   background-color: var(--accent-color);
   border-radius: 2px;
-  transition: width 0.3s ease;
+  transition: width var(--motion-duration-slow) ease;
 }
 
 .progressFillIndeterminate {
-  animation: indeterminateProgress 1.5s infinite linear;
+  animation: indeterminateProgress var(--motion-duration-progress) infinite
+    linear;
 }
 
 @keyframes indeterminateProgress {

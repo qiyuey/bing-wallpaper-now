@@ -93,7 +93,7 @@ bing-wallpaper-now/
 │   │   ├── buttons.module.css       # Shared button system
 │   │   ├── modal.module.css         # Shared modal overlay/structure
 │   │   ├── spinner.module.css       # Shared loading spinner
-│   │   └── liquid-glass.module.css  # Glass effect system (unused by cards currently)
+│   │   └── liquid-glass.module.css  # Glass effect system for app chrome
 │   ├── components/                  # React components
 │   │   ├── Settings.tsx             # Settings dialog
 │   │   ├── Settings.module.css
@@ -107,7 +107,6 @@ bing-wallpaper-now/
 │   │   └── About.module.css
 │   ├── hooks/                       # Custom React hooks
 │   │   ├── useBingWallpapers.ts     # Wallpaper data fetching
-│   │   ├── useLiquidGlass.ts        # Mouse-tracking glass angle effect
 │   │   ├── useSettings.ts          # Settings management
 │   │   ├── useTrayEvents.ts        # System tray event integration
 │   │   ├── useUpdateCheck.ts       # App update checking

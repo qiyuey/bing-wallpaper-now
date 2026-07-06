@@ -10,7 +10,7 @@
   align-items: flex-start;
   justify-content: center;
   z-index: 1000;
-  animation: fadeIn 0.25s ease;
+  animation: fadeIn var(--motion-duration-normal) ease;
   padding: 0.5rem;
   overflow-y: auto;
 }
@@ -37,7 +37,7 @@
   display: flex;
   flex-direction: column;
   box-shadow: var(--shadow-xl);
-  animation: slideUp 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+  animation: slideUp var(--motion-duration-slow) var(--ease-enter);
   transition: var(--theme-transition);
   margin: auto 1rem;
 }

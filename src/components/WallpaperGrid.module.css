@@ -6,7 +6,6 @@
 .virtualList {
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
-  will-change: scroll-position;
   scrollbar-width: thin;
   scrollbar-color: var(--text-disabled) transparent;
 }

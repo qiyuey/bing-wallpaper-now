@@ -4,7 +4,7 @@
   border: 2.5px solid var(--bg-control);
   border-top-color: var(--accent-color);
   border-radius: 50%;
-  animation: spin 0.7s linear infinite;
+  animation: spin var(--motion-duration-spin) linear infinite;
 }
 
 @keyframes spin {
