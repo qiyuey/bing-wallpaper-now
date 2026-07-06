@@ -2,6 +2,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useLayoutEffect,
   useState,
   ReactNode,
   useRef,
@@ -9,6 +10,7 @@ import {
 import { invoke } from "@tauri-apps/api/core";
 
 export type Theme = "light" | "dark" | "system";
+export const THEME_STORAGE_KEY = "bing-wallpaper-now.theme";
 
 interface ThemeContextType {
   theme: Theme;
@@ -19,6 +21,10 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
+function isTheme(value: unknown): value is Theme {
+  return value === "light" || value === "dark" || value === "system";
+}
+
 function getSystemTheme(): "light" | "dark" {
   if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
     return "dark";
@@ -26,13 +32,42 @@ function getSystemTheme(): "light" | "dark" {
   return "light";
 }
 
+function readStoredTheme(): Theme {
+  try {
+    const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+    return isTheme(storedTheme) ? storedTheme : "system";
+  } catch {
+    return "system";
+  }
+}
+
+function writeStoredTheme(theme: Theme) {
+  try {
+    window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+  } catch {
+    // localStorage can be unavailable in restricted webviews; theme still works in memory.
+  }
+}
+
+function resolveTheme(theme: Theme): "light" | "dark" {
+  return theme === "system" ? getSystemTheme() : theme;
+}
+
 function applyTheme(theme: "light" | "dark") {
   document.documentElement.setAttribute("data-theme", theme);
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("system");
-  const [actualTheme, setActualTheme] = useState<"light" | "dark">("light");
+  const [theme, setThemeState] = useState<Theme>(() => readStoredTheme());
+  const [actualTheme, setActualTheme] = useState<"light" | "dark">(() =>
+    resolveTheme(readStoredTheme()),
+  );
+
+  // Apply a synchronous fallback theme before the first paint.
+  // Persisted settings still take precedence once get_settings resolves.
+  useLayoutEffect(() => {
+    applyTheme(resolveTheme(readStoredTheme()));
+  }, []);
 
   // Initialize theme from settings
   useEffect(() => {
@@ -49,19 +84,20 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
           throw new Error("settings unavailable");
         }
 
-        const savedTheme = (settings.theme ?? "system") as Theme;
+        const savedTheme = isTheme(settings.theme) ? settings.theme : "system";
         setThemeState(savedTheme);
 
-        const resolvedTheme =
-          savedTheme === "system" ? getSystemTheme() : savedTheme;
+        const resolvedTheme = resolveTheme(savedTheme);
         setActualTheme(resolvedTheme);
+        writeStoredTheme(savedTheme);
         applyTheme(resolvedTheme);
       } catch (error) {
         console.error("Failed to load theme from settings:", error);
-        // Fallback to system theme
-        const systemTheme = getSystemTheme();
-        setActualTheme(systemTheme);
-        applyTheme(systemTheme);
+        const fallbackTheme = readStoredTheme();
+        const resolvedTheme = resolveTheme(fallbackTheme);
+        setThemeState(fallbackTheme);
+        setActualTheme(resolvedTheme);
+        applyTheme(resolvedTheme);
       }
     };
 
@@ -95,8 +131,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   // Apply theme to UI only, without saving to backend
   const applyThemeToUI = (newTheme: Theme) => {
     setThemeState(newTheme);
-    const resolvedTheme = newTheme === "system" ? getSystemTheme() : newTheme;
+    const resolvedTheme = resolveTheme(newTheme);
     setActualTheme(resolvedTheme);
+    writeStoredTheme(newTheme);
     applyTheme(resolvedTheme);
   };
 

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, waitFor, act } from "@testing-library/react";
-import { ThemeProvider, useTheme } from "./ThemeContext";
+import { THEME_STORAGE_KEY, ThemeProvider, useTheme } from "./ThemeContext";
 import { invoke } from "@tauri-apps/api/core";
 import { ReactNode } from "react";
 
@@ -23,8 +23,30 @@ describe("ThemeContext", () => {
     removeEventListener: ReturnType<typeof vi.fn>;
   };
 
+  const mockLocalStorage = () => {
+    let store: Record<string, string> = {};
+
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      value: {
+        getItem: vi.fn((key: string) => store[key] ?? null),
+        setItem: vi.fn((key: string, value: string) => {
+          store[key] = String(value);
+        }),
+        removeItem: vi.fn((key: string) => {
+          delete store[key];
+        }),
+        clear: vi.fn(() => {
+          store = {};
+        }),
+      },
+    });
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
+    mockLocalStorage();
+    window.localStorage.clear();
 
     // Mock document.documentElement.setAttribute
     vi.spyOn(document.documentElement, "setAttribute");
@@ -54,6 +76,7 @@ describe("ThemeContext", () => {
   });
 
   afterEach(() => {
+    window.localStorage.clear();
     vi.restoreAllMocks();
   });
 
@@ -87,6 +110,46 @@ describe("ThemeContext", () => {
     await waitFor(() => {
       expect(result.current.theme).toBe("dark");
       expect(result.current.actualTheme).toBe("dark");
+    });
+  });
+
+  it("should initialize from stored theme before settings load", () => {
+    window.localStorage.setItem(THEME_STORAGE_KEY, "dark");
+
+    vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "get_settings") {
+        return new Promise(() => {});
+      }
+      return Promise.resolve(null);
+    });
+
+    const { result } = renderHook(() => useTheme(), { wrapper });
+
+    expect(result.current.theme).toBe("dark");
+    expect(result.current.actualTheme).toBe("dark");
+    expect(document.documentElement.setAttribute).toHaveBeenCalledWith(
+      "data-theme",
+      "dark",
+    );
+  });
+
+  it("should mirror backend theme settings to localStorage", async () => {
+    const mockSettingsWithDark = {
+      ...mockSettings,
+      theme: "dark",
+    };
+
+    vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "get_settings") {
+        return Promise.resolve(mockSettingsWithDark);
+      }
+      return Promise.resolve(null);
+    });
+
+    renderHook(() => useTheme(), { wrapper });
+
+    await waitFor(() => {
+      expect(window.localStorage.getItem(THEME_STORAGE_KEY)).toBe("dark");
     });
   });
 
@@ -446,6 +509,7 @@ describe("ThemeContext", () => {
 
     expect(result.current.theme).toBe("dark");
     expect(result.current.actualTheme).toBe("dark");
+    expect(window.localStorage.getItem(THEME_STORAGE_KEY)).toBe("dark");
 
     // applyThemeToUI should NOT call invoke (no backend save)
     const invokeCallsAfter = vi.mocked(invoke).mock.calls.length;

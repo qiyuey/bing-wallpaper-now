@@ -9,42 +9,83 @@
     <!-- 这个脚本必须在所有其他脚本之前执行，确保在 React 加载前钩子是干净的 -->
     <!-- React Refresh 会检查钩子是否被 Proxy 包装或缺少关键属性 -->
     <script>
-      (function() {
+      (function () {
         if (typeof window !== "undefined") {
+          try {
+            var storedTheme = window.localStorage.getItem(
+              "bing-wallpaper-now.theme",
+            );
+            var themePreference =
+              storedTheme === "light" ||
+              storedTheme === "dark" ||
+              storedTheme === "system"
+                ? storedTheme
+                : "system";
+            var prefersDark =
+              window.matchMedia &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches;
+            var resolvedTheme =
+              themePreference === "system"
+                ? prefersDark
+                  ? "dark"
+                  : "light"
+                : themePreference;
+            document.documentElement.setAttribute("data-theme", resolvedTheme);
+          } catch (e) {
+            var fallbackPrefersDark = false;
+            try {
+              fallbackPrefersDark =
+                window.matchMedia &&
+                window.matchMedia("(prefers-color-scheme: dark)").matches;
+            } catch (e2) {
+              fallbackPrefersDark = false;
+            }
+            document.documentElement.setAttribute(
+              "data-theme",
+              fallbackPrefersDark ? "dark" : "light",
+            );
+          }
+
           const hookKey = "__REACT_DEVTOOLS_GLOBAL_HOOK__";
           const existingHook = window[hookKey];
-          
+
           if (existingHook && typeof existingHook === "object") {
             // 检查钩子是否被 Proxy 包装（通过检查属性描述符是否有 getter/setter）
             let isProxy = false;
             try {
-              const descriptor = Object.getOwnPropertyDescriptor(window, hookKey);
+              const descriptor = Object.getOwnPropertyDescriptor(
+                window,
+                hookKey,
+              );
               if (descriptor && (descriptor.get || descriptor.set)) {
                 isProxy = true;
               }
             } catch (e) {
               // 忽略错误
             }
-            
+
             // 检查钩子是否缺少关键属性（正常的 DevTools 钩子应该有这些）
-            const hasCriticalProps = 
+            const hasCriticalProps =
               existingHook.renderers !== undefined ||
               typeof existingHook.supportsFiber === "function" ||
               typeof existingHook.onCommitFiberRoot === "function" ||
               existingHook.inject !== undefined ||
               existingHook.rendererInterfaces !== undefined;
-            
+
             // 如果钩子被代理或缺少关键属性，清除它让 React Refresh 重新创建
             if (isProxy || !hasCriticalProps) {
               try {
                 // 如果使用了 getter/setter，需要先重新定义属性
-                const descriptor = Object.getOwnPropertyDescriptor(window, hookKey);
+                const descriptor = Object.getOwnPropertyDescriptor(
+                  window,
+                  hookKey,
+                );
                 if (descriptor && (descriptor.get || descriptor.set)) {
                   Object.defineProperty(window, hookKey, {
                     configurable: true,
                     enumerable: true,
                     writable: true,
-                    value: undefined
+                    value: undefined,
                   });
                 }
                 delete window[hookKey];
@@ -61,6 +102,30 @@
         }
       })();
     </script>
+    <style>
+      html {
+        min-height: 100%;
+        background: #f0f0f2;
+        color: #1a1a1c;
+        color-scheme: light;
+      }
+
+      html[data-theme="dark"] {
+        background: #0a0a0a;
+        color: #f5f5f7;
+        color-scheme: dark;
+      }
+
+      body,
+      #root {
+        min-height: 100vh;
+        background: transparent;
+      }
+
+      body {
+        margin: 0;
+      }
+    </style>
   </head>
 
   <body>
