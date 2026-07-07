@@ -77,7 +77,7 @@ function App() {
     if (!ambientBackgroundCandidate) return;
 
     let cancelled = false;
-    const image = new Image();
+    const image = new window.Image();
     image.onload = () => {
       if (!cancelled) {
         setAmbientBackgroundUrl(ambientBackgroundCandidate);
