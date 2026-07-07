@@ -3,6 +3,8 @@
   --glass-saturation: 1.8;
   --glass-tint: rgba(255, 255, 255, 0.72);
   --glass-border-opacity: 0.5;
+  --glass-border-color: rgba(255, 255, 255, var(--glass-border-opacity));
+  --glass-highlight: rgba(255, 255, 255, 0.4);
   --glass-radius: 18px;
   --glass-shadow:
     0 4px 20px -2px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
@@ -12,7 +14,7 @@
   background: var(--glass-tint);
   backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
   box-shadow: var(--glass-shadow);
-  border: 0.5px solid rgba(255, 255, 255, var(--glass-border-opacity));
+  border: 0.5px solid var(--glass-border-color);
   transition:
     transform var(--motion-duration-fast) var(--ease-emphasized),
     box-shadow var(--motion-duration-fast) ease;
@@ -23,30 +25,34 @@
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.4);
+  box-shadow: inset 0 0.5px 0 var(--glass-highlight);
   pointer-events: none;
 }
 
 .nav {
-  --glass-blur: 24px;
-  --glass-saturation: 1.9;
-  --glass-tint: rgba(255, 255, 255, 0.42);
+  --glass-blur: 30px;
+  --glass-saturation: 1.12;
+  --glass-tint: rgba(255, 255, 255, 0.62);
   --glass-radius: 16px;
-  --glass-border-opacity: 0.4;
-  --glass-shadow: 0 2px 12px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.03);
+  --glass-border-color: rgba(0, 0, 0, 0.06);
+  --glass-highlight: rgba(255, 255, 255, 0.08);
+  --glass-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
 }
 
 :root[data-theme="dark"] .liquidGlass {
   --glass-tint: rgba(44, 44, 46, 0.45);
   --glass-border-opacity: 0.15;
-  border-color: rgba(255, 255, 255, var(--glass-border-opacity));
+  --glass-border-color: rgba(255, 255, 255, var(--glass-border-opacity));
 }
 
 :root[data-theme="dark"] .liquidGlass::after {
-  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.12);
+  --glass-highlight: rgba(255, 255, 255, 0.12);
 }
 
 :root[data-theme="dark"] .nav {
-  --glass-tint: rgba(28, 28, 30, 0.45);
+  --glass-blur: 30px;
+  --glass-saturation: 1.08;
+  --glass-tint: rgba(28, 28, 30, 0.64);
   --glass-border-opacity: 0.1;
+  --glass-border-color: rgba(255, 255, 255, var(--glass-border-opacity));
 }

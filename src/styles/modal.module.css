@@ -27,7 +27,7 @@
 .modal {
   position: relative;
   background: var(--bg-modal);
-  backdrop-filter: blur(60px) saturate(120%) brightness(1.1);
+  backdrop-filter: blur(60px) saturate(130%) brightness(1.04);
   border: 0.5px solid var(--border-primary);
   border-radius: 20px;
   width: 90%;

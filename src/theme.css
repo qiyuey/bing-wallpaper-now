@@ -77,7 +77,7 @@
   --bg-control-hover: rgba(120, 120, 128, 0.14);
 
   /* Modal - Mica-like: high opacity with tinted wallpaper bleed */
-  --bg-modal: rgba(255, 255, 255, 0.65);
+  --bg-modal: rgba(255, 255, 255, 0.52);
 
   /* Buttons */
   --bg-button: rgba(120, 120, 128, 0.08);
