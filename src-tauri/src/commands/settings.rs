@@ -5,6 +5,24 @@ use std::path::PathBuf;
 use tauri::AppHandle;
 use tauri_plugin_autostart::ManagerExt;
 
+/// 当前构建是否允许启用系统自启动。
+///
+/// Debug 二进制依赖 Tauri devUrl，脱离 `tauri dev` 的 Vite 服务后启动会加载空白页。
+/// 因此默认禁止 debug 构建写入登录项，避免把 `target/debug/... --hidden`
+/// 注册为系统自启动。需要专门调试自启动时，可显式设置
+/// `BWN_ALLOW_DEBUG_AUTOSTART=1`。
+pub(crate) fn can_enable_autostart_for_current_build() -> bool {
+    #[cfg(debug_assertions)]
+    {
+        std::env::var_os("BWN_ALLOW_DEBUG_AUTOSTART").is_some()
+    }
+
+    #[cfg(not(debug_assertions))]
+    {
+        true
+    }
+}
+
 /// 设置自启动通知标志（如果尚未设置）
 ///
 /// 当用户启用自启动时，macOS 系统会显示通知。
@@ -59,6 +77,10 @@ pub(crate) async fn get_settings(
         .is_enabled()
         .map_err(|e| format!("读取自启动状态失败: {}", e))?;
 
+    if is_enabled && !can_enable_autostart_for_current_build() {
+        warn!(target: "settings", "检测到 debug 构建已有自启动项，请关闭后用正式版重新启用");
+    }
+
     settings.launch_at_startup = is_enabled;
 
     settings.compute_resolved_language();
@@ -96,6 +118,10 @@ pub(crate) async fn update_settings(
 
     if new_settings.launch_at_startup != current_autostart_enabled {
         if new_settings.launch_at_startup {
+            if !can_enable_autostart_for_current_build() {
+                return Err("Debug 构建禁止启用开机自启动，请使用正式版启用该功能".to_string());
+            }
+
             autostart_manager
                 .enable()
                 .map_err(|e| format!("启用开机自启动失败: {}", e))?;
