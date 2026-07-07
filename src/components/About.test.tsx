@@ -41,7 +41,7 @@ describe("About", () => {
   it("should render copyright text", () => {
     renderWithI18n(<About onClose={mockOnClose} version={mockVersion} />);
 
-    expect(screen.getByText(/© 2025 Bing Wallpaper Now/)).toBeInTheDocument();
+    expect(screen.getByText(/© 2026 Bing Wallpaper Now/)).toBeInTheDocument();
   });
 
   it("should call onClose when X button is clicked", () => {
@@ -95,7 +95,7 @@ describe("About", () => {
     expect(screen.getByText(`版本 ${mockVersion}`)).toBeInTheDocument();
     expect(screen.getByText(/每日自动获取并更新必应壁纸/)).toBeInTheDocument();
     expect(screen.getByText("GitHub 仓库")).toBeInTheDocument();
-    expect(screen.getByText(/© 2025 Bing Wallpaper Now/)).toBeInTheDocument();
+    expect(screen.getByText(/© 2026 Bing Wallpaper Now/)).toBeInTheDocument();
   });
 
   it("should prevent multiple close callbacks on rapid clicks", () => {

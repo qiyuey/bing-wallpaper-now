@@ -110,7 +110,7 @@ export const translations = {
     aboutDescription:
       "每日自动获取并更新必应壁纸，支持高清壁纸下载和桌面壁纸设置。",
     aboutGitHub: "GitHub 仓库",
-    aboutCopyright: "© 2025 Bing Wallpaper Now",
+    aboutCopyright: "© 2026 Bing Wallpaper Now",
 
     // 状态
     lastUpdate: "上次更新",
@@ -256,7 +256,7 @@ export const translations = {
     aboutDescription:
       "Automatically fetch and update Bing wallpapers daily, with support for HD wallpaper downloads and desktop wallpaper settings.",
     aboutGitHub: "GitHub Repository",
-    aboutCopyright: "© 2025 Bing Wallpaper Now",
+    aboutCopyright: "© 2026 Bing Wallpaper Now",
 
     // 状态
     lastUpdate: "Last Update",
