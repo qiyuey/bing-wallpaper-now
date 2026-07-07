@@ -127,6 +127,11 @@ pub(crate) async fn set_desktop_wallpaper(
             *current_path = Some(target_for_spawn.clone());
             drop(current_path);
 
+            let _ = app_clone.emit(
+                "current-wallpaper-changed",
+                target_for_spawn.to_string_lossy().to_string(),
+            );
+
             if let Some(set_end_date) = set_end_date
                 && let Ok(latest_wallpapers) =
                     storage::get_local_wallpapers(&wallpaper_dir_for_record, &mkt_code).await
@@ -149,6 +154,35 @@ pub(crate) async fn set_desktop_wallpaper(
     });
 
     Ok(())
+}
+
+/// 获取系统当前桌面壁纸路径。
+#[tauri::command]
+pub(crate) async fn get_current_wallpaper_path(
+    state: tauri::State<'_, AppState>,
+) -> Result<Option<String>, String> {
+    match wallpaper_manager::get_current_wallpaper_path() {
+        Ok(Some(path)) => {
+            let mut current_path = state.current_wallpaper_path.lock().await;
+            *current_path = Some(path.clone());
+            Ok(Some(path.to_string_lossy().to_string()))
+        }
+        Ok(None) => {
+            let current_path = state.current_wallpaper_path.lock().await;
+            Ok(current_path
+                .as_ref()
+                .filter(|path| path.exists())
+                .map(|path| path.to_string_lossy().to_string()))
+        }
+        Err(e) => {
+            warn!(target: "wallpaper", "读取系统当前壁纸失败: {e}");
+            let current_path = state.current_wallpaper_path.lock().await;
+            Ok(current_path
+                .as_ref()
+                .filter(|path| path.exists())
+                .map(|path| path.to_string_lossy().to_string()))
+        }
+    }
 }
 
 /// 获取已下载的壁纸列表

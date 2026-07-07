@@ -127,6 +127,7 @@ pub fn run() {
         .manage(app_state)
         .invoke_handler(tauri::generate_handler![
             commands::wallpaper::set_desktop_wallpaper,
+            commands::wallpaper::get_current_wallpaper_path,
             commands::wallpaper::get_local_wallpapers,
             commands::settings::get_settings,
             commands::settings::update_settings,

@@ -14,6 +14,7 @@ import { UpdateDialog } from "./components/UpdateDialog";
 import { showSystemNotification } from "./utils/notification";
 import { LocalWallpaper, getWallpaperFilePath } from "./types";
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { version } from "../package.json";
 import { getStandardIconProps } from "./config/icons";
@@ -21,9 +22,21 @@ import { useI18n } from "./i18n/I18nContext";
 import { useUpdateCheck } from "./hooks/useUpdateCheck";
 import { useTrayEvents } from "./hooks/useTrayEvents";
 import { cn } from "./utils/cn";
+import { createSafeUnlisten } from "./utils/eventListener";
 import styles from "./App.module.css";
 import btnStyles from "./styles/buttons.module.css";
 import glassStyles from "./styles/liquid-glass.module.css";
+
+function toAssetPath(filePath: string): string {
+  return filePath.trim().replace(/\\/g, "/");
+}
+
+function toAssetUrl(filePath: string): string | null {
+  const normalizedPath = toAssetPath(filePath);
+  if (!normalizedPath) return null;
+
+  return convertFileSrc(normalizedPath);
+}
 
 function App() {
   const {
@@ -42,23 +55,108 @@ function App() {
   const [showAbout, setShowAbout] = useState(false);
   const [showEmptyState, setShowEmptyState] = useState(false);
   const [wallpaperDirectory, setWallpaperDirectory] = useState<string>("");
+  const [currentWallpaperPath, setCurrentWallpaperPath] = useState<string>("");
+  const [ambientBackgroundUrl, setAmbientBackgroundUrl] = useState<
+    string | null
+  >(null);
   const { updateInfo, setUpdateInfo } = useUpdateCheck();
 
-  const ambientBgStyle = useMemo(() => {
+  const ambientBackgroundCandidate = useMemo(() => {
+    const currentWallpaperUrl = toAssetUrl(currentWallpaperPath);
+    if (currentWallpaperUrl) return currentWallpaperUrl;
+
     const first = localWallpapers[0];
-    if (!first || !wallpaperDirectory) return undefined;
+    if (!first || !wallpaperDirectory) return null;
     const filePath = getWallpaperFilePath(wallpaperDirectory, first.end_date);
-    if (!filePath) return undefined;
+    if (!filePath) return null;
+
+    return toAssetUrl(filePath);
+  }, [currentWallpaperPath, localWallpapers, wallpaperDirectory]);
+
+  useEffect(() => {
+    if (!ambientBackgroundCandidate) return;
+
+    let cancelled = false;
+    const image = new Image();
+    image.onload = () => {
+      if (!cancelled) {
+        setAmbientBackgroundUrl(ambientBackgroundCandidate);
+      }
+    };
+    image.onerror = () => {
+      console.error(
+        "Failed to preload ambient background:",
+        ambientBackgroundCandidate,
+      );
+    };
+    image.src = ambientBackgroundCandidate;
+
+    return () => {
+      cancelled = true;
+      image.onload = null;
+      image.onerror = null;
+    };
+  }, [ambientBackgroundCandidate]);
+
+  const ambientBgStyle = useMemo(() => {
+    if (!ambientBackgroundUrl) return undefined;
     return {
-      "--ambient-bg": `url("${convertFileSrc(filePath)}")`,
+      "--ambient-bg": `url("${ambientBackgroundUrl}")`,
     } as CSSProperties;
-  }, [localWallpapers, wallpaperDirectory]);
+  }, [ambientBackgroundUrl]);
+
+  const refreshCurrentWallpaperPath = useCallback(async () => {
+    try {
+      const path = await invoke<string | null>("get_current_wallpaper_path");
+      if (typeof path === "string" && path.trim()) {
+        setCurrentWallpaperPath(path);
+      }
+    } catch (err) {
+      console.error("Failed to get current wallpaper path:", err);
+    }
+  }, []);
 
   // 获取壁纸目录
   useEffect(() => {
     invoke<string>("get_wallpaper_directory")
       .then(setWallpaperDirectory)
       .catch((err) => console.error("Failed to get wallpaper directory:", err));
+  }, []);
+
+  useEffect(() => {
+    refreshCurrentWallpaperPath();
+  }, [refreshCurrentWallpaperPath]);
+
+  useEffect(() => {
+    let mounted = true;
+    let unlisten: (() => void) | undefined;
+
+    (async () => {
+      try {
+        const unlistenFn = await listen<string>(
+          "current-wallpaper-changed",
+          (event) => {
+            if (mounted && event.payload) {
+              setCurrentWallpaperPath(event.payload);
+            }
+          },
+        );
+        const safeUnlisten = createSafeUnlisten(unlistenFn);
+
+        if (mounted) {
+          unlisten = safeUnlisten;
+        } else {
+          safeUnlisten();
+        }
+      } catch (err) {
+        console.error("Failed to bind current-wallpaper-changed event:", err);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+      unlisten?.();
+    };
   }, []);
 
   // 打开下载目录
@@ -143,6 +241,7 @@ function App() {
 
       // 异步设置，不阻塞 UI
       await setDesktopWallpaper(filePath);
+      setCurrentWallpaperPath(filePath);
       await showSystemNotification(t("setWallpaper"), t("wallpaperSetSuccess"));
     } catch (err) {
       console.error("Failed to set wallpaper:", err);
@@ -159,6 +258,7 @@ function App() {
     await fetchLocalWallpapers();
     try {
       await forceUpdate(true);
+      await refreshCurrentWallpaperPath();
     } catch (err) {
       console.error("Force update failed:", err);
       await showSystemNotification(t("wallpaperError"), String(err));
@@ -175,6 +275,7 @@ function App() {
       await fetchLocalWallpapers(true);
       // 然后触发强制更新，下载新语言的壁纸数据
       await forceUpdate(true);
+      await refreshCurrentWallpaperPath();
       // 更新完成后会通过 wallpaper-updated 事件自动刷新列表
     } catch (err) {
       console.error("Language change refresh failed:", err);

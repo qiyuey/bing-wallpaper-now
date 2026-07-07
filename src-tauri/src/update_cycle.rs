@@ -240,7 +240,13 @@ async fn apply_latest_wallpaper_if_needed(app: &AppHandle, state: &AppState, wal
                 error!(target: "update", "设置壁纸失败: {e}");
             } else {
                 let mut current_path = state.current_wallpaper_path.lock().await;
-                *current_path = Some(path);
+                *current_path = Some(path.clone());
+                drop(current_path);
+
+                let _ = app.emit(
+                    "current-wallpaper-changed",
+                    path.to_string_lossy().to_string(),
+                );
             }
         }
     }

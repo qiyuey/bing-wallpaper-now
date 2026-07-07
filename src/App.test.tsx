@@ -8,7 +8,7 @@ import {
 } from "@testing-library/react";
 import React from "react";
 import App from "./App";
-import { invoke } from "@tauri-apps/api/core";
+import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { listen, type Event } from "@tauri-apps/api/event";
 import { check, Update } from "@tauri-apps/plugin-updater";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -59,6 +59,20 @@ describe("App", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(convertFileSrc).mockImplementation(
+      (path: string) => `asset://localhost/${path}`,
+    );
+    vi.stubGlobal(
+      "Image",
+      class {
+        onload: (() => void) | null = null;
+        onerror: (() => void) | null = null;
+
+        set src(_value: string) {
+          setTimeout(() => this.onload?.(), 0);
+        }
+      },
+    );
 
     // Mock window and element dimensions for virtual list
     Object.defineProperty(window, "innerHeight", {
@@ -83,6 +97,9 @@ describe("App", () => {
     vi.mocked(invoke).mockImplementation((cmd: string) => {
       if (cmd === "get_wallpaper_directory") {
         return Promise.resolve("/path/to/wallpapers");
+      }
+      if (cmd === "get_current_wallpaper_path") {
+        return Promise.resolve(null);
       }
       if (cmd === "get_local_wallpapers") {
         return Promise.resolve(mockWallpapersRaw);
@@ -134,6 +151,52 @@ describe("App", () => {
       expect(screen.getByText("Bing Wallpaper")).toBeInTheDocument();
     });
     expect(screen.getByText("Now")).toBeInTheDocument();
+  });
+
+  it("should use current system wallpaper as ambient background", async () => {
+    vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "get_wallpaper_directory") {
+        return Promise.resolve("/path/to/wallpapers");
+      }
+      if (cmd === "get_current_wallpaper_path") {
+        return Promise.resolve("C:\\Users\\Test\\Pictures\\current.jpg");
+      }
+      if (cmd === "get_local_wallpapers") {
+        return Promise.resolve(mockWallpapersRaw);
+      }
+      if (cmd === "get_settings") {
+        return Promise.resolve({
+          auto_update: true,
+          save_directory: null,
+          launch_at_startup: false,
+          language: "zh-CN",
+          resolved_language: "zh-CN",
+          mkt: "zh-CN",
+        });
+      }
+      if (cmd === "get_last_update_time") {
+        return Promise.resolve(null);
+      }
+      if (cmd === "get_market_status") {
+        return Promise.resolve({
+          requested_mkt: "zh-CN",
+          effective_mkt: "zh-CN",
+          is_mismatch: false,
+        });
+      }
+      if (cmd === "get_supported_mkts") {
+        return Promise.resolve([]);
+      }
+      return Promise.resolve(null);
+    });
+
+    const { container } = renderWithTheme(<App />);
+
+    await waitFor(() => {
+      expect(container.firstElementChild?.getAttribute("style")).toContain(
+        "asset://localhost/C:/Users/Test/Pictures/current.jpg",
+      );
+    });
   });
 
   it("should render action buttons in header", async () => {

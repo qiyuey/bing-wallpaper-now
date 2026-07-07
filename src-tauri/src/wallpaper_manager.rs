@@ -2,7 +2,7 @@
 use anyhow::Context;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 #[cfg(target_os = "windows")]
 use log::{info, warn};
@@ -10,8 +10,6 @@ use log::{info, warn};
 use log::{info, warn};
 #[cfg(target_os = "macos")]
 use std::collections::{HashMap, HashSet};
-#[cfg(target_os = "macos")]
-use std::path::PathBuf;
 #[cfg(target_os = "macos")]
 use std::sync::{Arc, Mutex};
 
@@ -92,6 +90,37 @@ fn get_current_wallpaper_windows() -> Result<String> {
         .position(|&ch| ch == 0)
         .unwrap_or(buffer.len());
     Ok(String::from_utf16_lossy(&buffer[..len]))
+}
+
+/// 获取系统当前桌面壁纸路径。
+///
+/// Windows 返回当前桌面壁纸文件；macOS 返回第一个显示器的当前桌面图片。
+/// 如果系统没有返回可用文件路径，则返回 `None`。
+pub fn get_current_wallpaper_path() -> Result<Option<PathBuf>> {
+    #[cfg(windows)]
+    {
+        let current_wallpaper = get_current_wallpaper_windows()?;
+        if current_wallpaper.trim().is_empty() {
+            return Ok(None);
+        }
+
+        let path = PathBuf::from(current_wallpaper);
+        if !path.exists() {
+            return Ok(None);
+        }
+
+        Ok(Some(path.canonicalize().unwrap_or(path)))
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        Ok(get_desktop_image_url_for_screen(0).filter(|path| path.exists()))
+    }
+
+    #[cfg(not(any(windows, target_os = "macos")))]
+    {
+        Ok(None)
+    }
 }
 
 /// 规范化 Windows 路径用于比较，避免大小写和分隔符差异导致重复设置。
