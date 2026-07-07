@@ -9,7 +9,7 @@ description: 执行标准发布流程：质量门禁、版本号更新、CHANGEL
 
 ## 职责分工
 
-AI 负责：确认发布范围、更新 `CHANGELOG.md`、按需更新 `AGENTS.md` / `README.md` / `README.zh.md`
+AI 负责：梳理发布范围、更新 `CHANGELOG.md`、按需更新 `AGENTS.md` / `README.md` / `README.zh.md`
 
 `make release` 脚本自动处理：质量检查 → 版本文件更新 → release commit → Git tag → 推送
 
@@ -43,12 +43,9 @@ AI 负责：确认发布范围、更新 `CHANGELOG.md`、按需更新 `AGENTS.md
    - `AGENTS.md`（中英混用）、`README.md`（英文）、`README.zh.md`（中文）
    - 不做无意义润色，只同步实际变更；无需更新则跳过
 
-4. **确认发布内容（必须）**
+4. **展示发布内容摘要**
    - 展示 CHANGELOG 新增内容及文档变更摘要
-   - 请求确认（确认发布 / 取消）
-     - 若当前环境提供结构化用户输入/选项工具，优先使用该工具展示选项
-     - 若结构化工具不可用，用普通消息要求用户回复 `确认发布` 或 `取消`
-   - **必须等待用户确认后才能继续**
+   - 若用户已明确要求发布或确认发布，继续执行后续步骤，不再二次确认
 
 5. **提交发布文档**
    - 仅添加实际修改的文件，commit message：
