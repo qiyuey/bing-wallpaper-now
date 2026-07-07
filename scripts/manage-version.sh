@@ -139,18 +139,20 @@ run_pre_release_checks() {
     print_separator
     echo ""
 
-    # Check if make command exists
-    if ! project_has_tool "make"; then
-        print_error "make command not found"
-        print_info "Please install make or run checks manually"
-        exit 1
-    fi
-
     print_info "Running code formatting checks, linting and tests..."
-    if ! make check NO_FIX=1; then
-        print_error "Quality checks failed"
-        print_info "Please fix the above issues and rerun make release"
-        exit 1
+    if project_has_tool "make"; then
+        if ! make check NO_FIX=1; then
+            print_error "Quality checks failed"
+            print_info "Please fix the above issues and rerun release"
+            exit 1
+        fi
+    else
+        print_warning "make command not found; running quality script directly"
+        if ! bash "$SCRIPT_DIR/check-quality.sh" --no-fix; then
+            print_error "Quality checks failed"
+            print_info "Please fix the above issues and rerun release"
+            exit 1
+        fi
     fi
 
     print_success "All quality checks passed"
