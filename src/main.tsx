@@ -63,29 +63,55 @@ if (import.meta.env.DEV) {
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
+import { AppErrorBoundary } from "./components/AppErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { I18nProvider } from "./i18n/I18nContext";
+import {
+  installGlobalErrorHandlers,
+  markFrontendReady,
+  reportFrontendError,
+} from "./utils/errorReporter";
 import "./theme.css";
 import "./styles/globals.css";
 
-// Suppress Tauri listener errors caused by React StrictMode double-mounting
-// These errors are harmless and only occur in development mode
-window.addEventListener("unhandledrejection", (event) => {
-  const errorMessage = event.reason?.message || String(event.reason);
-  if (
-    errorMessage.includes("listeners") &&
-    errorMessage.includes("handlerId")
-  ) {
-    event.preventDefault(); // Prevent error from being displayed
-  }
-});
+installGlobalErrorHandlers();
 
-ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
-  <React.StrictMode>
-    <ThemeProvider>
-      <I18nProvider>
-        <App />
-      </I18nProvider>
-    </ThemeProvider>
-  </React.StrictMode>,
-);
+const rootElement = document.getElementById("root");
+
+if (!rootElement) {
+  const error = new Error("Root element #root was not found");
+  reportFrontendError({
+    source: "bootstrap",
+    error,
+  });
+  throw error;
+}
+
+try {
+  ReactDOM.createRoot(rootElement).render(
+    <React.StrictMode>
+      <AppErrorBoundary
+        onError={(error, info) =>
+          reportFrontendError({
+            source: "react-error-boundary",
+            error,
+            stack: info.componentStack || error.stack,
+          })
+        }
+      >
+        <ThemeProvider>
+          <I18nProvider>
+            <App />
+          </I18nProvider>
+        </ThemeProvider>
+      </AppErrorBoundary>
+    </React.StrictMode>,
+  );
+  markFrontendReady();
+} catch (error) {
+  reportFrontendError({
+    source: "bootstrap",
+    error,
+  });
+  throw error;
+}

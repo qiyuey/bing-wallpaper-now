@@ -20,8 +20,9 @@ use log::{info, warn};
 use models::{AppRuntimeState, AppSettings};
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 use std::time::Instant;
-use tauri::{Manager, tray::TrayIcon};
+use tauri::{Manager, tray::TrayIcon, webview::PageLoadEvent};
 use tauri_plugin_autostart::ManagerExt;
 use tokio::sync::{Mutex, watch};
 
@@ -37,6 +38,8 @@ struct AppState {
     auto_update_handle: Arc<Mutex<tauri::async_runtime::JoinHandle<()>>>,
     update_in_progress: Arc<Mutex<bool>>,
     tray_icon: Arc<Mutex<Option<TrayIcon>>>,
+    frontend_ready: Arc<AtomicBool>,
+    frontend_reload_attempted: Arc<AtomicBool>,
     /// Bing API 最近一次返回的实际 mkt（可能与 settings.mkt 不同）
     ///
     /// 当中国 Bing 强制返回 zh-CN 时，此字段会存储 "zh-CN"，
@@ -76,15 +79,17 @@ pub fn run() {
         auto_update_handle: Arc::new(Mutex::new(tauri::async_runtime::spawn(async {}))),
         update_in_progress: Arc::new(Mutex::new(false)),
         tray_icon: Arc::new(Mutex::new(None)),
+        frontend_ready: Arc::new(AtomicBool::new(false)),
+        frontend_reload_attempted: Arc::new(AtomicBool::new(false)),
         last_actual_mkt: Arc::new(Mutex::new(None)),
     };
 
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             // 当检测到第二个实例启动时，将第一个实例的窗口显示出来
-            if let Some(window) = app.get_webview_window("main") {
-                let _ = window.show();
-                let _ = window.set_focus();
+            if let Err(e) = commands::window::show_main_window_with_watchdog(app, "single_instance")
+            {
+                warn!(target: "frontend", "通过 single_instance 显示主窗口失败: {}", e);
             }
         }))
         .plugin(tauri_plugin_opener::init())
@@ -138,6 +143,8 @@ pub fn run() {
             commands::storage::get_update_in_progress,
             commands::storage::ensure_wallpaper_directory_exists,
             commands::window::show_main_window,
+            commands::window::mark_frontend_ready,
+            commands::window::report_frontend_error,
             update_cycle::force_update,
             version_check::add_ignored_update_version,
             version_check::is_version_ignored,
@@ -276,21 +283,47 @@ pub fn run() {
             }
 
             tray::setup_tray(app.handle())?;
+            commands::window::schedule_frontend_ready_watchdog(
+                app.handle().clone(),
+                "startup",
+            );
 
             // 检查是否是自启动（通过命令行参数）
             let is_autostart = std::env::args()
                 .any(|arg| arg == "--minimized" || arg == "--hidden" || arg == "--startup");
 
             // 如果不是自启动，显示主窗口
-            if !is_autostart && let Some(window) = app.get_webview_window("main") {
-                let _ = window.show();
-                let _ = window.set_focus();
+            if !is_autostart
+                && let Err(e) =
+                    commands::window::show_main_window_with_watchdog(app.handle(), "startup_show")
+            {
+                warn!(target: "frontend", "启动时显示主窗口失败: {}", e);
             }
 
             // 使用 tauri-plugin-log 进行标准化日志输出（已在 Builder 中初始化）
             // 日志文件超过 10MB 时自动轮转，保留所有历史日志文件
             auto_update::start_auto_update_task(app.handle().clone());
             Ok(())
+        })
+        .on_page_load(|webview, payload| {
+            match payload.event() {
+                PageLoadEvent::Started => {
+                    info!(target: "frontend", "页面开始加载: {}", payload.url());
+                }
+                PageLoadEvent::Finished => {
+                    info!(target: "frontend", "页面加载完成: {}", payload.url());
+                }
+            }
+
+            if let PageLoadEvent::Started = payload.event()
+                && let Some(window) = webview.app_handle().get_webview_window("main")
+                && webview.label() == window.label()
+            {
+                let state = webview.app_handle().state::<AppState>();
+                state
+                    .frontend_ready
+                    .store(false, std::sync::atomic::Ordering::SeqCst);
+            }
         })
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
