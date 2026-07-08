@@ -60,6 +60,9 @@ pnpm run format:check       # Prettier check formatting
 pnpm test                   # Run all tests (Rust + frontend)
 pnpm run test:frontend      # Vitest (React/TypeScript tests)
 pnpm run test:rust          # Cargo test (Rust tests)
+pnpm run test:e2e:web       # Playwright web smoke tests with Tauri IPC mock
+pnpm run test:e2e:web:install # Install Chromium for Playwright E2E tests
+make test-e2e               # Run local Playwright web smoke tests
 
 # Quality checks (runs before commit)
 make check                  # Run all quality checks
@@ -227,6 +230,7 @@ bing-wallpaper-now/
 - Run `pnpm test` to run all tests (Rust + frontend)
 - Run `pnpm run test:frontend` for Vitest (React/TypeScript tests)
 - Run `pnpm run test:rust` for Cargo test (Rust tests)
+- Run `pnpm run test:e2e:web` for local Playwright UI smoke tests after installing Chromium with `pnpm run test:e2e:web:install`
 - Fix any test or type errors until the whole suite passes
 - After moving files or changing imports, run `pnpm run lint` and
   `pnpm run typecheck` to ensure ESLint and TypeScript rules still pass
