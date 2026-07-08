@@ -41,7 +41,7 @@ endif
 # Phony Targets
 # ============================================================================
 
-.PHONY: all dev check fix test
+.PHONY: all dev check fix test test-e2e
 .PHONY: build package
 .PHONY: clean clean-all deps install
 .PHONY: patch minor major release retag
@@ -103,6 +103,10 @@ fix:
 ## test: Run all tests (Rust + Frontend)
 test:
 	$(PKG_MANAGER) test
+
+## test-e2e: Run local Playwright web smoke tests
+test-e2e:
+	$(PKG_MANAGER) run test:e2e:web
 
 # ============================================================================
 # Version Management

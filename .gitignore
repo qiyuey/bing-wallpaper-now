@@ -46,6 +46,8 @@ Desktop.ini
 coverage/
 coverage-frontend/
 .nyc_output/
+playwright-report/
+test-results/
 
 # Lock files (keep only pnpm-lock.yaml)
 package-lock.json
