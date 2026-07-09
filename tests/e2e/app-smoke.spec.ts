@@ -38,6 +38,45 @@ test.describe("Bing Wallpaper Now web shell", () => {
     expect(consoleErrors).toEqual([]);
   });
 
+  test("keeps wallpaper card info highlighted when entering from bottom edge", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    const title = page.getByRole("heading", { name: "E2E Alpine Lake" });
+    await expect(title).toBeVisible();
+
+    const info = title.locator("xpath=..");
+    const card = info.locator("xpath=..");
+    const shell = card.locator("xpath=..");
+    const box = await shell.boundingBox();
+
+    if (!box) {
+      throw new Error("Wallpaper card shell was not laid out");
+    }
+
+    const baseInfoBackground = await info.evaluate(
+      (element) => getComputedStyle(element).backgroundColor,
+    );
+    const x = box.x + box.width / 2;
+    await page.mouse.move(x, box.y + box.height + 24);
+    await page.mouse.move(x, box.y + box.height - 1, { steps: 8 });
+
+    await expect
+      .poll(async () => shell.evaluate((element) => element.matches(":hover")))
+      .toBe(true);
+    await expect
+      .poll(
+        async () =>
+          info.evaluate((element) => getComputedStyle(element).backgroundColor),
+        {
+          message:
+            "wallpaper card info background should stay highlighted on hover",
+        },
+      )
+      .not.toBe(baseInfoBackground);
+  });
+
   test("opens settings and renders persisted state", async ({
     page,
   }, testInfo) => {

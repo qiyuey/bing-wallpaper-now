@@ -1,41 +1,42 @@
+.cardShell {
+  width: 100%;
+}
+
 .card {
-  background: transparent;
+  background-color: transparent;
   border-radius: 16px;
   overflow: hidden;
   box-shadow: var(--shadow-md);
   transition:
     background-color var(--motion-duration-normal) ease,
-    transform var(--motion-duration-normal) var(--ease-hover),
     box-shadow var(--motion-duration-normal) ease,
     border-color var(--motion-duration-normal) ease;
   border: 0.5px solid var(--border-primary);
 }
 
 :root[data-theme="light"] .card {
-  background: rgba(255, 255, 255, 0.16);
-  backdrop-filter: blur(18px) saturate(1.35);
-  -webkit-backdrop-filter: blur(18px) saturate(1.35);
+  background-color: rgba(255, 255, 255, 0.16);
 }
 
 :root[data-theme="dark"] .card {
-  background: rgba(28, 28, 30, 0.18);
-  backdrop-filter: blur(18px) saturate(1.25);
-  -webkit-backdrop-filter: blur(18px) saturate(1.25);
+  background-color: rgba(28, 28, 30, 0.18);
 }
 
-.card:hover {
-  background: transparent;
-  transform: translateY(-2px);
+.cardShell:hover .card,
+.cardShell:focus-within .card {
+  background-color: transparent;
   box-shadow: var(--shadow-lg);
 }
 
-:root[data-theme="light"] .card:hover {
-  background: rgba(255, 255, 255, 0.22);
+:root[data-theme="light"] .cardShell:hover .card,
+:root[data-theme="light"] .cardShell:focus-within .card {
+  background-color: rgba(255, 255, 255, 0.22);
   border-color: rgba(0, 0, 0, 0.08);
 }
 
-:root[data-theme="dark"] .card:hover {
-  background: rgba(28, 28, 30, 0.24);
+:root[data-theme="dark"] .cardShell:hover .card,
+:root[data-theme="dark"] .cardShell:focus-within .card {
+  background-color: rgba(28, 28, 30, 0.24);
   border-color: rgba(255, 255, 255, 0.08);
 }
 
@@ -127,29 +128,27 @@
 
 .info {
   padding: var(--card-info-padding-y) var(--card-info-padding-x);
-  background: rgba(255, 255, 255, 0.28);
-  backdrop-filter: blur(18px) saturate(1.35);
-  -webkit-backdrop-filter: blur(18px) saturate(1.35);
+  background-color: rgba(255, 255, 255, 0.28);
   border-top: 0.5px solid rgba(255, 255, 255, 0.35);
   transition:
     background-color var(--motion-duration-normal) ease,
     border-color var(--motion-duration-normal) ease;
 }
 
-:root[data-theme="light"] .card:hover .info {
-  background: rgba(255, 255, 255, 0.36);
+:root[data-theme="light"] .cardShell:hover .info,
+:root[data-theme="light"] .cardShell:focus-within .info {
+  background-color: rgba(255, 255, 255, 0.36);
   border-top-color: rgba(255, 255, 255, 0.5);
 }
 
 :root[data-theme="dark"] .info {
-  background: rgba(44, 44, 46, 0.3);
-  backdrop-filter: blur(18px) saturate(1.25);
-  -webkit-backdrop-filter: blur(18px) saturate(1.25);
+  background-color: rgba(44, 44, 46, 0.3);
   border-top-color: rgba(255, 255, 255, 0.08);
 }
 
-:root[data-theme="dark"] .card:hover .info {
-  background: rgba(58, 58, 60, 0.36);
+:root[data-theme="dark"] .cardShell:hover .info,
+:root[data-theme="dark"] .cardShell:focus-within .info {
+  background-color: rgba(58, 58, 60, 0.36);
   border-top-color: rgba(255, 255, 255, 0.12);
 }
 

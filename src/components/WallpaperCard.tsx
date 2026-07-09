@@ -143,81 +143,83 @@ export const WallpaperCard = memo(
     }, [filePath, retryCount]);
 
     return (
-      <div className={styles.card}>
-        <div
-          className={styles.imageContainer}
-          onClick={handleImageClick}
-          title={t("clickToViewDetails")}
-        >
-          {imageError ? (
-            <div className={styles.imagePlaceholder}>
-              <p className={styles.placeholderErrorText}>
-                {t("imageLoadError")}
-              </p>
-              <p className={styles.placeholderHintText}>
-                {t("imageLoadErrorHint")}
-              </p>
-            </div>
-          ) : (
-            <>
-              {imageLoading && (
-                <div className={styles.imagePlaceholder}>
-                  <div
-                    className={spinnerStyles.spinner}
-                    data-testid="spinner"
-                  ></div>
-                  <p
-                    className={styles.placeholderLoadingText}
-                    data-testid="placeholder-loading"
-                  >
-                    {t("loading")}
-                  </p>
-                </div>
-              )}
-              {imageUrl && (
-                <img
-                  key={`${filePath}-${retryCount}`}
-                  src={imageUrl}
-                  alt={title}
-                  className={styles.image}
-                  onLoad={handleImageLoad}
-                  onError={handleImageError}
-                  style={{ display: imageLoading ? "none" : "block" }}
-                />
-              )}
-            </>
-          )}
-          <div className={styles.actions}>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                if (imageError) {
-                  handleManualRetry();
-                } else {
-                  handleSetWallpaper();
+      <div className={styles.cardShell}>
+        <div className={styles.card}>
+          <div
+            className={styles.imageContainer}
+            onClick={handleImageClick}
+            title={t("clickToViewDetails")}
+          >
+            {imageError ? (
+              <div className={styles.imagePlaceholder}>
+                <p className={styles.placeholderErrorText}>
+                  {t("imageLoadError")}
+                </p>
+                <p className={styles.placeholderHintText}>
+                  {t("imageLoadErrorHint")}
+                </p>
+              </div>
+            ) : (
+              <>
+                {imageLoading && (
+                  <div className={styles.imagePlaceholder}>
+                    <div
+                      className={spinnerStyles.spinner}
+                      data-testid="spinner"
+                    ></div>
+                    <p
+                      className={styles.placeholderLoadingText}
+                      data-testid="placeholder-loading"
+                    >
+                      {t("loading")}
+                    </p>
+                  </div>
+                )}
+                {imageUrl && (
+                  <img
+                    key={`${filePath}-${retryCount}`}
+                    src={imageUrl}
+                    alt={title}
+                    className={styles.image}
+                    onLoad={handleImageLoad}
+                    onError={handleImageError}
+                    style={{ display: imageLoading ? "none" : "block" }}
+                  />
+                )}
+              </>
+            )}
+            <div className={styles.actions}>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (imageError) {
+                    handleManualRetry();
+                  } else {
+                    handleSetWallpaper();
+                  }
+                }}
+                className={styles.actionButton}
+                disabled={imageLoading}
+                title={
+                  imageLoading
+                    ? t("loading")
+                    : imageError
+                      ? t("retry")
+                      : t("setWallpaper")
                 }
-              }}
-              className={styles.actionButton}
-              disabled={imageLoading}
-              title={
-                imageLoading
+              >
+                {imageLoading
                   ? t("loading")
                   : imageError
                     ? t("retry")
-                    : t("setWallpaper")
-              }
-            >
-              {imageLoading
-                ? t("loading")
-                : imageError
-                  ? t("retry")
-                  : t("setWallpaper")}
-            </button>
+                    : t("setWallpaper")}
+              </button>
+            </div>
           </div>
-        </div>
-        <div className={styles.info}>
-          <h3 className={styles.title}>{title}</h3>
-          {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
+          <div className={styles.info}>
+            <h3 className={styles.title}>{title}</h3>
+            {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
+          </div>
         </div>
       </div>
     );
