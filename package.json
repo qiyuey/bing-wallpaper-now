@@ -28,6 +28,7 @@
     "test:e2e:web": "playwright test",
     "test:e2e:web:headed": "playwright test --headed",
     "test:e2e:web:install": "playwright install chromium",
+    "test:notification:macos": "tauri build --debug --bundles app --config src-tauri/tauri.notification-test.conf.json && open \"src-tauri/target/debug/bundle/macos/Bing Wallpaper Now.app\"",
     "test": "cargo test --manifest-path src-tauri/Cargo.toml && vitest run",
     "package": "tauri build",
     "version:patch": "node scripts/run-bash.mjs scripts/manage-version.sh patch",
@@ -69,6 +70,5 @@
     "typescript": "^7.0.2",
     "vite": "8.1.3",
     "vitest": "^4.1.10"
-  },
-  "packageManager": "pnpm@11.10.0"
+  }
 }

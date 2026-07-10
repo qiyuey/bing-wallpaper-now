@@ -13,7 +13,7 @@
 
 - **Node.js**: 26+
 - **Rust**: 1.80+ (Edition 2024)
-- **pnpm**: 10.19.0 (specified in `packageManager` field)
+- **pnpm**: 11+
 
 ## Project Overview
 

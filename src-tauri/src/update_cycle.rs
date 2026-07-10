@@ -623,8 +623,8 @@ pub(crate) async fn force_update(app: tauri::AppHandle) -> Result<(), String> {
 /// 在 `tauri dev` 中使用当前市场的最新壁纸手动触发一次图片通知。
 #[tauri::command]
 pub(crate) async fn test_new_wallpaper_notification(app: tauri::AppHandle) -> Result<(), String> {
-    if !tauri::is_dev() {
-        return Err("开发者通知测试仅在 tauri dev 模式下可用".to_string());
+    if !cfg!(debug_assertions) {
+        return Err("开发者通知测试仅在 debug 构建中可用".to_string());
     }
 
     let state = app.state::<AppState>();

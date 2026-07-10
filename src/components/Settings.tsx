@@ -67,6 +67,11 @@ export function Settings({
 
   const [exporting, setExporting] = useState(false);
   const [testingNotification, setTestingNotification] = useState(false);
+  const [notificationTestAvailable, setNotificationTestAvailable] =
+    useState(false);
+  const [notificationTestError, setNotificationTestError] = useState<
+    string | null
+  >(null);
   const [exportMessage, setExportMessage] = useState<TransferMessage | null>(
     null,
   );
@@ -113,6 +118,11 @@ export function Settings({
   useEffect(() => {
     fetchMarketStatus();
     fetchWallpaperDataStats();
+    invoke<boolean>("notification_test_available")
+      .then(setNotificationTestAvailable)
+      .catch((err) =>
+        console.error("Failed to detect notification test support:", err),
+      );
     invoke<MarketGroup[]>("get_supported_mkts")
       .then(setMarketGroups)
       .catch((err) => console.error("Failed to load market groups:", err));
@@ -257,14 +267,12 @@ export function Settings({
 
   const handleTestWallpaperNotification = async () => {
     setTestingNotification(true);
+    setNotificationTestError(null);
     try {
       await invoke("test_new_wallpaper_notification");
     } catch (err) {
       console.error("Failed to test wallpaper notification:", err);
-      await showSystemNotification(
-        t("testWallpaperNotificationError"),
-        String(err),
-      );
+      setNotificationTestError(String(err));
     } finally {
       setTestingNotification(false);
     }
@@ -627,7 +635,7 @@ export function Settings({
             )}
           </div>
 
-          {import.meta.env.DEV && (
+          {notificationTestAvailable && (
             <div className={styles.section}>
               <div className={styles.label}>{t("developerMode")}</div>
               <div className={styles.directoryActions}>
@@ -648,6 +656,11 @@ export function Settings({
                     : t("testWallpaperNotification")}
                 </button>
               </div>
+              {notificationTestError && (
+                <div className={styles.transferError} role="alert">
+                  {t("testWallpaperNotificationError")}: {notificationTestError}
+                </div>
+              )}
             </div>
           )}
         </div>

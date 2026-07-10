@@ -152,11 +152,15 @@ pub fn run() {
             commands::window::get_screen_orientations,
             commands::mkt::get_market_status,
             commands::mkt::get_supported_mkts,
+            notification::notification_test_available,
             notification::show_system_notification,
             transfer::import_wallpapers,
             transfer::export_wallpapers,
         ])
         .setup(|app| {
+            #[cfg(target_os = "macos")]
+            notification::initialize_notification_center();
+
             wallpaper_manager::initialize_observer();
 
             // macOS: Info.plist 的 LSUIElement=true 不足以在所有场景下阻止

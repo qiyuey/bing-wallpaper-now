@@ -78,6 +78,34 @@ pub(crate) fn show_main_window_with_watchdog(
     Ok(())
 }
 
+/// 从系统通知回调中激活应用并显示主窗口。
+///
+/// macOS 的 `LSUIElement` / Accessory 应用仅调用窗口 `show` 和 `set_focus`
+/// 不一定会从当前前台应用手中取得激活状态，因此需要在 AppKit 主线程显式激活。
+pub(crate) fn show_main_window_from_notification(app: tauri::AppHandle) -> Result<(), String> {
+    let app_for_main_thread = app.clone();
+    app.run_on_main_thread(move || {
+        #[cfg(target_os = "macos")]
+        {
+            use objc2_app_kit::NSApplication;
+            use objc2_foundation::MainThreadMarker;
+
+            if let Some(mtm) = MainThreadMarker::new() {
+                NSApplication::sharedApplication(mtm).activate();
+            } else {
+                warn!(target: "notification", "通知点击回调未运行在 AppKit 主线程，跳过应用激活");
+            }
+        }
+
+        if let Err(e) = show_main_window_with_watchdog(&app_for_main_thread, "notification_click") {
+            warn!(target: "notification", "点击通知后显示主窗口失败: {}", e);
+        } else {
+            info!(target: "notification", "点击通知后已请求激活应用并显示主窗口");
+        }
+    })
+    .map_err(|e| format!("无法将通知点击处理调度到主线程: {e}"))
+}
+
 /// 显示主窗口
 #[tauri::command]
 pub(crate) async fn show_main_window(app: tauri::AppHandle) -> Result<(), String> {

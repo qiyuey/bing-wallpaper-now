@@ -1,10 +1,31 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use log::warn;
-use notify_rust::{Notification, NotificationResponse};
 use tauri::AppHandle;
 
+#[cfg(windows)]
+use notify_rust::Notification;
+
 use crate::models::LocalWallpaper;
+
+/// 在应用启动完成前初始化现代 macOS 通知中心的 delegate。
+///
+/// Apple 要求尽早设置 `UNUserNotificationCenterDelegate`，否则可能错过通知响应。
+#[cfg(target_os = "macos")]
+pub(crate) fn initialize_notification_center() {
+    match mac_usernotifications::blocking::get_notification_settings() {
+        Ok(settings) => {
+            log::info!(
+                target: "notification",
+                "UNUserNotificationCenter 已初始化，授权状态: {:?}",
+                settings.authorization_status
+            );
+        }
+        Err(e) => {
+            warn!(target: "notification", "初始化 UNUserNotificationCenter 失败: {}", e);
+        }
+    }
+}
 
 /// 通知中展示的本地化文本。
 #[derive(Debug, PartialEq, Eq)]
@@ -112,15 +133,12 @@ fn format_wallpaper_date(end_date: &str) -> Option<String> {
     ))
 }
 
-fn should_show_main_window(response: &NotificationResponse) -> bool {
-    response.is_default_action()
-}
-
-fn show_notification(
+#[cfg(windows)]
+fn show_windows_notification(
     app: &AppHandle,
     title: &str,
     body: &str,
-    image_path: Option<&Path>,
+    image_path: Option<&std::path::Path>,
     click_action: NotificationClickAction,
 ) -> anyhow::Result<()> {
     let mut notification = Notification::new();
@@ -138,19 +156,8 @@ fn show_notification(
         notification.image_path(&path.to_string_lossy());
     }
 
-    #[cfg(target_os = "windows")]
     if !tauri::is_dev() {
         notification.app_id(&app.config().identifier);
-    }
-
-    #[cfg(target_os = "macos")]
-    {
-        let identifier = if tauri::is_dev() {
-            "com.apple.Terminal"
-        } else {
-            &app.config().identifier
-        };
-        let _ = notify_rust::set_application(identifier);
     }
 
     let handle = notification.show()?;
@@ -158,15 +165,11 @@ fn show_notification(
     if let NotificationClickAction::ShowMainWindow = click_action {
         let app = app.clone();
         std::thread::spawn(move || {
-            let app_for_response = app.clone();
-            if let Err(e) = handle.wait_for_response(move |response: &NotificationResponse| {
-                if should_show_main_window(response)
-                    && let Err(e) = crate::commands::window::show_main_window_with_watchdog(
-                        &app_for_response,
-                        "notification_click",
-                    )
+            if let Err(e) = handle.wait_for_response(move |response| {
+                if response.is_default_action()
+                    && let Err(e) = crate::commands::window::show_main_window_from_notification(app)
                 {
-                    warn!(target: "notification", "点击通知后显示主窗口失败: {}", e);
+                    warn!(target: "notification", "处理通知点击失败: {}", e);
                 }
             }) {
                 warn!(target: "notification", "等待通知点击响应失败: {}", e);
@@ -177,7 +180,54 @@ fn show_notification(
     Ok(())
 }
 
-/// 在阻塞线程中发送原生系统通知，避免阻塞 Tauri 异步运行时。
+#[cfg(target_os = "macos")]
+async fn send_macos_notification(
+    app: AppHandle,
+    title: String,
+    body: String,
+    image_path: Option<PathBuf>,
+    click_action: NotificationClickAction,
+) -> Result<(), String> {
+    let authorized = mac_usernotifications::request_auth()
+        .await
+        .map_err(|e| format!("请求系统通知权限失败: {e}"))?;
+    if !authorized {
+        return Err("用户未授予系统通知权限".to_string());
+    }
+
+    let mut notification = mac_usernotifications::Notification::new()
+        .title(title)
+        .message(body);
+    if let Some(path) = image_path {
+        notification = notification.image_path(path.to_string_lossy());
+    }
+
+    let handle = notification
+        .send()
+        .await
+        .map_err(|e| format!("发送系统通知失败: {e}"))?;
+
+    if let NotificationClickAction::ShowMainWindow = click_action {
+        tauri::async_runtime::spawn(async move {
+            match handle.response().await {
+                Ok(response) if response.is_default_action() => {
+                    if let Err(e) = crate::commands::window::show_main_window_from_notification(app)
+                    {
+                        warn!(target: "notification", "处理通知点击失败: {}", e);
+                    }
+                }
+                Ok(_) => {}
+                Err(e) => {
+                    warn!(target: "notification", "等待通知点击响应失败: {}", e);
+                }
+            }
+        });
+    }
+
+    Ok(())
+}
+
+/// 使用当前平台的原生通知实现发送系统通知。
 pub(crate) async fn send_system_notification(
     app: AppHandle,
     title: String,
@@ -185,12 +235,20 @@ pub(crate) async fn send_system_notification(
     image_path: Option<PathBuf>,
     click_action: NotificationClickAction,
 ) -> Result<(), String> {
-    tauri::async_runtime::spawn_blocking(move || {
-        show_notification(&app, &title, &body, image_path.as_deref(), click_action)
-    })
-    .await
-    .map_err(|e| format!("通知任务执行失败: {e}"))?
-    .map_err(|e| format!("发送系统通知失败: {e}"))
+    #[cfg(target_os = "macos")]
+    {
+        send_macos_notification(app, title, body, image_path, click_action).await
+    }
+
+    #[cfg(windows)]
+    {
+        tauri::async_runtime::spawn_blocking(move || {
+            show_windows_notification(&app, &title, &body, image_path.as_deref(), click_action)
+        })
+        .await
+        .map_err(|e| format!("通知任务执行失败: {e}"))?
+        .map_err(|e| format!("发送系统通知失败: {e}"))
+    }
 }
 
 /// 供前端现有文本通知调用的命令。
@@ -201,6 +259,27 @@ pub(crate) async fn show_system_notification(
     body: String,
 ) -> Result<(), String> {
     send_system_notification(app, title, body, None, NotificationClickAction::None).await
+}
+
+/// 返回当前进程是否支持开发者通知测试。
+///
+/// 现代 macOS 通知要求进程从真实 `.app` bundle 启动；裸 `tauri dev`
+/// 进程不满足该条件，因此不应展示一个必然失败的测试入口。
+#[tauri::command]
+pub(crate) fn notification_test_available() -> bool {
+    if !cfg!(debug_assertions) {
+        return false;
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        mac_usernotifications::check_bundle().is_ok()
+    }
+
+    #[cfg(windows)]
+    {
+        true
+    }
 }
 
 #[cfg(test)]
@@ -286,16 +365,5 @@ mod tests {
             build_wallpaper_notification_content(&item, "en-US").body,
             "Mountain lake\nBanff National Park"
         );
-    }
-
-    #[test]
-    fn only_notification_body_click_shows_main_window() {
-        assert!(should_show_main_window(&NotificationResponse::Default));
-        assert!(!should_show_main_window(&NotificationResponse::Action(
-            "other".to_string()
-        )));
-        assert!(!should_show_main_window(&NotificationResponse::Closed(
-            notify_rust::CloseReason::Dismissed
-        )));
     }
 }

@@ -78,6 +78,9 @@ describe("Settings", () => {
       if (cmd === "get_wallpaper_data_stats") {
         return Promise.resolve(mockWallpaperDataStats);
       }
+      if (cmd === "notification_test_available") {
+        return Promise.resolve(true);
+      }
       return Promise.resolve(undefined);
     });
 

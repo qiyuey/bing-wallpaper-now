@@ -33,7 +33,6 @@ chrono = { version = "0.4", features = ["serde"] }
 anyhow = "1"
 dirs = "6"
 log = "0.4"
-notify-rust = "4.18"
 tauri-plugin-single-instance = "2"
 image = { version = "0.25", features = ["png"] }
 indexmap = { version = "2", features = ["serde"] }
@@ -43,9 +42,11 @@ semver = "1"
 sys-locale = "0.3.2"
 
 [target.'cfg(target_os = "macos")'.dependencies]
+mac-usernotifications = "0.3.1"
 objc2 = "0.6.4"
 objc2-foundation = { version = "0.3.2", features = ["NSString", "NSDictionary", "NSArray", "NSURL", "NSError", "NSNotification"] }
 objc2-app-kit = { version = "0.3.2", features = ["NSWorkspace", "NSScreen", "NSApplication", "NSResponder", "NSRunningApplication"] }
 
 [target.'cfg(windows)'.dependencies]
+notify-rust = "4.18"
 windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_System_Registry", "Win32_UI_WindowsAndMessaging"] }
