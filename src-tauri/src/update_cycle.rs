@@ -620,13 +620,9 @@ pub(crate) async fn force_update(app: tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-/// 在 `tauri dev` 中使用当前市场的最新壁纸手动触发一次图片通知。
+/// 使用当前市场的最新壁纸发送一条预览通知。
 #[tauri::command]
-pub(crate) async fn test_new_wallpaper_notification(app: tauri::AppHandle) -> Result<(), String> {
-    if !cfg!(debug_assertions) {
-        return Err("开发者通知测试仅在 debug 构建中可用".to_string());
-    }
-
+pub(crate) async fn send_test_wallpaper_notification(app: tauri::AppHandle) -> Result<(), String> {
     let state = app.state::<AppState>();
     let wallpaper_dir = state.wallpaper_directory.lock().await.clone();
     let resolved_language = state.settings.lock().await.resolved_language.clone();
@@ -636,7 +632,7 @@ pub(crate) async fn test_new_wallpaper_notification(app: tauri::AppHandle) -> Re
         .map_err(|e| format!("读取当前市场壁纸失败: {e}"))?
         .into_iter()
         .next()
-        .ok_or_else(|| "当前市场没有可用于通知测试的壁纸".to_string())?;
+        .ok_or_else(|| "当前市场还没有可用于通知预览的壁纸".to_string())?;
 
     notify_new_wallpaper(&app, &wallpaper_dir, &wallpaper, &resolved_language).await
 }

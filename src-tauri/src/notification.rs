@@ -4,7 +4,7 @@ use log::warn;
 use tauri::AppHandle;
 
 #[cfg(windows)]
-use notify_rust::Notification;
+use notify_rust::{Notification, NotificationResponse};
 
 use crate::models::LocalWallpaper;
 
@@ -165,7 +165,7 @@ fn show_windows_notification(
     if let NotificationClickAction::ShowMainWindow = click_action {
         let app = app.clone();
         std::thread::spawn(move || {
-            if let Err(e) = handle.wait_for_response(move |response| {
+            if let Err(e) = handle.wait_for_response(move |response: &NotificationResponse| {
                 if response.is_default_action()
                     && let Err(e) = crate::commands::window::show_main_window_from_notification(app)
                 {
@@ -259,27 +259,6 @@ pub(crate) async fn show_system_notification(
     body: String,
 ) -> Result<(), String> {
     send_system_notification(app, title, body, None, NotificationClickAction::None).await
-}
-
-/// 返回当前进程是否支持开发者通知测试。
-///
-/// 现代 macOS 通知要求进程从真实 `.app` bundle 启动；裸 `tauri dev`
-/// 进程不满足该条件，因此不应展示一个必然失败的测试入口。
-#[tauri::command]
-pub(crate) fn notification_test_available() -> bool {
-    if !cfg!(debug_assertions) {
-        return false;
-    }
-
-    #[cfg(target_os = "macos")]
-    {
-        mac_usernotifications::check_bundle().is_ok()
-    }
-
-    #[cfg(windows)]
-    {
-        true
-    }
 }
 
 #[cfg(test)]
