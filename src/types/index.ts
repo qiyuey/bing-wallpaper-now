@@ -121,6 +121,7 @@ export interface MarketStatus {
  */
 export interface AppSettings {
   auto_update: boolean;
+  new_wallpaper_notification: boolean;
   save_directory: string | null;
   launch_at_startup: boolean;
   theme: string; // "light" | "dark" | "system" - 必需字段，与 Rust 端保持一致

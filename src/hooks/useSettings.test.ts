@@ -9,6 +9,7 @@ vi.mock("@tauri-apps/api/core");
 describe("useSettings", () => {
   const mockSettings: AppSettings = {
     auto_update: true,
+    new_wallpaper_notification: false,
     save_directory: "C:\\Users\\Test\\Wallpapers",
     launch_at_startup: false,
     theme: "system",
@@ -104,6 +105,7 @@ describe("useSettings", () => {
     expect(invoke).toHaveBeenCalledWith("update_settings", {
       newSettings: {
         auto_update: updatedSettings.auto_update,
+        new_wallpaper_notification: updatedSettings.new_wallpaper_notification,
         save_directory: updatedSettings.save_directory,
         launch_at_startup: updatedSettings.launch_at_startup,
         theme: updatedSettings.theme,

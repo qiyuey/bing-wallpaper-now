@@ -37,6 +37,7 @@ export function useSettings() {
       await invoke("update_settings", {
         newSettings: {
           auto_update: newSettings.auto_update,
+          new_wallpaper_notification: newSettings.new_wallpaper_notification,
           save_directory: newSettings.save_directory,
           launch_at_startup: newSettings.launch_at_startup,
           theme: newSettings.theme,

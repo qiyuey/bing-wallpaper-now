@@ -78,7 +78,10 @@ pub(crate) async fn get_settings(
         .map_err(|e| format!("读取自启动状态失败: {}", e))?;
 
     if is_enabled && !can_enable_autostart_for_current_build() {
-        warn!(target: "settings", "检测到 debug 构建已有自启动项，请关闭后用正式版重新启用");
+        info!(
+            target: "settings",
+            "Debug 构建检测到系统已启用自启动（通常来自已安装的正式版），当前仅同步显示系统状态"
+        );
     }
 
     settings.launch_at_startup = is_enabled;

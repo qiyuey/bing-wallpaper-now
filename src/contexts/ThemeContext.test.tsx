@@ -10,6 +10,7 @@ describe("ThemeContext", () => {
   const mockSettings = {
     theme: "system",
     auto_update: true,
+    new_wallpaper_notification: false,
     save_directory: null,
     launch_at_startup: false,
     language: "zh-CN",
@@ -239,6 +240,7 @@ describe("ThemeContext", () => {
     expect(invoke).toHaveBeenCalledWith("update_settings", {
       newSettings: {
         auto_update: mockSettings.auto_update,
+        new_wallpaper_notification: mockSettings.new_wallpaper_notification,
         save_directory: mockSettings.save_directory,
         launch_at_startup: mockSettings.launch_at_startup,
         theme: "dark",

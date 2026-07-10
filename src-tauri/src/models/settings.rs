@@ -4,6 +4,9 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppSettings {
     pub auto_update: bool,
+    /// 检测到新的每日壁纸时发送系统通知。
+    #[serde(default)]
+    pub new_wallpaper_notification: bool,
     pub save_directory: Option<String>,
     pub launch_at_startup: bool,
     #[serde(default = "default_theme")]
@@ -43,6 +46,7 @@ impl Default for AppSettings {
         let mkt = resolved.clone(); // mkt 默认跟随 resolved_language
         Self {
             auto_update: true,
+            new_wallpaper_notification: false,
             save_directory: None,
             launch_at_startup: false,
             theme: default_theme(),
@@ -94,6 +98,7 @@ mod tests {
     fn test_app_settings_default() {
         let settings = AppSettings::default();
         assert!(settings.auto_update);
+        assert!(!settings.new_wallpaper_notification);
         assert_eq!(settings.save_directory, None);
         assert!(!settings.launch_at_startup);
     }
@@ -102,6 +107,7 @@ mod tests {
     fn test_app_settings_serialization() {
         let settings = AppSettings {
             auto_update: false,
+            new_wallpaper_notification: true,
             save_directory: Some("/custom/path".to_string()),
             launch_at_startup: true,
             theme: "dark".to_string(),
@@ -114,6 +120,10 @@ mod tests {
         let deserialized: AppSettings = serde_json::from_str(&json).unwrap();
 
         assert_eq!(deserialized.auto_update, settings.auto_update);
+        assert_eq!(
+            deserialized.new_wallpaper_notification,
+            settings.new_wallpaper_notification
+        );
         assert_eq!(deserialized.save_directory, settings.save_directory);
         assert_eq!(deserialized.launch_at_startup, settings.launch_at_startup);
         assert_eq!(deserialized.theme, settings.theme);
@@ -135,6 +145,7 @@ mod tests {
 
         let settings: AppSettings = serde_json::from_str(json).unwrap();
         assert!(settings.auto_update);
+        assert!(!settings.new_wallpaper_notification);
         assert_eq!(settings.theme, "system");
         assert_eq!(settings.language, "zh-CN");
         // 旧 JSON 不含 resolved_language 和 mkt，应默认为空字符串
@@ -146,6 +157,7 @@ mod tests {
     fn test_app_settings_normalize_language() {
         let base = AppSettings {
             auto_update: true,
+            new_wallpaper_notification: false,
             save_directory: None,
             launch_at_startup: false,
             theme: "system".to_string(),
@@ -204,6 +216,7 @@ mod tests {
     fn test_app_settings_compute_resolved_language() {
         let mut settings = AppSettings {
             auto_update: true,
+            new_wallpaper_notification: false,
             save_directory: None,
             launch_at_startup: false,
             theme: "system".to_string(),
@@ -235,6 +248,7 @@ mod tests {
     fn test_app_settings_normalize_mkt() {
         let mut settings = AppSettings {
             auto_update: true,
+            new_wallpaper_notification: false,
             save_directory: None,
             launch_at_startup: false,
             theme: "system".to_string(),

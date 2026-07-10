@@ -66,6 +66,7 @@ export function Settings({
   );
 
   const [exporting, setExporting] = useState(false);
+  const [testingNotification, setTestingNotification] = useState(false);
   const [exportMessage, setExportMessage] = useState<TransferMessage | null>(
     null,
   );
@@ -254,6 +255,21 @@ export function Settings({
     }
   };
 
+  const handleTestWallpaperNotification = async () => {
+    setTestingNotification(true);
+    try {
+      await invoke("test_new_wallpaper_notification");
+    } catch (err) {
+      console.error("Failed to test wallpaper notification:", err);
+      await showSystemNotification(
+        t("testWallpaperNotificationError"),
+        String(err),
+      );
+    } finally {
+      setTestingNotification(false);
+    }
+  };
+
   const handleTransfer = async (
     command: string,
     paramKey: string,
@@ -390,6 +406,22 @@ export function Settings({
               />
               <span>{t("launchAtStartup")}</span>
             </label>
+          </div>
+
+          <div className={styles.section}>
+            <label className={cn(styles.label, styles.checkboxLabel)}>
+              <input
+                type="checkbox"
+                checked={settings?.new_wallpaper_notification ?? false}
+                onChange={(e) =>
+                  handleChange("new_wallpaper_notification", e.target.checked)
+                }
+              />
+              <span>{t("newWallpaperNotification")}</span>
+            </label>
+            <div className={styles.hint}>
+              {t("newWallpaperNotificationHint")}
+            </div>
           </div>
 
           <div className={styles.section}>
@@ -594,6 +626,30 @@ export function Settings({
               </div>
             )}
           </div>
+
+          {import.meta.env.DEV && (
+            <div className={styles.section}>
+              <div className={styles.label}>{t("developerMode")}</div>
+              <div className={styles.directoryActions}>
+                <button
+                  onClick={handleTestWallpaperNotification}
+                  className={cn(
+                    btnStyles.btn,
+                    btnStyles.btnSecondary,
+                    btnStyles.btnSmall,
+                    styles.controlButton,
+                    styles.developerButton,
+                  )}
+                  type="button"
+                  disabled={testingNotification}
+                >
+                  {testingNotification
+                    ? t("testingWallpaperNotification")
+                    : t("testWallpaperNotification")}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -1,6 +1,6 @@
 use crate::models::{LocalWallpaper, MarketStatus};
 use crate::{
-    AppState, bing_api, download_manager, get_effective_mkt, runtime_state, storage,
+    AppState, bing_api, download_manager, get_effective_mkt, notification, runtime_state, storage,
     wallpaper_manager,
 };
 use chrono::Local;
@@ -306,6 +306,46 @@ async fn fetch_bing_images_with_retry(mkt: &str) -> Option<bing_api::BingFetchRe
     result_opt
 }
 
+/// 下载新壁纸图片并发送原生系统通知。
+///
+/// 图片下载失败时仍会发送文本通知，通知失败不影响更新循环。
+async fn notify_new_wallpaper(
+    app: &AppHandle,
+    wallpaper_dir: &Path,
+    wallpaper: &LocalWallpaper,
+    resolved_language: &str,
+) -> Result<(), String> {
+    let content = notification::build_wallpaper_notification_content(wallpaper, resolved_language);
+    let wallpaper_path = storage::get_wallpaper_path(wallpaper_dir, &wallpaper.end_date);
+    let mut image_path = wallpaper_path.exists().then_some(wallpaper_path.clone());
+
+    if image_path.is_none() && !wallpaper.urlbase.is_empty() {
+        let image_url = bing_api::get_wallpaper_url(&wallpaper.urlbase, "UHD");
+        match download_manager::download_image(&image_url, &wallpaper_path).await {
+            Ok(()) => {
+                image_path = Some(wallpaper_path);
+                let _ = app.emit("image-downloaded", &wallpaper.end_date);
+            }
+            Err(e) => {
+                warn!(
+                    target: "notification",
+                    "新壁纸通知图片下载失败，将发送文本通知: {}",
+                    e
+                );
+            }
+        }
+    }
+
+    notification::send_system_notification(
+        app.clone(),
+        content.title,
+        content.body,
+        image_path,
+        notification::NotificationClickAction::ShowMainWindow,
+    )
+    .await
+}
+
 /// 内部更新循环实现
 /// @param force_update: 是否强制更新（忽略智能检查）
 pub(crate) async fn run_update_cycle_internal(app: &AppHandle, force_update: bool) {
@@ -328,7 +368,14 @@ pub(crate) async fn run_update_cycle_internal(app: &AppHandle, force_update: boo
             d.clone()
         };
 
-        let request_mkt = state.settings.lock().await.mkt.clone();
+        let (request_mkt, new_wallpaper_notification, resolved_language) = {
+            let settings = state.settings.lock().await;
+            (
+                settings.mkt.clone(),
+                settings.new_wallpaper_notification,
+                settings.resolved_language.clone(),
+            )
+        };
         let read_mkt = get_effective_mkt(&state).await;
 
         let existing_wallpapers = storage::get_local_wallpapers(&dir, &read_mkt)
@@ -431,6 +478,28 @@ pub(crate) async fn run_update_cycle_internal(app: &AppHandle, force_update: boo
             .map(|image| LocalWallpaper::from(image.clone()))
             .collect();
 
+        let notification_wallpaper = if new_wallpaper_notification {
+            let existing_for_save_mkt = if read_mkt == save_mkt {
+                existing_wallpapers.clone()
+            } else {
+                match storage::get_local_wallpapers(&dir, &save_mkt).await {
+                    Ok(wallpapers) => wallpapers,
+                    Err(e) => {
+                        warn!(
+                            target: "notification",
+                            "读取通知基线失败，跳过本次新壁纸通知: {}",
+                            e
+                        );
+                        Vec::new()
+                    }
+                }
+            };
+
+            notification::find_new_latest_wallpaper(&metadata_list, &existing_for_save_mkt).cloned()
+        } else {
+            None
+        };
+
         let is_first_launch = existing_wallpapers.is_empty();
 
         let screen_orientations = wallpaper_manager::get_screen_orientations();
@@ -464,6 +533,13 @@ pub(crate) async fn run_update_cycle_internal(app: &AppHandle, force_update: boo
                             warn!(target: "update", "通知前端失败: {e}");
                         }
                         info!(target: "update", "元信息已保存并通知前端，图片将按需下载");
+                    }
+
+                    if let Some(ref wallpaper) = notification_wallpaper
+                        && let Err(e) =
+                            notify_new_wallpaper(app, &dir, wallpaper, &resolved_language).await
+                    {
+                        warn!(target: "notification", "新壁纸系统通知发送失败: {}", e);
                     }
                 }
             }
@@ -542,4 +618,25 @@ pub(crate) async fn force_update(app: tauri::AppHandle) -> Result<(), String> {
     // 调用强制更新版本，跳过智能检查
     run_update_cycle_internal(&app, true).await;
     Ok(())
+}
+
+/// 在 `tauri dev` 中使用当前市场的最新壁纸手动触发一次图片通知。
+#[tauri::command]
+pub(crate) async fn test_new_wallpaper_notification(app: tauri::AppHandle) -> Result<(), String> {
+    if !tauri::is_dev() {
+        return Err("开发者通知测试仅在 tauri dev 模式下可用".to_string());
+    }
+
+    let state = app.state::<AppState>();
+    let wallpaper_dir = state.wallpaper_directory.lock().await.clone();
+    let resolved_language = state.settings.lock().await.resolved_language.clone();
+    let mkt = get_effective_mkt(&state).await;
+    let wallpaper = storage::get_local_wallpapers(&wallpaper_dir, &mkt)
+        .await
+        .map_err(|e| format!("读取当前市场壁纸失败: {e}"))?
+        .into_iter()
+        .next()
+        .ok_or_else(|| "当前市场没有可用于通知测试的壁纸".to_string())?;
+
+    notify_new_wallpaper(&app, &wallpaper_dir, &wallpaper, &resolved_language).await
 }

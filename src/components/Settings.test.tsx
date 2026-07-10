@@ -31,6 +31,7 @@ describe("Settings", () => {
 
   const mockSettings = {
     auto_update: true,
+    new_wallpaper_notification: false,
     save_directory: null,
     launch_at_startup: false,
     theme: "system" as const,
@@ -147,6 +148,40 @@ describe("Settings", () => {
           auto_update: !initialValue,
         }),
       );
+    });
+  });
+
+  it("should toggle new-wallpaper notification checkbox", async () => {
+    renderWithTheme(<Settings onClose={mockOnClose} />);
+
+    const checkbox = (await screen.findByLabelText(
+      /新壁纸通知/i,
+      {},
+      { timeout: 3000 },
+    )) as HTMLInputElement;
+
+    expect(checkbox.checked).toBe(false);
+    fireEvent.click(checkbox);
+
+    await waitFor(() => {
+      expect(mockUpdateSettings).toHaveBeenCalledWith(
+        expect.objectContaining({
+          new_wallpaper_notification: true,
+        }),
+      );
+    });
+  });
+
+  it("should trigger a wallpaper notification in developer mode", async () => {
+    renderWithTheme(<Settings onClose={mockOnClose} />);
+
+    const button = await screen.findByRole("button", {
+      name: /测试新壁纸通知/i,
+    });
+    fireEvent.click(button);
+
+    await waitFor(() => {
+      expect(invoke).toHaveBeenCalledWith("test_new_wallpaper_notification");
     });
   });
 

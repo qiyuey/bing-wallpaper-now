@@ -37,7 +37,22 @@ interface I18nContextType {
   setLanguage: (lang: Language) => Promise<void>;
 }
 
-const I18nContext = createContext<I18nContextType | undefined>(undefined);
+type I18nContextInstance = ReturnType<
+  typeof createContext<I18nContextType | undefined>
+>;
+
+const devGlobal = globalThis as typeof globalThis & {
+  __BING_WALLPAPER_I18N_CONTEXT__?: I18nContextInstance;
+};
+
+// React Fast Refresh 会保留旧 Provider 组件状态；如果模块更新时重新创建
+// Context，新版 useI18n 会读取另一个实例并误判为缺少 Provider。
+// 开发模式将 Context 缓存在 globalThis，保证 HMR 前后身份稳定。
+const I18nContext = import.meta.env.DEV
+  ? (devGlobal.__BING_WALLPAPER_I18N_CONTEXT__ ??= createContext<
+      I18nContextType | undefined
+    >(undefined))
+  : createContext<I18nContextType | undefined>(undefined);
 
 interface I18nProviderProps {
   children: ReactNode;

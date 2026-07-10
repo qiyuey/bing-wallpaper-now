@@ -76,6 +76,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         const settings = await invoke<{
           theme: string;
           auto_update: boolean;
+          new_wallpaper_notification: boolean;
           save_directory: string | null;
           launch_at_startup: boolean;
         }>("get_settings");
@@ -143,6 +144,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       const settings = await invoke<{
         theme: string;
         auto_update: boolean;
+        new_wallpaper_notification: boolean;
         save_directory: string | null;
         launch_at_startup: boolean;
       }>("get_settings");
@@ -151,6 +153,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       await invoke("update_settings", {
         newSettings: {
           auto_update: settings.auto_update,
+          new_wallpaper_notification: settings.new_wallpaper_notification,
           save_directory: settings.save_directory,
           launch_at_startup: settings.launch_at_startup,
           theme: newTheme,

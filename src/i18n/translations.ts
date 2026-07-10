@@ -44,6 +44,9 @@ export const translations = {
     autoUpdate: "自动应用新壁纸",
     autoUpdateHint:
       "开启时：自动获取新壁纸，并在检测到更新的壁纸时自动应用该壁纸\n关闭时：只有手动点击设置壁纸才会设置，但是仍然会自动获取新壁纸",
+    newWallpaperNotification: "新壁纸通知",
+    newWallpaperNotificationHint:
+      "检测到当天的新壁纸时，通过系统通知展示图片、标题和版权说明",
     theme: "主题",
     themeSystem: "跟随系统",
     themeLight: "浅色",
@@ -70,6 +73,10 @@ export const translations = {
     settingsLoading: "加载设置中...",
     settingsSaveError: "保存设置失败",
     settingsFolderSelectError: "选择文件夹失败",
+    developerMode: "开发者模式",
+    testWallpaperNotification: "测试新壁纸通知",
+    testingWallpaperNotification: "正在发送...",
+    testWallpaperNotificationError: "测试通知失败",
 
     // 导入
     importData: "数据导入",
@@ -186,6 +193,9 @@ export const translations = {
     autoUpdate: "Auto Apply New Wallpaper",
     autoUpdateHint:
       "When enabled: Automatically fetch new wallpapers and apply them when detected\nWhen disabled: Only set wallpaper when manually clicked, but still automatically fetch new wallpapers",
+    newWallpaperNotification: "New Wallpaper Notifications",
+    newWallpaperNotificationHint:
+      "Show the image, title, and copyright in a system notification when a new daily wallpaper is detected",
     theme: "Theme",
     themeSystem: "System",
     themeLight: "Light",
@@ -213,6 +223,10 @@ export const translations = {
     settingsLoading: "Loading settings...",
     settingsSaveError: "Failed to save settings",
     settingsFolderSelectError: "Failed to select folder",
+    developerMode: "Developer Mode",
+    testWallpaperNotification: "Test New Wallpaper Notification",
+    testingWallpaperNotification: "Sending...",
+    testWallpaperNotificationError: "Notification Test Failed",
 
     // 导入
     importData: "Data Import",

@@ -4,6 +4,7 @@ mod commands;
 mod download_manager;
 mod index_manager;
 mod models;
+mod notification;
 mod runtime_state;
 mod settings_store;
 mod storage;
@@ -98,7 +99,6 @@ pub fn run() {
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             Some(vec!["--hidden"]),
         ))
-        .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_process::init())
         .plugin({
@@ -146,11 +146,13 @@ pub fn run() {
             commands::window::mark_frontend_ready,
             commands::window::report_frontend_error,
             update_cycle::force_update,
+            update_cycle::test_new_wallpaper_notification,
             version_check::add_ignored_update_version,
             version_check::is_version_ignored,
             commands::window::get_screen_orientations,
             commands::mkt::get_market_status,
             commands::mkt::get_supported_mkts,
+            notification::show_system_notification,
             transfer::import_wallpapers,
             transfer::export_wallpapers,
         ])

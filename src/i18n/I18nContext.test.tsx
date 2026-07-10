@@ -12,6 +12,7 @@ function buildSettings(
 ): AppSettings {
   return {
     auto_update: true,
+    new_wallpaper_notification: false,
     save_directory: null,
     launch_at_startup: false,
     theme: "system",
@@ -136,6 +137,7 @@ describe("I18nContext", () => {
         // Return settings with an invalid language value
         return Promise.resolve({
           auto_update: true,
+          new_wallpaper_notification: false,
           save_directory: null,
           launch_at_startup: false,
           theme: "system",
@@ -176,6 +178,7 @@ describe("I18nContext", () => {
         // Return settings with valid language but invalid resolved_language
         return Promise.resolve({
           auto_update: true,
+          new_wallpaper_notification: false,
           save_directory: null,
           launch_at_startup: false,
           theme: "system",

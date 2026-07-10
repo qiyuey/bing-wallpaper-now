@@ -236,6 +236,16 @@
   max-width: 100%;
 }
 
+.developerButton.developerButton {
+  width: auto;
+  min-width: 9rem;
+  height: auto;
+  min-height: var(--settings-button-height);
+  padding-block: 0.45rem;
+  white-space: normal;
+  text-align: center;
+}
+
 .dirInfo {
   flex: 1;
   min-width: 0;
