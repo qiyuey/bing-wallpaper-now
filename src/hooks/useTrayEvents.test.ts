@@ -6,7 +6,7 @@ import { EVENTS } from "../config/ui";
 
 vi.mock("@tauri-apps/api/event");
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// oxlint-disable-next-line typescript/no-explicit-any
 type AnyEventHandler = (...args: any[]) => void;
 
 describe("useTrayEvents", () => {

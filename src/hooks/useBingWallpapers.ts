@@ -138,7 +138,7 @@ export function useBingWallpapers() {
       .catch((err) => {
         console.error("Failed to load supported mkts:", err);
       });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // oxlint-disable-next-line react/exhaustive-deps
   }, []);
 
   // Use refs to keep stable references to the callback functions

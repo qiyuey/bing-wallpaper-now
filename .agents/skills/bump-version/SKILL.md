@@ -41,7 +41,11 @@ description: 升级项目版本号并更新前后端供应链依赖。Use when t
 根据用户选择执行对应命令（`YES=1` 跳过交互确认）：
 
 ```bash
-make patch YES=1   # 或 minor / major
+# PowerShell
+$env:YES="1"; pnpm run version:patch
+
+# Bash（或 version:minor / version:major）
+YES=1 pnpm run version:patch
 ```
 
 - 检查输出确认版本已更新

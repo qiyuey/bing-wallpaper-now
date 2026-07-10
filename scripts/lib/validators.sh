@@ -265,11 +265,11 @@ validate_typescript_types() {
     fi
 }
 
-# Run ESLint check
+# Run Oxlint check
 # Args: $1 - package manager (optional)
 # Returns: 0 if passed, 1 otherwise
-# Usage: if validate_eslint "$PKG_MANAGER"; then ... fi
-validate_eslint() {
+# Usage: if validate_oxlint "$PKG_MANAGER"; then ... fi
+validate_oxlint() {
     local pkg_manager="${1:-}"
 
     if [[ -z "$pkg_manager" ]]; then
@@ -277,17 +277,17 @@ validate_eslint() {
     fi
 
     if type print_info &>/dev/null; then
-        print_info "Running ESLint..."
+        print_info "Running Oxlint..."
     fi
 
     if $pkg_manager run lint; then
         if type print_success &>/dev/null; then
-            print_success "ESLint checks passed"
+            print_success "Oxlint checks passed"
         fi
         return 0
     else
         if type print_error &>/dev/null; then
-            print_error "ESLint checks failed"
+            print_error "Oxlint checks failed"
             print_info "Run: $pkg_manager run lint:fix"
         fi
         return 1
@@ -402,7 +402,7 @@ validate_all_quality_checks() {
     validate_rust_clippy || failed=$((failed + 1))
     validate_rust_tests || failed=$((failed + 1))
     validate_typescript_types "$pkg_manager" || failed=$((failed + 1))
-    validate_eslint "$pkg_manager" || failed=$((failed + 1))
+    validate_oxlint "$pkg_manager" || failed=$((failed + 1))
     validate_prettier "$pkg_manager" || failed=$((failed + 1))
     validate_frontend_tests "$pkg_manager" || failed=$((failed + 1))
 

@@ -11,9 +11,9 @@ description: 执行标准发布流程：质量门禁、版本号更新、CHANGEL
 
 AI 负责：梳理发布范围、更新 `CHANGELOG.md`、按需更新 `AGENTS.md` / `README.md` / `README.zh.md`
 
-`make release` 脚本自动处理：质量检查 → 版本文件更新 → release commit → Git tag → 推送
+`pnpm run release` 脚本自动处理：质量检查 → 版本文件更新 → release commit → Git tag → 推送
 
-> **不要**在 `make release` 之前单独运行 `make check`，脚本内部已包含。
+> **不要**在 `pnpm run release` 之前单独运行 `pnpm run check`，脚本内部已包含。
 
 ## Changelog 规范
 
@@ -29,7 +29,7 @@ AI 负责：梳理发布范围、更新 `CHANGELOG.md`、按需更新 `AGENTS.md
 1. **工作区预检**
    - 并行获取：当前版本、`git status`、最近 tag 到 HEAD 的提交列表
    - 未提交变更：按语义边界拆分提交（无关变更分开 commit），统一用 Conventional Commits 风格，最后 `git push`
-   - 非开发版本（无 `-0` 后缀）：分析提交内容，按推荐规则给出建议级别，请求用户选择 patch/minor/major，运行 `make <level> YES=1`
+   - 非开发版本（无 `-0` 后缀）：分析提交内容，按推荐规则给出建议级别，请求用户选择 patch/minor/major，设置 `YES=1` 后运行 `pnpm run version:<level>`
      - 若当前环境提供结构化用户输入/选项工具，优先使用该工具展示选项
      - 若结构化工具不可用（例如 Default mode 下 `request_user_input` 不可用），用普通消息列出选项并明确要求用户回复；等待回复后继续
    - 预检完成后，工作区应干净且版本为 `X.Y.Z-0`
@@ -52,7 +52,7 @@ AI 负责：梳理发布范围、更新 `CHANGELOG.md`、按需更新 `AGENTS.md
      - 只改 CHANGELOG：`chore: add CHANGELOG entry for X.Y.Z`
      - 同时改文档：`docs: update docs and CHANGELOG for X.Y.Z`
 
-6. **执行 `make release`**
+6. **执行 `pnpm run release`**
    - 失败时：分析原因，若可修复则修复并提交，重试一次；否则停止并说明
 
 7. **监控 CI 构建**
@@ -63,11 +63,11 @@ AI 负责：梳理发布范围、更新 `CHANGELOG.md`、按需更新 `AGENTS.md
    - workflow 整体 `success` 后，仍需用 `gh run view <run_id> --json jobs` 检查每个 job 的 `conclusion`：
      对 `failure` 但被 `continue-on-error` 容忍的 job（如 winget 失败但不阻塞），主动展示并询问是否排查
    - 若脚本报告失败：展示失败信息，询问用户是否排查修复
-   - 修复后可 `make retag` 重新触发构建，再次运行监控脚本
+   - 修复后可 `pnpm run retag` 重新触发构建，再次运行监控脚本
 
 ## Retag
 
-`make retag`：仅适用于已发布版本，强制推送 tag 到远端重新触发 CI。
+`pnpm run retag`：仅适用于已发布版本，强制推送 tag 到远端重新触发 CI。
 
 ## 版本升级推荐规则
 

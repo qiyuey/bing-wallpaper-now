@@ -136,7 +136,7 @@ describe("Settings", () => {
       /自动应用新壁纸/i,
       {},
       { timeout: 3000 },
-    )) as HTMLInputElement; // eslint-disable-line no-undef
+    )) as HTMLInputElement;
 
     const initialValue = checkbox.checked;
     fireEvent.click(checkbox);
@@ -157,7 +157,7 @@ describe("Settings", () => {
       /开机自启动/i,
       {},
       { timeout: 3000 },
-    )) as HTMLInputElement; // eslint-disable-line no-undef
+    )) as HTMLInputElement;
 
     const initialValue = checkbox.checked;
     fireEvent.click(checkbox);
@@ -372,7 +372,7 @@ describe("Settings", () => {
     await screen.findByText(/更改/i, {}, { timeout: 3000 });
 
     // Find and click light theme radio
-    const lightThemeRadio = screen.getByLabelText(/浅色/i) as HTMLInputElement; // eslint-disable-line no-undef
+    const lightThemeRadio = screen.getByLabelText(/浅色/i) as HTMLInputElement;
     fireEvent.click(lightThemeRadio);
 
     await waitFor(() => {
@@ -391,7 +391,7 @@ describe("Settings", () => {
     await screen.findByText(/更改/i, {}, { timeout: 3000 });
 
     // Find and click dark theme radio
-    const darkThemeRadio = screen.getByLabelText(/深色/i) as HTMLInputElement; // eslint-disable-line no-undef
+    const darkThemeRadio = screen.getByLabelText(/深色/i) as HTMLInputElement;
     fireEvent.click(darkThemeRadio);
 
     await waitFor(() => {
@@ -426,7 +426,7 @@ describe("Settings", () => {
     await screen.findByText(/更改/i, {}, { timeout: 3000 });
 
     // Find and click English language radio
-    const enRadio = screen.getByLabelText(/English/i) as HTMLInputElement; // eslint-disable-line no-undef
+    const enRadio = screen.getByLabelText(/English/i) as HTMLInputElement;
     fireEvent.click(enRadio);
 
     await waitFor(() => {
@@ -452,7 +452,7 @@ describe("Settings", () => {
       /自动应用新壁纸/i,
       {},
       { timeout: 3000 },
-    )) as HTMLInputElement; // eslint-disable-line no-undef
+    )) as HTMLInputElement;
 
     fireEvent.click(checkbox);
 

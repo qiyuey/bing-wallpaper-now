@@ -12,14 +12,14 @@
 #   ./scripts/manage-version.sh info       # Show version information
 #
 # Workflow:
-#   1. After releasing 0.1.0, create 0.1.1-0 for development: make patch
-#   2. When development is complete, run `make release`:
+#   1. After releasing 0.1.0, create 0.1.1-0: pnpm run version:patch
+#   2. When development is complete, run `pnpm run release`:
 #      - Validates working directory is clean
 #      - Runs all pre-commit checks
 #      - Updates version from 0.1.1-0 to 0.1.1
 #      - Creates release commit and git tag
 #      - Pushes to remote (triggers CI/CD)
-#   3. Manually create next dev version: make patch
+#   3. Manually create next dev version: pnpm run version:patch
 
 set -euo pipefail
 
@@ -140,19 +140,10 @@ run_pre_release_checks() {
     echo ""
 
     print_info "Running code formatting checks, linting and tests..."
-    if project_has_tool "make"; then
-        if ! make check NO_FIX=1; then
-            print_error "Quality checks failed"
-            print_info "Please fix the above issues and rerun release"
-            exit 1
-        fi
-    else
-        print_warning "make command not found; running quality script directly"
-        if ! bash "$SCRIPT_DIR/check-quality.sh" --no-fix; then
-            print_error "Quality checks failed"
-            print_info "Please fix the above issues and rerun release"
-            exit 1
-        fi
+    if ! pnpm run check; then
+        print_error "Quality checks failed"
+        print_info "Please fix the above issues and rerun release"
+        exit 1
     fi
 
     print_success "All quality checks passed"

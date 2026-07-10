@@ -22,7 +22,7 @@ function wrapper({ children }: { children: ReactNode }) {
   return <I18nProvider>{children}</I18nProvider>;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// oxlint-disable-next-line typescript/no-explicit-any
 type AnyEventHandler = (...args: any[]) => void;
 
 function createMockUpdate(version: string): Update {

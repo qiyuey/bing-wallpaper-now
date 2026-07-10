@@ -2,7 +2,7 @@
 # precheck.sh - Quality Gate Pre-check
 #
 # Shared pre-check script for skills (review, release, etc.)
-# Runs `make check` and outputs labeled results.
+# Runs `pnpm run check` and outputs labeled results.
 #
 # Usage:
 #   bash scripts/precheck.sh [label]
@@ -14,12 +14,12 @@
 set -euo pipefail
 
 LABEL="${1:-precheck}"
-CHECK_CMD="make check"
+CHECK_CMD=(pnpm run check)
 
-echo "[${LABEL}] 开始执行检查：${CHECK_CMD}"
+echo "[${LABEL}] 开始执行检查：${CHECK_CMD[*]}"
 echo "[${LABEL}] 这会运行格式、lint、类型检查与测试。"
 
-if ${CHECK_CMD}; then
+if "${CHECK_CMD[@]}"; then
   echo "[${LABEL}] 检查通过，可以继续。"
   exit 0
 else

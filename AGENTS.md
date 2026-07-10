@@ -5,9 +5,9 @@
 ## Setup commands
 
 - Install deps: `pnpm install`
-- Start dev server: `pnpm run tauri dev` (or `make dev`)
+- Start dev server: `pnpm run tauri dev`
 - Run tests: `pnpm test`
-- Run quality checks: `make check`
+- Run quality checks: `pnpm run check`
 
 ## Prerequisites
 
@@ -38,19 +38,18 @@ The app distinguishes between:
 # Development
 pnpm run dev                # Vite dev server only
 pnpm run tauri dev          # Full Tauri app with hot reload
-make dev MV=0.0.1           # Mock old version to test update flow
 
 # Building
 pnpm run build              # Build frontend (TypeScript compile + Vite build)
 pnpm run tauri build        # Build production app for current platform
-make package BUNDLES=dmg    # Build specific bundle format
+pnpm run package -- --bundles dmg # Build specific bundle format
 
 # Type checking
 pnpm run typecheck          # TypeScript type checking (tsc --noEmit)
 
 # Linting & Formatting
-pnpm run lint               # ESLint check
-pnpm run lint:fix           # ESLint auto-fix
+pnpm run lint               # Oxlint check
+pnpm run lint:fix           # Oxlint auto-fix
 pnpm run lint:md            # Markdown linting
 pnpm run lint:md:fix        # Markdown auto-fix
 pnpm run format             # Prettier format code
@@ -62,23 +61,21 @@ pnpm run test:frontend      # Vitest (React/TypeScript tests)
 pnpm run test:rust          # Cargo test (Rust tests)
 pnpm run test:e2e:web       # Playwright web smoke tests with Tauri IPC mock
 pnpm run test:e2e:web:install # Install Chromium for Playwright E2E tests
-make test-e2e               # Run local Playwright web smoke tests
+pnpm run test:e2e:web       # Run local Playwright web smoke tests
 
 # Quality checks (runs before commit)
-make check                  # Run all quality checks
-make check NO_FIX=1         # Strict mode: check only, no auto-fix
-make fix                    # Auto-fix all formatting and lint issues
+pnpm run check              # Run all quality checks
+pnpm run fix                # Auto-fix all formatting and lint issues
 
 # Version management
-make patch                  # Bump patch version (1.0.0-0 -> 1.0.1-0)
-make minor                  # Bump minor version (1.0.0-0 -> 1.1.0-0)
-make major                  # Bump major version (1.0.0-0 -> 2.0.0-0)
-make release                # Release current dev version and tag
-make retag                  # Re-push current tag to trigger CI rebuild
+pnpm run version:patch      # Bump patch version (1.0.0-0 -> 1.0.1-0)
+pnpm run version:minor      # Bump minor version (1.0.0-0 -> 1.1.0-0)
+pnpm run version:major      # Bump major version (1.0.0-0 -> 2.0.0-0)
+pnpm run release            # Release current dev version and tag
+pnpm run retag              # Re-push current tag to trigger CI rebuild
 
-# Cleanup
-make clean                  # Clean build artifacts
-make clean-all              # Deep clean (including Rust target)
+# Cleanup Rust build artifacts
+cargo clean --manifest-path src-tauri/Cargo.toml
 ```
 
 ## Project Structure
@@ -176,18 +173,17 @@ bing-wallpaper-now/
 │   ├── review/                     # Code review workflow
 │   └── update-deps/               # Dependency update workflow
 ├── scripts/                          # Build & utility scripts
-│   ├── check-quality.sh             # Code quality checks
 │   ├── manage-version.sh            # Version management
 │   ├── validate-changelog.sh        # Changelog validation
 │   ├── precheck.sh                  # Pre-build checks
 │   ├── generate-icons.mjs           # App icon generation
+│   ├── run-bash.mjs                 # Git Bash launcher for release scripts
 │   └── lib/                         # Shared shell utilities
 │       ├── version.sh
 │       ├── ui.sh
 │       ├── project.sh
 │       ├── git.sh
 │       └── validators.sh
-├── Makefile                          # Development commands
 └── package.json                      # Frontend dependencies & scripts
 ```
 
@@ -208,7 +204,7 @@ bing-wallpaper-now/
   - Theme overrides use `:root[data-theme="dark"] .className` (works in CSS Modules)
   - Avoid inline styles; put layout values in CSS classes or design tokens
 - **React**: Functional components only, use hooks for state management, React 19+ (no need to import React in JSX files)
-- **ESLint rules**: Unused vars warn (except with `_` prefix), `any` type warn,
+- **Oxlint rules**: Unused vars warn (except with `_` prefix), `any` type warn,
   console warn (allow `console.warn` and `console.error`), React Hooks enforce
   rules-of-hooks (error), exhaustive-deps (warn)
 - **Rust**: Edition 2024, use `cargo fmt --manifest-path src-tauri/Cargo.toml` for formatting, use `cargo clippy` for linting
@@ -226,14 +222,14 @@ bing-wallpaper-now/
 
 ## Testing instructions
 
-- Run `make check` to run all quality checks (format, lint, types, tests) before committing
+- Run `pnpm run check` to run all quality checks (format, lint, types, tests) before committing
 - Run `pnpm test` to run all tests (Rust + frontend)
 - Run `pnpm run test:frontend` for Vitest (React/TypeScript tests)
 - Run `pnpm run test:rust` for Cargo test (Rust tests)
 - Run `pnpm run test:e2e:web` for local Playwright UI smoke tests after installing Chromium with `pnpm run test:e2e:web:install`
 - Fix any test or type errors until the whole suite passes
 - After moving files or changing imports, run `pnpm run lint` and
-  `pnpm run typecheck` to ensure ESLint and TypeScript rules still pass
+  `pnpm run typecheck` to ensure Oxlint and TypeScript rules still pass
 - Add or update tests for the code you change, even if nobody asked
 - Frontend tests: `src/**/*.{test,spec}.{ts,tsx}`, coverage thresholds: Lines
   70%, Functions 40%, Branches 60%, Statements 70%
@@ -241,7 +237,7 @@ bing-wallpaper-now/
 
 ## PR instructions
 
-- Always run `make check` before committing
+- Always run `pnpm run check` before committing
 - Run `pnpm run lint` and `pnpm run typecheck` before submitting PR
 - Keep commits focused and atomic
 - Write clear commit messages
@@ -353,7 +349,7 @@ Verify these paths after structural refactoring or event-related changes:
 1. After a release, create a new development version:
 
    ```bash
-   make patch  # Creates version like 1.0.1-0
+   pnpm run version:patch  # Creates version like 1.0.1-0
    ```
 
 2. Develop features, commit changes regularly
@@ -361,13 +357,13 @@ Verify these paths after structural refactoring or event-related changes:
 3. Before committing, run quality checks:
 
    ```bash
-   make check  # Runs lint, format check, typecheck, tests
+   pnpm run check  # Runs lint, format check, typecheck, tests
    ```
 
 4. When ready to release:
 
    ```bash
-   make release  # Removes -0 suffix, creates git tag, pushes
+   pnpm run release  # Removes -0 suffix, creates git tag, pushes
    ```
 
 ### Version Format
@@ -412,10 +408,9 @@ Verify these paths after structural refactoring or event-related changes:
 - **`src-tauri/Info.plist`**: macOS bundle configuration（构建时与 Tauri 生成的
   plist 合并，用于 `LSUIElement` 等系统级声明）
 - **`src-tauri/capabilities/default.json`**: Tauri plugin permissions
-- **`eslint.config.js`**: ESLint flat config (modern format)
+- **`.oxlintrc.json`**: Oxlint configuration (React, React Hooks, and TypeScript rules)
 - **`vitest.config.ts`**: Vitest test configuration
-- **`Makefile`**: Convenient command shortcuts
-- **`scripts/check-quality.sh`**: Pre-commit quality checks
+- **`scripts/run-bash.mjs`**: Locates Git Bash for version and release scripts on Windows
 
 ## Common Issues & Solutions
 
@@ -460,14 +455,15 @@ Verify these paths after structural refactoring or event-related changes:
 1. **Hot Reload**: Use `pnpm run tauri dev` for full app hot reload including Rust changes
 2. **Faster Frontend Iteration**: Use `pnpm run dev` for Vite-only mode when working on UI
 3. **Type Safety**: Run `pnpm run typecheck` frequently to catch TypeScript errors early
-4. **Pre-commit**: Always run `make check` before committing to catch issues
+4. **Pre-commit**: Always run `pnpm run check` before committing to catch issues
 5. **Debugging Rust**: Use `log::debug!()` and enable Tauri logs in settings
-6. **测试更新流程**: 使用 `make dev MV=0.0.1` 模拟旧版本来触发更新检测，
+6. **测试更新流程**: 通过环境变量 `DEV_OVERRIDE_VERSION`
+   模拟旧版本来触发更新检测，
    无需修改任何配置文件。底层通过环境变量 `DEV_OVERRIDE_VERSION` 覆盖编译期
    版本号，仅在 debug 构建中生效，release 构建中完全移除。常用场景：
-   - `make dev MV=0.0.1` — 模拟旧版本，触发更新
-   - `make dev MV=99.0.0` — 模拟新版本，验证无更新
-   - `make dev` — 不设置，使用真实版本号
+   - PowerShell: `$env:DEV_OVERRIDE_VERSION="0.0.1"; pnpm run tauri dev`
+   - Bash: `DEV_OVERRIDE_VERSION=0.0.1 pnpm run tauri dev`
+   - 不设置环境变量时，使用真实版本号
 7. **遇到问题先搜索**: 遇到平台特性、Tauri API、系统行为等问题时，**先联网
    搜索**相关问题及已知解决方案，再动手修复。很多问题（如 macOS Dock 行为、
    窗口管理、系统权限等）在社区中已有成熟的解决方案，避免用运行时 hack 解决
@@ -512,7 +508,7 @@ Notes:
 1. Fork and create a feature branch
 2. Follow code style conventions
 3. Add tests for new features
-4. Run `make check` before submitting PR
+4. Run `pnpm run check` before submitting PR
 5. Update documentation if needed
 6. Keep commits focused and atomic
 7. Write clear commit messages
