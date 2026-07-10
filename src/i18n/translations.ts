@@ -40,13 +40,14 @@ export const translations = {
     // 设置相关
     settings: "设置",
     settingsTitle: "设置",
+    settingsGroupGeneral: "常规",
+    settingsGroupAppearance: "外观",
+    settingsGroupStorage: "存储与数据",
     launchAtStartup: "开机自启动",
     autoUpdate: "自动应用新壁纸",
     autoUpdateHint:
       "开启时：自动获取新壁纸，并在检测到更新的壁纸时自动应用该壁纸\n关闭时：只有手动点击设置壁纸才会设置，但是仍然会自动获取新壁纸",
-    newWallpaperNotification: "新壁纸通知",
-    newWallpaperNotificationHint:
-      "检测到当天的新壁纸时，通过系统通知展示图片、标题和版权说明",
+    newWallpaperNotification: "发现新壁纸时通知",
     theme: "主题",
     themeSystem: "跟随系统",
     themeLight: "浅色",
@@ -64,7 +65,7 @@ export const translations = {
     marketMismatchWarning:
       "注意：Bing 实际返回了 {actualMkt} 的壁纸，与您选择的 {requestedMkt} 不同。这通常是因为您所在地区的 Bing 不支持该市场。",
     saveDirectory: "保存目录",
-    dataActions: "数据",
+    dataActions: "数据管理",
     dataStatsSummary: "{count} 张壁纸 · {range}",
     dataStatsSummaryOne: "1 张壁纸 · {range}",
     dataStatsEmpty: "0 张壁纸",
@@ -73,10 +74,9 @@ export const translations = {
     settingsLoading: "加载设置中...",
     settingsSaveError: "保存设置失败",
     settingsFolderSelectError: "选择文件夹失败",
-    developerMode: "开发者模式",
-    testWallpaperNotification: "测试新壁纸通知",
-    testingWallpaperNotification: "正在发送...",
-    testWallpaperNotificationError: "测试通知失败",
+    testWallpaperNotification: "预览",
+    testingWallpaperNotification: "预览中...",
+    testWallpaperNotificationError: "无法预览通知",
 
     // 导入
     importData: "数据导入",
@@ -189,13 +189,14 @@ export const translations = {
     // 设置相关
     settings: "Settings",
     settingsTitle: "Settings",
+    settingsGroupGeneral: "General",
+    settingsGroupAppearance: "Appearance",
+    settingsGroupStorage: "Storage & Data",
     launchAtStartup: "Launch at Startup",
     autoUpdate: "Auto Apply New Wallpaper",
     autoUpdateHint:
       "When enabled: Automatically fetch new wallpapers and apply them when detected\nWhen disabled: Only set wallpaper when manually clicked, but still automatically fetch new wallpapers",
-    newWallpaperNotification: "New Wallpaper Notifications",
-    newWallpaperNotificationHint:
-      "Show the image, title, and copyright in a system notification when a new daily wallpaper is detected",
+    newWallpaperNotification: "Notify When New Wallpaper Arrives",
     theme: "Theme",
     themeSystem: "System",
     themeLight: "Light",
@@ -214,7 +215,7 @@ export const translations = {
     marketMismatchWarning:
       "Note: Bing returned wallpapers for {actualMkt} instead of your selected {requestedMkt}. This usually happens when Bing in your region does not support the selected market.",
     saveDirectory: "Save Directory",
-    dataActions: "Data",
+    dataActions: "Data Management",
     dataStatsSummary: "{count} wallpapers · {range}",
     dataStatsSummaryOne: "1 wallpaper · {range}",
     dataStatsEmpty: "0 wallpapers",
@@ -223,10 +224,9 @@ export const translations = {
     settingsLoading: "Loading settings...",
     settingsSaveError: "Failed to save settings",
     settingsFolderSelectError: "Failed to select folder",
-    developerMode: "Developer Mode",
-    testWallpaperNotification: "Test New Wallpaper Notification",
-    testingWallpaperNotification: "Sending...",
-    testWallpaperNotificationError: "Notification Test Failed",
+    testWallpaperNotification: "Preview",
+    testingWallpaperNotification: "Previewing...",
+    testWallpaperNotificationError: "Unable to Preview Notification",
 
     // 导入
     importData: "Data Import",

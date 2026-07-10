@@ -67,8 +67,6 @@ export function Settings({
 
   const [exporting, setExporting] = useState(false);
   const [testingNotification, setTestingNotification] = useState(false);
-  const [notificationTestAvailable, setNotificationTestAvailable] =
-    useState(false);
   const [notificationTestError, setNotificationTestError] = useState<
     string | null
   >(null);
@@ -118,11 +116,6 @@ export function Settings({
   useEffect(() => {
     fetchMarketStatus();
     fetchWallpaperDataStats();
-    invoke<boolean>("notification_test_available")
-      .then(setNotificationTestAvailable)
-      .catch((err) =>
-        console.error("Failed to detect notification test support:", err),
-      );
     invoke<MarketGroup[]>("get_supported_mkts")
       .then(setMarketGroups)
       .catch((err) => console.error("Failed to load market groups:", err));
@@ -269,7 +262,7 @@ export function Settings({
     setTestingNotification(true);
     setNotificationTestError(null);
     try {
-      await invoke("test_new_wallpaper_notification");
+      await invoke("send_test_wallpaper_notification");
     } catch (err) {
       console.error("Failed to test wallpaper notification:", err);
       setNotificationTestError(String(err));
@@ -403,124 +396,186 @@ export function Settings({
         </div>
 
         <div className={modalStyles.body}>
-          <div className={styles.section}>
-            <label className={cn(styles.label, styles.checkboxLabel)}>
+          <section className={styles.settingsGroup}>
+            <h3 className={styles.groupTitle}>{t("settingsGroupGeneral")}</h3>
+            <div className={styles.settingRow}>
+              <span className={styles.label}>{t("launchAtStartup")}</span>
               <input
+                className={styles.switch}
                 type="checkbox"
+                aria-label={t("launchAtStartup")}
                 checked={settings?.launch_at_startup ?? false}
                 onChange={(e) =>
                   handleChange("launch_at_startup", e.target.checked)
                 }
               />
-              <span>{t("launchAtStartup")}</span>
-            </label>
-          </div>
-
-          <div className={styles.section}>
-            <label className={cn(styles.label, styles.checkboxLabel)}>
-              <input
-                type="checkbox"
-                checked={settings?.new_wallpaper_notification ?? false}
-                onChange={(e) =>
-                  handleChange("new_wallpaper_notification", e.target.checked)
-                }
-              />
-              <span>{t("newWallpaperNotification")}</span>
-            </label>
-            <div className={styles.hint}>
-              {t("newWallpaperNotificationHint")}
             </div>
-          </div>
-
-          <div className={styles.section}>
-            <label className={cn(styles.label, styles.checkboxLabel)}>
+            <div className={styles.settingRow}>
+              <span className={styles.label}>{t("autoUpdate")}</span>
               <input
+                className={styles.switch}
                 type="checkbox"
+                aria-label={t("autoUpdate")}
                 checked={settings?.auto_update ?? true}
                 onChange={(e) => handleChange("auto_update", e.target.checked)}
               />
-              <span>{t("autoUpdate")}</span>
-            </label>
-          </div>
-
-          <div className={styles.section}>
-            <label className={styles.label}>{t("theme")}</label>
-            <SegmentedControl
-              name="theme"
-              options={[
-                { value: "system", label: t("themeSystem") },
-                { value: "light", label: t("themeLight") },
-                { value: "dark", label: t("themeDark") },
-              ]}
-              value={(settings?.theme ?? "system") as string}
-              onChange={(v) => handleChange("theme", v as Theme)}
-            />
-          </div>
-
-          <div className={styles.section}>
-            <label className={styles.label}>{t("language")}</label>
-            <SegmentedControl
-              name="language"
-              options={[
-                { value: "auto", label: t("languageAuto") },
-                { value: "zh-CN", label: t("languageZhCN") },
-                { value: "en-US", label: t("languageEnUS") },
-              ]}
-              value={(settings?.language ?? "auto") as string}
-              onChange={(v) => handleChange("language", v)}
-            />
-          </div>
-
-          <div className={styles.section}>
-            <label className={styles.label}>
-              {t("market")}
-              <span className={styles.hint}>{t("marketHint")}</span>
-            </label>
-            <select
-              className={styles.select}
-              value={settings?.mkt ?? "zh-CN"}
-              onChange={async (e) => {
-                await handleChange("mkt", e.target.value);
-                await fetchMarketStatus();
-                if (onLanguageChange) {
-                  onLanguageChange();
-                }
-              }}
-            >
-              {marketGroups.map((group) => (
-                <optgroup
-                  key={group.region}
-                  label={t(regionI18nKey[group.region] ?? "market")}
-                >
-                  {group.markets.map((m) => (
-                    <option key={m.code} value={m.code}>
-                      {m.label} ({m.code})
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
-            {marketStatus?.is_mismatch && !dismissed && (
-              <div className={styles.mktWarning}>
-                <span>
-                  {t("marketMismatchWarning")
-                    .replace("{actualMkt}", marketStatus.effective_mkt)
-                    .replace("{requestedMkt}", marketStatus.requested_mkt)}
-                </span>
-                <button
-                  className={styles.btnDismiss}
-                  onClick={() => setDismissed(true)}
-                  aria-label="dismiss"
-                >
-                  ×
-                </button>
+            </div>
+            <div className={styles.settingBlock}>
+              <div className={styles.settingRow}>
+                <div className={styles.settingLabelActions}>
+                  <span className={styles.label}>
+                    {t("newWallpaperNotification")}
+                  </span>
+                  <button
+                    onClick={handleTestWallpaperNotification}
+                    className={cn(
+                      btnStyles.btn,
+                      btnStyles.btnLink,
+                      btnStyles.btnSmall,
+                      styles.inlineLinkButton,
+                    )}
+                    type="button"
+                    disabled={testingNotification}
+                  >
+                    {testingNotification
+                      ? t("testingWallpaperNotification")
+                      : t("testWallpaperNotification")}
+                  </button>
+                </div>
+                <input
+                  className={styles.switch}
+                  type="checkbox"
+                  aria-label={t("newWallpaperNotification")}
+                  checked={settings?.new_wallpaper_notification ?? false}
+                  onChange={(e) =>
+                    handleChange("new_wallpaper_notification", e.target.checked)
+                  }
+                />
               </div>
-            )}
-          </div>
+              {notificationTestError && (
+                <div className={styles.transferError} role="alert">
+                  {t("testWallpaperNotificationError")}: {notificationTestError}
+                </div>
+              )}
+            </div>
+          </section>
 
-          <div className={styles.section}>
-            <div className={styles.label}>{t("saveDirectory")}</div>
-            <div className={styles.dirRow}>
+          <section className={styles.settingsGroup}>
+            <h3 className={styles.groupTitle}>
+              {t("settingsGroupAppearance")}
+            </h3>
+            <div className={styles.settingRow}>
+              <span className={styles.label}>{t("theme")}</span>
+              <div className={styles.settingControl}>
+                <SegmentedControl
+                  name="theme"
+                  options={[
+                    { value: "system", label: t("themeSystem") },
+                    { value: "light", label: t("themeLight") },
+                    { value: "dark", label: t("themeDark") },
+                  ]}
+                  value={(settings?.theme ?? "system") as string}
+                  onChange={(v) => handleChange("theme", v as Theme)}
+                />
+              </div>
+            </div>
+            <div className={styles.settingRow}>
+              <span className={styles.label}>{t("language")}</span>
+              <div className={styles.settingControl}>
+                <SegmentedControl
+                  name="language"
+                  options={[
+                    { value: "auto", label: t("languageAuto") },
+                    { value: "zh-CN", label: t("languageZhCN") },
+                    { value: "en-US", label: t("languageEnUS") },
+                  ]}
+                  value={(settings?.language ?? "auto") as string}
+                  onChange={(v) => handleChange("language", v)}
+                />
+              </div>
+            </div>
+          </section>
+
+          <section className={styles.settingsGroup}>
+            <h3 className={styles.groupTitle}>{t("settingsGroupStorage")}</h3>
+            <div className={styles.settingBlock}>
+              <div className={styles.settingRow}>
+                <span className={styles.label}>{t("market")}</span>
+                <div className={styles.settingControl}>
+                  <select
+                    className={styles.select}
+                    value={settings?.mkt ?? "zh-CN"}
+                    onChange={async (e) => {
+                      await handleChange("mkt", e.target.value);
+                      await fetchMarketStatus();
+                      if (onLanguageChange) {
+                        onLanguageChange();
+                      }
+                    }}
+                  >
+                    {marketGroups.map((group) => (
+                      <optgroup
+                        key={group.region}
+                        label={t(regionI18nKey[group.region] ?? "market")}
+                      >
+                        {group.markets.map((m) => (
+                          <option key={m.code} value={m.code}>
+                            {m.label} ({m.code})
+                          </option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className={styles.hint}>{t("marketHint")}</div>
+              {marketStatus?.is_mismatch && !dismissed && (
+                <div className={styles.mktWarning}>
+                  <span>
+                    {t("marketMismatchWarning")
+                      .replace("{actualMkt}", marketStatus.effective_mkt)
+                      .replace("{requestedMkt}", marketStatus.requested_mkt)}
+                  </span>
+                  <button
+                    className={styles.btnDismiss}
+                    onClick={() => setDismissed(true)}
+                    aria-label="dismiss"
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
+            </div>
+            <div className={styles.settingBlock}>
+              <div className={styles.settingRow}>
+                <span className={styles.label}>{t("saveDirectory")}</span>
+                <div className={styles.inlineActions}>
+                  <button
+                    onClick={handleOpenFolder}
+                    className={cn(
+                      btnStyles.btn,
+                      btnStyles.btnSecondary,
+                      btnStyles.btnSmall,
+                      styles.controlButton,
+                    )}
+                    type="button"
+                  >
+                    {t("openAction")}
+                  </button>
+                  <button
+                    onClick={handleSelectFolder}
+                    className={cn(
+                      btnStyles.btn,
+                      btnStyles.btnSecondary,
+                      btnStyles.btnSmall,
+                      styles.controlButton,
+                    )}
+                    type="button"
+                  >
+                    {t("selectFolder")}
+                  </button>
+                </div>
+              </div>
               <div
                 className={styles.dirInfo}
                 title={
@@ -531,138 +586,83 @@ export function Settings({
                 {settings?.save_directory ??
                   (defaultDir ? defaultDir : t("loading"))}
               </div>
-            </div>
-            <div className={styles.directoryActions}>
-              <button
-                onClick={handleOpenFolder}
-                className={cn(
-                  btnStyles.btn,
-                  btnStyles.btnSecondary,
-                  btnStyles.btnSmall,
-                  styles.controlButton,
+              {settings?.save_directory &&
+                settings.save_directory !== defaultDir && (
+                  <button
+                    onClick={() => handleChange("save_directory", null)}
+                    className={cn(
+                      btnStyles.btn,
+                      btnStyles.btnLink,
+                      btnStyles.btnSmall,
+                    )}
+                    type="button"
+                  >
+                    {t("restoreDefault")}
+                  </button>
                 )}
-                type="button"
-              >
-                {t("openAction")}
-              </button>
-              <button
-                onClick={handleSelectFolder}
-                className={cn(
-                  btnStyles.btn,
-                  btnStyles.btnSecondary,
-                  btnStyles.btnSmall,
-                  styles.controlButton,
-                )}
-                type="button"
-              >
-                {t("selectFolder")}
-              </button>
             </div>
-            {settings?.save_directory &&
-              settings.save_directory !== defaultDir && (
-                <button
-                  onClick={() => handleChange("save_directory", null)}
-                  className={cn(
-                    btnStyles.btn,
-                    btnStyles.btnLink,
-                    btnStyles.btnSmall,
-                  )}
-                  type="button"
-                >
-                  {t("restoreDefault")}
-                </button>
-              )}
-          </div>
 
-          <div className={styles.section}>
-            <div className={styles.label}>{t("dataActions")}</div>
-            <div className={styles.dirRow}>
+            <div className={styles.settingBlock}>
+              <div className={styles.settingRow}>
+                <span className={styles.label}>{t("dataActions")}</span>
+                <div className={styles.inlineActions}>
+                  <button
+                    onClick={handleImport}
+                    className={cn(
+                      btnStyles.btn,
+                      btnStyles.btnSecondary,
+                      btnStyles.btnSmall,
+                      styles.controlButton,
+                    )}
+                    type="button"
+                    title={t("importSelectDirectory")}
+                    disabled={importing}
+                  >
+                    {importing ? t("importInProgress") : t("importAction")}
+                  </button>
+                  <button
+                    onClick={handleExport}
+                    className={cn(
+                      btnStyles.btn,
+                      btnStyles.btnSecondary,
+                      btnStyles.btnSmall,
+                      styles.controlButton,
+                    )}
+                    type="button"
+                    title={t("exportSelectDirectory")}
+                    disabled={exporting}
+                  >
+                    {exporting ? t("exportInProgress") : t("exportAction")}
+                  </button>
+                </div>
+              </div>
               <div className={styles.dirInfo} title={dataStatsText}>
                 {dataStatsText}
               </div>
-            </div>
-            <div className={styles.directoryActions}>
-              <button
-                onClick={handleImport}
-                className={cn(
-                  btnStyles.btn,
-                  btnStyles.btnSecondary,
-                  btnStyles.btnSmall,
-                  styles.controlButton,
-                )}
-                type="button"
-                title={t("importSelectDirectory")}
-                disabled={importing}
-              >
-                {importing ? t("importInProgress") : t("importAction")}
-              </button>
-              <button
-                onClick={handleExport}
-                className={cn(
-                  btnStyles.btn,
-                  btnStyles.btnSecondary,
-                  btnStyles.btnSmall,
-                  styles.controlButton,
-                )}
-                type="button"
-                title={t("exportSelectDirectory")}
-                disabled={exporting}
-              >
-                {exporting ? t("exportInProgress") : t("exportAction")}
-              </button>
-            </div>
-            {importMessage && (
-              <div
-                className={
-                  importMessage.type === "success"
-                    ? styles.transferSuccess
-                    : styles.transferError
-                }
-              >
-                {importMessage.text}
-              </div>
-            )}
-            {exportMessage && (
-              <div
-                className={
-                  exportMessage.type === "success"
-                    ? styles.transferSuccess
-                    : styles.transferError
-                }
-              >
-                {exportMessage.text}
-              </div>
-            )}
-          </div>
-
-          {notificationTestAvailable && (
-            <div className={styles.section}>
-              <div className={styles.label}>{t("developerMode")}</div>
-              <div className={styles.directoryActions}>
-                <button
-                  onClick={handleTestWallpaperNotification}
-                  className={cn(
-                    btnStyles.btn,
-                    btnStyles.btnSecondary,
-                    btnStyles.btnSmall,
-                    styles.controlButton,
-                    styles.developerButton,
-                  )}
-                  type="button"
-                  disabled={testingNotification}
+              {importMessage && (
+                <div
+                  className={
+                    importMessage.type === "success"
+                      ? styles.transferSuccess
+                      : styles.transferError
+                  }
                 >
-                  {testingNotification
-                    ? t("testingWallpaperNotification")
-                    : t("testWallpaperNotification")}
-                </button>
-              </div>
-              {notificationTestError && (
-                <div className={styles.transferError} role="alert">
-                  {t("testWallpaperNotificationError")}: {notificationTestError}
+                  {importMessage.text}
+                </div>
+              )}
+              {exportMessage && (
+                <div
+                  className={
+                    exportMessage.type === "success"
+                      ? styles.transferSuccess
+                      : styles.transferError
+                  }
+                >
+                  {exportMessage.text}
                 </div>
               )}
             </div>
-          )}
+          </section>
         </div>
       </div>
     </div>

@@ -78,9 +78,6 @@ describe("Settings", () => {
       if (cmd === "get_wallpaper_data_stats") {
         return Promise.resolve(mockWallpaperDataStats);
       }
-      if (cmd === "notification_test_available") {
-        return Promise.resolve(true);
-      }
       return Promise.resolve(undefined);
     });
 
@@ -158,7 +155,7 @@ describe("Settings", () => {
     renderWithTheme(<Settings onClose={mockOnClose} />);
 
     const checkbox = (await screen.findByLabelText(
-      /新壁纸通知/i,
+      /发现新壁纸时通知/i,
       {},
       { timeout: 3000 },
     )) as HTMLInputElement;
@@ -175,16 +172,16 @@ describe("Settings", () => {
     });
   });
 
-  it("should trigger a wallpaper notification in developer mode", async () => {
+  it("should send a test notification below the notification setting", async () => {
     renderWithTheme(<Settings onClose={mockOnClose} />);
 
     const button = await screen.findByRole("button", {
-      name: /测试新壁纸通知/i,
+      name: /^预览$/i,
     });
     fireEvent.click(button);
 
     await waitFor(() => {
-      expect(invoke).toHaveBeenCalledWith("test_new_wallpaper_notification");
+      expect(invoke).toHaveBeenCalledWith("send_test_wallpaper_notification");
     });
   });
 
@@ -726,7 +723,7 @@ describe("Settings", () => {
   it("should render import action in data section", async () => {
     renderWithTheme(<Settings onClose={mockOnClose} />);
 
-    await screen.findByText(/^数据$/i, {}, { timeout: 3000 });
+    await screen.findByText(/^数据管理$/i, {}, { timeout: 3000 });
     expect(
       screen.getByText(/^3 张壁纸 · 2024\.01\.01 - 2024\.01\.03$/i),
     ).toBeInTheDocument();
@@ -902,7 +899,7 @@ describe("Settings", () => {
   it("should render export action in data section", async () => {
     renderWithTheme(<Settings onClose={mockOnClose} />);
 
-    await screen.findByText(/^数据$/i, {}, { timeout: 3000 });
+    await screen.findByText(/^数据管理$/i, {}, { timeout: 3000 });
     expect(
       screen.getByText(/^3 张壁纸 · 2024\.01\.01 - 2024\.01\.03$/i),
     ).toBeInTheDocument();

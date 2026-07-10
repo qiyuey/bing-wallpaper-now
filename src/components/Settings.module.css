@@ -1,4 +1,4 @@
-.section {
+.settingsGroup {
   --settings-row-min-height: 2.25rem;
   --settings-field-height: 2.25rem;
   --settings-segmented-height: 2.25rem;
@@ -18,8 +18,44 @@
   margin-bottom: 1.125rem;
 }
 
-.section:last-child {
+.settingsGroup:last-child {
   margin-bottom: 0;
+}
+
+.settingsGroup + .settingsGroup {
+  padding-top: 1.125rem;
+  border-top: 1px solid var(--border-secondary);
+}
+
+.groupTitle {
+  margin: 0 0 0.5rem;
+  color: var(--text-primary);
+  font-size: 0.9375rem;
+  font-weight: 650;
+  line-height: 1.3;
+  letter-spacing: 0;
+}
+
+.settingRow {
+  display: flex;
+  min-height: var(--settings-row-min-height);
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.25rem 0;
+}
+
+.settingBlock {
+  padding: 0.125rem 0;
+}
+
+.settingBlock + .settingBlock {
+  margin-top: 0.625rem;
+}
+
+.settingControl {
+  width: 17rem;
+  flex: 0 0 17rem;
 }
 
 .label {
@@ -40,7 +76,7 @@
   min-height: var(--settings-row-min-height);
 }
 
-.label input[type="checkbox"] {
+.switch {
   width: var(--settings-switch-width);
   height: var(--settings-switch-height);
   cursor: pointer;
@@ -59,12 +95,12 @@
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
 }
 
-:root[data-theme="dark"] .label input[type="checkbox"] {
+:root[data-theme="dark"] .switch {
   background: rgba(120, 120, 128, 0.32);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 
-.label input[type="checkbox"]::before {
+.switch::before {
   content: "";
   position: absolute;
   top: var(--settings-switch-thumb-inset);
@@ -79,15 +115,15 @@
   transition: transform var(--motion-duration-fast) ease;
 }
 
-.label input[type="checkbox"]:checked {
+.switch:checked {
   background: var(--accent-color);
 }
 
-:root[data-theme="dark"] .label input[type="checkbox"]:checked {
+:root[data-theme="dark"] .switch:checked {
   background: var(--accent-color);
 }
 
-.label input[type="checkbox"]:checked::before {
+.switch:checked::before {
   transform: translateX(
     calc(
       var(--settings-switch-width) - var(--settings-switch-thumb-width) -
@@ -96,7 +132,7 @@
   );
 }
 
-.label input[type="checkbox"]:focus-visible {
+.switch:focus-visible {
   outline: none;
   box-shadow:
     inset 0 0 0 1px rgba(0, 0, 0, 0.04),
@@ -147,7 +183,7 @@
   width: 100%;
   height: var(--settings-field-height);
   padding: 0 0.875rem;
-  margin-top: var(--settings-row-gap);
+  margin-top: 0;
   border: 0.5px solid var(--border-primary);
   border-radius: var(--settings-control-radius);
   background: var(--bg-control);
@@ -236,9 +272,41 @@
   max-width: 100%;
 }
 
-.developerButton.developerButton {
+.settingLabelActions {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: nowrap;
+  gap: 0.375rem;
+  min-width: 0;
+}
+
+.inlineLinkButton.inlineLinkButton {
+  display: inline-flex;
+  align-items: baseline;
+  flex: 0 0 auto;
+  min-height: auto;
+  margin: 0;
+  padding: 0.125rem 0.25rem;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.settingLabelActions .label {
+  display: inline;
+  white-space: nowrap;
+}
+
+.inlineActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.375rem;
+}
+
+.notificationTestButton.notificationTestButton {
   width: auto;
-  min-width: 9rem;
+  min-width: 7.5rem;
   height: auto;
   min-height: var(--settings-button-height);
   padding-block: 0.45rem;
@@ -335,6 +403,19 @@
 }
 
 @media (max-width: 480px) {
+  .settingRow {
+    gap: 0.625rem;
+  }
+
+  .select {
+    width: 100%;
+  }
+
+  .settingControl {
+    width: 14rem;
+    flex-basis: 14rem;
+  }
+
   .controlButton {
     width: 100%;
   }
