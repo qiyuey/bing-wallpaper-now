@@ -13,7 +13,14 @@
 import { execSync } from "child_process";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
-import { existsSync, copyFileSync } from "fs";
+import {
+  existsSync,
+  copyFileSync,
+  readFileSync,
+  unlinkSync,
+  writeFileSync,
+} from "fs";
+import { PNG } from "pngjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -21,6 +28,7 @@ const rootDir = join(__dirname, "..");
 const iconsDir = join(rootDir, "src-tauri", "icons");
 const publicDir = join(rootDir, "public");
 const svgPath = join(iconsDir, "icon.svg");
+const traySvgPath = join(iconsDir, "tray-icon.svg");
 
 /**
  * 使用 Tauri CLI 生成标准图标集。
@@ -44,18 +52,86 @@ function generateIcons() {
 }
 
 /**
- * 从标准图标集中同步项目自定义的 Windows 托盘图标。
+ * 从单色 SVG 母版生成 macOS 菜单栏模板图标。
  */
-function syncWindowsTrayIcon() {
-  const png128Path = join(iconsDir, "128x128.png");
-  const trayIconWindowsPath = join(iconsDir, "tray-icon-windows.png");
+function generateMacOSTrayIcons() {
+  console.log("生成 macOS 菜单栏模板图标...");
 
-  if (!existsSync(png128Path)) {
-    throw new Error(`无法同步 Windows 托盘图标，缺少: ${png128Path}`);
+  if (!existsSync(traySvgPath)) {
+    throw new Error(`托盘 SVG 源文件不存在: ${traySvgPath}`);
   }
 
-  copyFileSync(png128Path, trayIconWindowsPath);
-  console.log("✓ 已同步 Windows 托盘图标 (tray-icon-windows.png)");
+  try {
+    execSync(
+      `pnpm tauri icon "${traySvgPath}" -o "${iconsDir}" --png "22,44"`,
+      {
+        stdio: "inherit",
+        cwd: rootDir,
+      },
+    );
+
+    const outputs = [
+      ["22x22.png", "tray-icon-macos.png"],
+      ["44x44.png", "tray-icon-macos@2x.png"],
+    ];
+
+    for (const [generatedName, targetName] of outputs) {
+      const generatedPath = join(iconsDir, generatedName);
+      if (!existsSync(generatedPath)) {
+        throw new Error(`缺少 Tauri 生成的 macOS 菜单栏图标: ${generatedPath}`);
+      }
+      copyFileSync(generatedPath, join(iconsDir, targetName));
+      unlinkSync(generatedPath);
+    }
+
+    console.log("✓ 已生成 macOS 菜单栏模板图标 (1x, 2x)");
+  } catch (error) {
+    throw new Error(`macOS 菜单栏图标生成失败: ${error.message}`);
+  }
+}
+
+/**
+ * 从同一单色 SVG 母版生成 Windows 深浅主题托盘图标。
+ */
+function generateWindowsTrayIcons() {
+  console.log("生成 Windows 深浅主题托盘图标...");
+
+  if (!existsSync(traySvgPath)) {
+    throw new Error(`托盘 SVG 源文件不存在: ${traySvgPath}`);
+  }
+
+  const generatedPath = join(iconsDir, "48x48.png");
+  const lightThemePath = join(iconsDir, "tray-icon-windows-light.png");
+  const darkThemePath = join(iconsDir, "tray-icon-windows-dark.png");
+
+  try {
+    execSync(`pnpm tauri icon "${traySvgPath}" -o "${iconsDir}" --png "48"`, {
+      stdio: "inherit",
+      cwd: rootDir,
+    });
+
+    if (!existsSync(generatedPath)) {
+      throw new Error(`缺少 Tauri 生成的 Windows 托盘图标: ${generatedPath}`);
+    }
+
+    copyFileSync(generatedPath, lightThemePath);
+
+    const darkThemeIcon = PNG.sync.read(readFileSync(generatedPath));
+    for (let i = 0; i < darkThemeIcon.data.length; i += 4) {
+      darkThemeIcon.data[i] = 255;
+      darkThemeIcon.data[i + 1] = 255;
+      darkThemeIcon.data[i + 2] = 255;
+    }
+    writeFileSync(darkThemePath, PNG.sync.write(darkThemeIcon));
+    unlinkSync(generatedPath);
+
+    console.log("✓ 已生成 Windows 深浅主题托盘图标 (48x48)");
+  } catch (error) {
+    if (existsSync(generatedPath)) {
+      unlinkSync(generatedPath);
+    }
+    throw new Error(`Windows 托盘图标生成失败: ${error.message}`);
+  }
 }
 
 /**
@@ -84,14 +160,18 @@ function main() {
 
   try {
     generateIcons();
-    syncWindowsTrayIcon();
+    generateMacOSTrayIcons();
+    generateWindowsTrayIcons();
     syncFrontendIcons();
 
     console.log("\n✓ 所有图标生成完成！");
     console.log("  - Source: icon.svg");
     console.log("  - macOS: icon.icns");
     console.log("  - Windows: icon.ico");
-    console.log("  - Windows tray: tray-icon-windows.png");
+    console.log(
+      "  - Windows tray: tray-icon-windows-light.png, tray-icon-windows-dark.png",
+    );
+    console.log("  - macOS tray: tray-icon-macos.png, tray-icon-macos@2x.png");
     console.log("  - Frontend: public/icon.png, public/app-icon.png");
   } catch (error) {
     console.error("\n✗ 生成图标时出错:", error);

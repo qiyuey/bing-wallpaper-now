@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="22" height="22" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Bing Wallpaper Now tray icon</title>
+  <desc id="desc">A balanced monochrome silhouette of two mountain peaks.</desc>
+
+  <path transform="matrix(0.95694 0 0 1 0.4737 -0.4)" d="M1.6 19.3C0.75 19.3 0.2 18.45 0.55 17.67L6.65 4.7C6.95 4 7.45 3.6 8.05 3.6C8.65 3.6 9.15 4 9.45 4.7L11.55 9.6C11.9 10.4 12.45 10.4 12.8 9.6L13.75 7.45C14.05 6.75 14.55 6.35 15.15 6.35C15.75 6.35 16.25 6.75 16.58 7.45L21.45 17.67C21.8 18.45 21.25 19.3 20.4 19.3H1.6Z" fill="#000000"/>
+</svg>

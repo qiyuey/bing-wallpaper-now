@@ -1,62 +1,36 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
   <title id="title">Bing Wallpaper Now app icon</title>
-  <desc id="desc">A rounded-square wallpaper icon with sun, mountains, and a clean landscape silhouette.</desc>
+  <desc id="desc">A simple rounded-square landscape icon with a sun and two mountain peaks.</desc>
   <defs>
     <linearGradient id="sky" x1="512" y1="56" x2="512" y2="968" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#7CEAF2"/>
-      <stop offset="0.52" stop-color="#3AA6EF"/>
-      <stop offset="1" stop-color="#1750B5"/>
+      <stop offset="0" stop-color="#70E1EE"/>
+      <stop offset="1" stop-color="#1760C3"/>
     </linearGradient>
 
-    <radialGradient id="sun" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(704 304) scale(154)">
-      <stop offset="0" stop-color="#FFFFFF"/>
-      <stop offset="0.58" stop-color="#FFE889"/>
-      <stop offset="1" stop-color="#FFB43D"/>
+    <radialGradient id="sun" cx="35%" cy="30%" r="72%">
+      <stop offset="0" stop-color="#FFF4AD"/>
+      <stop offset="0.58" stop-color="#FFD45C"/>
+      <stop offset="1" stop-color="#FFB43F"/>
     </radialGradient>
 
-    <linearGradient id="backMountain" x1="320" y1="380" x2="456" y2="792" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#B9F5E6"/>
-      <stop offset="1" stop-color="#279CCC"/>
+    <linearGradient id="mountain" x1="220" y1="400" x2="820" y2="900" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#61E58B"/>
+      <stop offset="1" stop-color="#1261B4"/>
     </linearGradient>
 
-    <linearGradient id="frontMountain" x1="516" y1="408" x2="556" y2="836" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#38D4C2"/>
-      <stop offset="0.56" stop-color="#1688C4"/>
-      <stop offset="1" stop-color="#123B96"/>
-    </linearGradient>
-
-    <linearGradient id="meadow" x1="320" y1="650" x2="592" y2="878" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#72EC91"/>
-      <stop offset="0.58" stop-color="#28B6A0"/>
-      <stop offset="1" stop-color="#104E9E"/>
-    </linearGradient>
-
-    <linearGradient id="rim" x1="116" y1="72" x2="908" y2="956" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.72"/>
-      <stop offset="0.46" stop-color="#FFFFFF" stop-opacity="0.18"/>
-      <stop offset="1" stop-color="#082465" stop-opacity="0.32"/>
-    </linearGradient>
-
-    <clipPath id="shape">
+    <clipPath id="iconShape">
       <rect x="56" y="56" width="912" height="912" rx="210"/>
     </clipPath>
-
-    <filter id="shadow" x="-8%" y="-8%" width="116%" height="116%" color-interpolation-filters="sRGB">
-      <feDropShadow dx="0" dy="24" stdDeviation="28" flood-color="#05245B" flood-opacity="0.22"/>
-    </filter>
   </defs>
 
-  <g filter="url(#shadow)">
-    <g clip-path="url(#shape)">
-      <rect x="56" y="56" width="912" height="912" rx="210" fill="url(#sky)"/>
-      <circle cx="704" cy="304" r="134" fill="url(#sun)"/>
+  <g clip-path="url(#iconShape)">
+    <rect x="56" y="56" width="912" height="912" rx="210" fill="url(#sky)"/>
 
-      <path d="M56 654L286 392C326 346 364 350 402 400L612 682V968H56V654Z" fill="url(#backMountain)" opacity="0.92"/>
-      <path d="M282 778L492 438C524 386 568 386 600 438L826 778V968H282V778Z" fill="url(#frontMountain)"/>
-      <path d="M56 748C220 654 386 652 534 708C688 766 798 710 968 606V968H56V748Z" fill="url(#meadow)"/>
+    <circle cx="724" cy="292" r="108" fill="url(#sun)"/>
 
-      <rect x="56" y="56" width="912" height="912" rx="210" fill="none" stroke="url(#rim)" stroke-width="16"/>
-    </g>
+    <path d="M56 754L286 430C309 398 339 398 362 430L466 578L536 480C559 448 589 448 612 480L968 850V968H56V754Z" fill="url(#mountain)"/>
+
+    <rect x="64" y="64" width="896" height="896" rx="202" fill="none" stroke="#FFFFFF" stroke-opacity="0.42" stroke-width="16"/>
   </g>
 </svg>

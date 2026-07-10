@@ -48,4 +48,4 @@ objc2-foundation = { version = "0.3.2", features = ["NSString", "NSDictionary", 
 objc2-app-kit = { version = "0.3.2", features = ["NSWorkspace", "NSScreen", "NSApplication", "NSResponder", "NSRunningApplication"] }
 
 [target.'cfg(windows)'.dependencies]
-windows-sys = { version = "0.61.2", features = ["Win32_UI_WindowsAndMessaging"] }
+windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_System_Registry", "Win32_UI_WindowsAndMessaging"] }

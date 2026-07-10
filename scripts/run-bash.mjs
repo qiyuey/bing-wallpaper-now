@@ -16,8 +16,9 @@ if (args.length === 0) {
 
 let bash = "bash";
 if (process.platform === "win32") {
+  const shell = process.env.SHELL;
   const candidates = [
-    process.env.SHELL,
+    shell && /(?:^|[\\/])bash(?:\.exe)?$/i.test(shell) ? shell : undefined,
     "C:\\Program Files\\Git\\bin\\bash.exe",
     "C:\\Program Files\\Git\\usr\\bin\\bash.exe",
     join(homedir(), "AppData", "Local", "Programs", "Git", "bin", "bash.exe"),

@@ -326,6 +326,11 @@ pub fn run() {
             }
         })
         .on_window_event(|window, event| {
+            #[cfg(target_os = "windows")]
+            if let tauri::WindowEvent::ThemeChanged(theme) = event {
+                tray::refresh_windows_tray_theme(window.app_handle(), *theme);
+            }
+
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 api.prevent_close();
 
