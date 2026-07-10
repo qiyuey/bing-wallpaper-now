@@ -518,6 +518,30 @@ mod tests {
                     && pixel[1] == expected_channel
                     && pixel[2] == expected_channel
             }));
+
+            let mut min_x = 48;
+            let mut min_y = 48;
+            let mut max_x = 0;
+            let mut max_y = 0;
+            for (x, y, pixel) in icon.enumerate_pixels() {
+                if pixel[3] > 0 {
+                    min_x = min_x.min(x);
+                    min_y = min_y.min(y);
+                    max_x = max_x.max(x);
+                    max_y = max_y.max(y);
+                }
+            }
+
+            assert!(
+                min_x >= 1 && max_x <= 46,
+                "tray icon needs horizontal safety pixels"
+            );
+            assert!(
+                min_y >= 1 && max_y <= 46,
+                "tray icon needs vertical safety pixels"
+            );
+            assert!(max_x - min_x + 1 >= 44, "tray icon is visually too narrow");
+            assert!(max_y - min_y + 1 >= 39, "tray icon is visually too short");
         }
     }
 

@@ -72,6 +72,9 @@ pnpm run version:patch      # Bump patch version (1.0.0-0 -> 1.0.1-0)
 pnpm run version:minor      # Bump minor version (1.0.0-0 -> 1.1.0-0)
 pnpm run version:major      # Bump major version (1.0.0-0 -> 2.0.0-0)
 pnpm run release            # Release current dev version and tag
+pnpm run release:patch      # Direct patch release from a stable version
+pnpm run release:minor      # Direct minor release from a stable version
+pnpm run release:major      # Direct major release from a stable version
 pnpm run retag              # Re-push current tag to trigger CI rebuild
 
 # Cleanup Rust build artifacts
@@ -346,21 +349,25 @@ Verify these paths after structural refactoring or event-related changes:
 
 ### Development Workflow
 
-1. After a release, create a new development version:
+1. Develop features and commit changes regularly.
+
+2. Before committing, run quality checks:
 
    ```bash
-   pnpm run version:patch  # Creates version like 1.0.1-0
+   pnpm run check
    ```
 
-2. Develop features, commit changes regularly
-
-3. Before committing, run quality checks:
+3. When ready to release from a stable version, choose the release level:
 
    ```bash
-   pnpm run check  # Runs lint, format check, typecheck, tests
+   pnpm run release:patch  # Or release:minor / release:major
    ```
 
-4. When ready to release:
+   This updates directly to the target stable version, creates one release
+   commit and tag, then pushes them. It does not create an intermediate `-0`
+   commit.
+
+4. If the project is already on a development version, release it directly:
 
    ```bash
    pnpm run release  # Removes -0 suffix, creates git tag, pushes
@@ -370,6 +377,8 @@ Verify these paths after structural refactoring or event-related changes:
 
 - **Development**: `X.Y.Z-0` (e.g., `1.0.0-0`)
 - **Release**: `X.Y.Z` (e.g., `1.0.0`)
+- Development versions remain supported but are optional; stable-to-stable
+  direct releases are the default workflow.
 - Version is synchronized across:
   - `package.json`
   - `src-tauri/Cargo.toml`

@@ -228,6 +228,35 @@ version_bump() {
     esac
 }
 
+# Resolve the production version targeted by a release command.
+# Development versions release by removing -0. Production versions require a
+# bump type so they can be released directly without an intermediate snapshot.
+# Args: $1 - current version, $2 - optional bump type (major/minor/patch)
+# Returns: Target production version
+version_resolve_release_target() {
+    local current_version="$1"
+    local bump_type="${2:-}"
+
+    if version_is_dev "$current_version"; then
+        if [[ -n "$bump_type" ]]; then
+            return 1
+        fi
+
+        version_remove_dev_suffix "$current_version"
+        return 0
+    fi
+
+    if ! version_is_release "$current_version"; then
+        return 1
+    fi
+
+    if [[ -z "$bump_type" ]]; then
+        return 1
+    fi
+
+    version_bump "$current_version" "$bump_type"
+}
+
 # ============================================================================
 # Version Comparison
 # ============================================================================

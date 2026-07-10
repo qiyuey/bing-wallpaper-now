@@ -7,19 +7,23 @@
 #   ./scripts/manage-version.sh patch      # Create next patch development version
 #   ./scripts/manage-version.sh minor      # Create next minor development version
 #   ./scripts/manage-version.sh major      # Create next major development version
-#   ./scripts/manage-version.sh release    # Release and push (no auto snapshot)
+#   ./scripts/manage-version.sh release    # Release an existing development version
+#   ./scripts/manage-version.sh release patch  # Direct patch release from production
+#   ./scripts/manage-version.sh release minor  # Direct minor release from production
+#   ./scripts/manage-version.sh release major  # Direct major release from production
 #   ./scripts/manage-version.sh retag      # Re-push current version tag (re-trigger CI)
 #   ./scripts/manage-version.sh info       # Show version information
 #
-# Workflow:
-#   1. After releasing 0.1.0, create 0.1.1-0: pnpm run version:patch
-#   2. When development is complete, run `pnpm run release`:
+# Workflows:
+#   1. Release an existing development version with `pnpm run release`:
 #      - Validates working directory is clean
 #      - Runs all pre-commit checks
 #      - Updates version from 0.1.1-0 to 0.1.1
 #      - Creates release commit and git tag
 #      - Pushes to remote (triggers CI/CD)
-#   3. Manually create next dev version: pnpm run version:patch
+#   2. Release directly from a production version with
+#      `pnpm run release -- patch|minor|major`. This creates only the final
+#      release commit and tag; no temporary -0 development commit is created.
 
 set -euo pipefail
 
@@ -155,23 +159,37 @@ run_pre_release_checks() {
 # ============================================================================
 
 release_version() {
+    local bump_type="${1:-}"
     trap 'echo ""; print_warning "发布流程中断。请检查工作区状态: git status"; exit 1' INT TERM
 
     local current=$(project_get_version)
 
-    if ! version_is_dev "$current"; then
-        print_error "Current version is not a development version: $current"
-        print_info "Can only release from development version (X.Y.Z-0)"
+    if version_is_dev "$current" && [[ -n "$bump_type" ]]; then
+        print_error "Do not specify a release level for development version $current"
+        print_info "Use: pnpm run release"
         exit 1
     fi
 
-    local release_version=$(version_remove_dev_suffix "$current")
+    if version_is_release "$current" && [[ -z "$bump_type" ]]; then
+        print_error "A release level is required for production version $current"
+        print_info "Use: pnpm run release:patch, release:minor, or release:major"
+        exit 1
+    fi
+
+    local release_version
+    if ! release_version=$(version_resolve_release_target "$current" "$bump_type"); then
+        print_error "Cannot resolve release target from version '$current' and level '${bump_type:-none}'"
+        exit 1
+    fi
     local tag="$release_version"
 
     print_header "Release Production Version (Automated)"
     print_separator
     echo ""
-    print_table_row "Development version" "$current"
+    print_table_row "Current version" "$current"
+    if [[ -n "$bump_type" ]]; then
+        print_table_row "Release level" "$bump_type"
+    fi
     print_table_row "Release version" "$release_version"
     print_table_row "Git Tag" "$tag"
     echo ""
@@ -337,7 +355,8 @@ main() {
         echo "  $0 patch      # Create next patch development version"
         echo "  $0 minor      # Create next minor development version"
         echo "  $0 major      # Create next major development version"
-        echo "  $0 release    # Release current development version"
+        echo "  $0 release [patch|minor|major]"
+        echo "                 # Release a development version, or bump and release a production version"
         echo "  $0 retag      # Re-push current version tag (re-trigger CI)"
         echo "  $0 info       # Show version information"
         echo ""
@@ -361,7 +380,12 @@ main() {
             create_snapshot "major"
             ;;
         release)
-            release_version
+            if [[ $# -gt 2 ]]; then
+                print_error "Too many arguments for release"
+                print_info "Usage: $0 release [patch|minor|major]"
+                exit 1
+            fi
+            release_version "${2:-}"
             ;;
         retag)
             retag_version
@@ -371,7 +395,7 @@ main() {
             ;;
         *)
             print_error "Unknown command: $1"
-            print_info "Usage: $0 <patch|minor|major|release|retag|info>"
+            print_info "Usage: $0 <patch|minor|major|release [patch|minor|major]|retag|info>"
             exit 1
             ;;
     esac

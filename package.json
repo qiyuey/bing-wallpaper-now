@@ -34,6 +34,9 @@
     "version:minor": "node scripts/run-bash.mjs scripts/manage-version.sh minor",
     "version:major": "node scripts/run-bash.mjs scripts/manage-version.sh major",
     "release": "node scripts/run-bash.mjs scripts/manage-version.sh release",
+    "release:patch": "node scripts/run-bash.mjs scripts/manage-version.sh release patch",
+    "release:minor": "node scripts/run-bash.mjs scripts/manage-version.sh release minor",
+    "release:major": "node scripts/run-bash.mjs scripts/manage-version.sh release major",
     "retag": "node scripts/run-bash.mjs scripts/manage-version.sh retag",
     "icons": "node scripts/generate-icons.mjs"
   },
