@@ -4,7 +4,7 @@ logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-pnpm-debug.log*
+npm-debug.log*
 lerna-debug.log*
 
 node_modules
@@ -49,8 +49,8 @@ coverage-frontend/
 playwright-report/
 test-results/
 
-# Lock files (keep only pnpm-lock.yaml)
-package-lock.json
+# Lock files (keep only package-lock.json)
+pnpm-lock.yaml
 yarn.lock
 
 # Temporary directories

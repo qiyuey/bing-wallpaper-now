@@ -12,10 +12,10 @@ description: 执行标准发布流程：质量门禁、版本号更新、CHANGEL
 AI 负责：梳理发布范围、更新 `CHANGELOG.md`、按需更新 `AGENTS.md` / `README.md` / `README.zh.md`
 
 发布脚本自动处理：质量检查 → 版本文件更新 → release commit → Git tag → 推送。
-`pnpm run release` 发布已有的 `X.Y.Z-0`；正式版本使用
-`pnpm run release:patch|minor|major` 直接计算并发布目标版本。
+`npm run release` 发布已有的 `X.Y.Z-0`；正式版本使用
+`npm run release:patch|minor|major` 直接计算并发布目标版本。
 
-> **不要**在 `pnpm run release` 之前单独运行 `pnpm run check`，脚本内部已包含。
+> **不要**在 `npm run release` 之前单独运行 `npm run check`，脚本内部已包含。
 >
 > **不要**为了满足脚本的 `-0` 前置条件，创建一个只存在几分钟的开发版本。
 > 从正式版本发布时直接使用对应的 `release:<level>` 命令。
@@ -35,11 +35,11 @@ AI 负责：梳理发布范围、更新 `CHANGELOG.md`、按需更新 `AGENTS.md
    - 并行获取：当前版本、`git status`、最近 tag 到 HEAD 的提交列表
    - 未提交变更：按语义边界拆分提交（无关变更分开 commit），统一用 Conventional Commits 风格，最后 `git push`
    - 根据当前版本选择发布入口：
-     - 开发版本（`X.Y.Z-0`）：目标版本为去掉 `-0` 后的 `X.Y.Z`，后续使用现有 `pnpm run release`
+     - 开发版本（`X.Y.Z-0`）：目标版本为去掉 `-0` 后的 `X.Y.Z`，后续使用现有 `npm run release`
      - 正式版本（无 `-0`）：分析提交内容，按推荐规则给出建议级别，请求用户选择 patch/minor/major
        - 若当前环境提供结构化用户输入/选项工具，优先使用该工具展示选项
        - 若结构化工具不可用（例如 Default mode 下 `request_user_input` 不可用），用普通消息列出选项并明确要求用户回复；等待回复后继续
-       - 用户选择级别后，记录目标版本，后续运行 `pnpm run release:<level>`；**不要**先运行 `pnpm run version:<level>`
+       - 用户选择级别后，记录目标版本，后续运行 `npm run release:<level>`；**不要**先运行 `npm run version:<level>`
    - 预检完成后，工作区必须干净；版本可以是待发布的 `X.Y.Z-0` 或正式版本
 
 2. **更新发布说明**
@@ -61,8 +61,8 @@ AI 负责：梳理发布范围、更新 `CHANGELOG.md`、按需更新 `AGENTS.md
      - 同时改文档：`docs: update docs and CHANGELOG for X.Y.Z`
 
 6. **执行发布命令**
-   - 当前版本为 `X.Y.Z-0`：执行 `pnpm run release`
-   - 当前版本为正式版：执行预检阶段确认的 `pnpm run release:<level>`
+   - 当前版本为 `X.Y.Z-0`：执行 `npm run release`
+   - 当前版本为正式版：执行预检阶段确认的 `npm run release:<level>`
    - 不要手工改版本、打 tag，也不要先创建临时 `-0` 版本
    - 失败时：分析原因，若可修复则修复并提交，重试一次；否则停止并说明
 
@@ -74,11 +74,11 @@ AI 负责：梳理发布范围、更新 `CHANGELOG.md`、按需更新 `AGENTS.md
    - workflow 整体 `success` 后，仍需用 `gh run view <run_id> --json jobs` 检查每个 job 的 `conclusion`：
      对 `failure` 但被 `continue-on-error` 容忍的 job（如 winget 失败但不阻塞），主动展示并询问是否排查
    - 若脚本报告失败：展示失败信息，询问用户是否排查修复
-   - 修复后可 `pnpm run retag` 重新触发构建，再次运行监控脚本
+   - 修复后可 `npm run retag` 重新触发构建，再次运行监控脚本
 
 ## Retag
 
-`pnpm run retag`：仅适用于已发布版本，强制推送 tag 到远端重新触发 CI。
+`npm run retag`：仅适用于已发布版本，强制推送 tag 到远端重新触发 CI。
 
 ## 版本升级推荐规则
 

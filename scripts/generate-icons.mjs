@@ -41,7 +41,7 @@ function generateIcons() {
   }
 
   try {
-    execSync(`pnpm tauri icon "${svgPath}" -o "${iconsDir}"`, {
+    execSync(`npm exec -- tauri icon "${svgPath}" -o "${iconsDir}"`, {
       stdio: "inherit",
       cwd: rootDir,
     });
@@ -63,7 +63,7 @@ function generateMacOSTrayIcons() {
 
   try {
     execSync(
-      `pnpm tauri icon "${traySvgPath}" -o "${iconsDir}" --png "22,44"`,
+      `npm exec -- tauri icon "${traySvgPath}" -o "${iconsDir}" --png "22,44"`,
       {
         stdio: "inherit",
         cwd: rootDir,
@@ -105,7 +105,7 @@ function generateWindowsTrayIcons() {
   const darkThemePath = join(iconsDir, "tray-icon-windows-dark.png");
 
   try {
-    execSync(`pnpm tauri icon "${traySvgPath}" -o "${iconsDir}" --png "48"`, {
+    execSync(`npm exec -- tauri icon "${traySvgPath}" -o "${iconsDir}" --png "48"`, {
       stdio: "inherit",
       cwd: rootDir,
     });

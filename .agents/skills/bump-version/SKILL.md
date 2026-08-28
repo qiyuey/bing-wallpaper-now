@@ -42,10 +42,10 @@ description: 升级项目版本号并更新前后端供应链依赖。Use when t
 
 ```bash
 # PowerShell
-$env:YES="1"; pnpm run version:patch
+$env:YES="1"; npm run version:patch
 
 # Bash（或 version:minor / version:major）
-YES=1 pnpm run version:patch
+YES=1 npm run version:patch
 ```
 
 - 检查输出确认版本已更新
@@ -54,7 +54,7 @@ YES=1 pnpm run version:patch
 ### Step 3: 更新前端依赖
 
 ```bash
-pnpm update
+npm update
 ```
 
 ### Step 4: 更新 Rust 依赖
@@ -70,7 +70,7 @@ cd src-tauri && cargo update
 ```markdown
 ## Version Bump Summary
 - **版本**: 旧版本 → 新版本
-- **pnpm**: X 个包更新 / 无变更
+- **npm**: X 个包更新 / 无变更
 - **Cargo**: Y 个 crate 更新 / 无变更
 - **状态**: 依赖变更文件已修改，未提交
 ```

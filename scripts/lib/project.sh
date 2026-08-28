@@ -54,19 +54,19 @@ project_file_exists() {
 # Package Manager Detection
 # ============================================================================
 
-# Detect package manager (pnpm only, npm is not supported)
-# Returns: "pnpm"
+# Detect the required package manager.
+# Returns: "npm"
 # Usage: PKG_MANAGER=$(project_detect_package_manager)
 project_detect_package_manager() {
-    if command -v pnpm &> /dev/null; then
-        echo "pnpm"
+    if command -v npm &> /dev/null; then
+        echo "npm"
     else
         if type print_error &>/dev/null; then
-            print_error "pnpm is required but not found"
-            print_info "Install via: corepack enable && corepack prepare pnpm@latest --activate"
+            print_error "npm is required but not found"
+            print_info "Install Node.js with Homebrew; npm is bundled with Node.js"
         else
-            echo "Error: pnpm is required but not found" >&2
-            echo "Install via: corepack enable && corepack prepare pnpm@latest --activate" >&2
+            echo "Error: npm is required but not found" >&2
+            echo "Install Node.js with Homebrew; npm is bundled with Node.js" >&2
         fi
         exit 1
     fi
@@ -75,7 +75,7 @@ project_detect_package_manager() {
 # Check if specific package manager is available
 # Args: $1 - package manager name
 # Returns: 0 if available, 1 otherwise
-# Usage: if project_has_package_manager "pnpm"; then ... fi
+# Usage: if project_has_package_manager "npm"; then ... fi
 project_has_package_manager() {
     local pm="$1"
     command -v "$pm" &> /dev/null

@@ -2,7 +2,7 @@
 # precheck.sh - Quality Gate Pre-check
 #
 # Shared pre-check script for skills (review, release, etc.)
-# Runs `pnpm run check` and outputs labeled results.
+# Runs `npm run check` and outputs labeled results.
 #
 # Usage:
 #   bash scripts/precheck.sh [label]
@@ -14,7 +14,7 @@
 set -euo pipefail
 
 LABEL="${1:-precheck}"
-CHECK_CMD=(pnpm run check)
+CHECK_CMD=(npm run check)
 
 echo "[${LABEL}] 开始执行检查：${CHECK_CMD[*]}"
 echo "[${LABEL}] 这会运行格式、lint、类型检查与测试。"
@@ -30,10 +30,10 @@ else
   echo "  - cargo fmt --check"
   echo "  - cargo clippy -- -D warnings"
   echo "  - cargo test"
-  echo "  - pnpm run typecheck"
-  echo "  - pnpm run lint"
-  echo "  - pnpm run format:check"
-  echo "  - pnpm run test:frontend"
-  echo "  - pnpm run lint:md"
+  echo "  - npm run typecheck"
+  echo "  - npm run lint"
+  echo "  - npm run format:check"
+  echo "  - npm run test:frontend"
+  echo "  - npm run lint:md"
   exit "${status}"
 fi

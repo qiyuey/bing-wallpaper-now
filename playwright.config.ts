@@ -26,7 +26,7 @@ export default defineConfig({
     viewport: { width: 1280, height: 800 },
   },
   webServer: {
-    command: `pnpm exec vite --host ${host} --port ${port} --strictPort --clearScreen false`,
+    command: `npm exec -- vite --host ${host} --port ${port} --strictPort --clearScreen false`,
     url: baseURL,
     timeout: 120_000,
     reuseExistingServer: !process.env.CI,

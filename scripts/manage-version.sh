@@ -15,14 +15,14 @@
 #   ./scripts/manage-version.sh info       # Show version information
 #
 # Workflows:
-#   1. Release an existing development version with `pnpm run release`:
+#   1. Release an existing development version with `npm run release`:
 #      - Validates working directory is clean
 #      - Runs all pre-commit checks
 #      - Updates version from 0.1.1-0 to 0.1.1
 #      - Creates release commit and git tag
 #      - Pushes to remote (triggers CI/CD)
 #   2. Release directly from a production version with
-#      `pnpm run release -- patch|minor|major`. This creates only the final
+#      `npm run release -- patch|minor|major`. This creates only the final
 #      release commit and tag; no temporary -0 development commit is created.
 
 set -euo pipefail
@@ -144,7 +144,7 @@ run_pre_release_checks() {
     echo ""
 
     print_info "Running code formatting checks, linting and tests..."
-    if ! pnpm run check; then
+    if ! npm run check; then
         print_error "Quality checks failed"
         print_info "Please fix the above issues and rerun release"
         exit 1
@@ -166,13 +166,13 @@ release_version() {
 
     if version_is_dev "$current" && [[ -n "$bump_type" ]]; then
         print_error "Do not specify a release level for development version $current"
-        print_info "Use: pnpm run release"
+        print_info "Use: npm run release"
         exit 1
     fi
 
     if version_is_release "$current" && [[ -z "$bump_type" ]]; then
         print_error "A release level is required for production version $current"
-        print_info "Use: pnpm run release:patch, release:minor, or release:major"
+        print_info "Use: npm run release:patch, release:minor, or release:major"
         exit 1
     fi
 

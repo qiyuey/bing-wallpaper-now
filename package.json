@@ -4,18 +4,30 @@
   "version": "1.6.0",
   "type": "module",
   "engines": {
-    "node": ">=26"
+    "node": ">=26",
+    "npm": ">=11"
+  },
+  "packageManager": "npm@11.19.0",
+  "allowScripts": {
+    "esbuild": true,
+    "fsevents": true
+  },
+  "overrides": {
+    "flat-cache@>=4.0.0 <5.0.0-0": "4.0.1",
+    "micromark-util-character@>=2.0.0 <3.0.0-0": "2.1.1",
+    "micromark-util-symbol@>=2.0.0 <3.0.0-0": "2.0.1",
+    "micromark-util-types@>=2.0.0 <3.0.0-0": "2.0.2",
+    "vite@>=8.1.3 <9.0.0-0": "8.1.3"
   },
   "scripts": {
-    "preinstall": "npx only-allow pnpm",
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
-    "check": "pnpm run check:rust && pnpm run check:frontend && pnpm run lint:md",
+    "check": "npm run check:rust && npm run check:frontend && npm run lint:md",
     "check:rust": "cargo fmt --manifest-path src-tauri/Cargo.toml -- --check && cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings && cargo test --manifest-path src-tauri/Cargo.toml",
-    "check:frontend": "pnpm run typecheck && pnpm run lint && pnpm run format:check && pnpm run test:frontend",
-    "fix": "cargo fmt --manifest-path src-tauri/Cargo.toml && pnpm run lint:fix && pnpm run format && pnpm run lint:md:fix",
+    "check:frontend": "npm run typecheck && npm run lint && npm run format:check && npm run test:frontend",
+    "fix": "cargo fmt --manifest-path src-tauri/Cargo.toml && npm run lint:fix && npm run format && npm run lint:md:fix",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint src scripts/run-bash.mjs",
     "lint:fix": "oxlint src scripts/run-bash.mjs --fix",
@@ -24,7 +36,7 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"scripts/run-bash.mjs\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"scripts/run-bash.mjs\"",
     "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
-    "test:frontend": "vitest run",
+    "test:frontend": "vitest run --pool=threads --maxWorkers=1",
     "test:e2e:web": "playwright test",
     "test:e2e:web:headed": "playwright test --headed",
     "test:e2e:web:install": "playwright install chromium",
@@ -70,6 +82,5 @@
     "typescript": "^7.0.2",
     "vite": "8.1.3",
     "vitest": "^4.1.10"
-  },
-  "packageManager": "pnpm@11.10.0"
+  }
 }

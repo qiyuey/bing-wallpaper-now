@@ -4,9 +4,9 @@
   "version": "1.6.0",
   "identifier": "top.qiyuey.wallpaper",
   "build": {
-    "beforeDevCommand": "pnpm run dev",
+    "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "pnpm run build",
+    "beforeBuildCommand": "npm run build",
     "frontendDist": "../dist"
   },
   "app": {

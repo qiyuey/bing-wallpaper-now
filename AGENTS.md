@@ -4,16 +4,16 @@
 
 ## Setup commands
 
-- Install deps: `pnpm install`
-- Start dev server: `pnpm run tauri dev`
-- Run tests: `pnpm test`
-- Run quality checks: `pnpm run check`
+- Install deps: `npm install`
+- Start dev server: `npm run tauri dev`
+- Run tests: `npm test`
+- Run quality checks: `npm run check`
 
 ## Prerequisites
 
 - **Node.js**: 26+
 - **Rust**: 1.80+ (Edition 2024)
-- **pnpm**: 11+
+- **npm**: 11+
 
 ## Project Overview
 
@@ -36,46 +36,46 @@ The app distinguishes between:
 
 ```bash
 # Development
-pnpm run dev                # Vite dev server only
-pnpm run tauri dev          # Full Tauri app with hot reload
+npm run dev                # Vite dev server only
+npm run tauri dev          # Full Tauri app with hot reload
 
 # Building
-pnpm run build              # Build frontend (TypeScript compile + Vite build)
-pnpm run tauri build        # Build production app for current platform
-pnpm run package -- --bundles dmg # Build specific bundle format
+npm run build              # Build frontend (TypeScript compile + Vite build)
+npm run tauri build        # Build production app for current platform
+npm run package -- --bundles dmg # Build specific bundle format
 
 # Type checking
-pnpm run typecheck          # TypeScript type checking (tsc --noEmit)
+npm run typecheck          # TypeScript type checking (tsc --noEmit)
 
 # Linting & Formatting
-pnpm run lint               # Oxlint check
-pnpm run lint:fix           # Oxlint auto-fix
-pnpm run lint:md            # Markdown linting
-pnpm run lint:md:fix        # Markdown auto-fix
-pnpm run format             # Prettier format code
-pnpm run format:check       # Prettier check formatting
+npm run lint               # Oxlint check
+npm run lint:fix           # Oxlint auto-fix
+npm run lint:md            # Markdown linting
+npm run lint:md:fix        # Markdown auto-fix
+npm run format             # Prettier format code
+npm run format:check       # Prettier check formatting
 
 # Testing
-pnpm test                   # Run all tests (Rust + frontend)
-pnpm run test:frontend      # Vitest (React/TypeScript tests)
-pnpm run test:rust          # Cargo test (Rust tests)
-pnpm run test:e2e:web       # Playwright web smoke tests with Tauri IPC mock
-pnpm run test:e2e:web:install # Install Chromium for Playwright E2E tests
-pnpm run test:e2e:web       # Run local Playwright web smoke tests
+npm test                   # Run all tests (Rust + frontend)
+npm run test:frontend      # Vitest (React/TypeScript tests)
+npm run test:rust          # Cargo test (Rust tests)
+npm run test:e2e:web       # Playwright web smoke tests with Tauri IPC mock
+npm run test:e2e:web:install # Install Chromium for Playwright E2E tests
+npm run test:e2e:web       # Run local Playwright web smoke tests
 
 # Quality checks (runs before commit)
-pnpm run check              # Run all quality checks
-pnpm run fix                # Auto-fix all formatting and lint issues
+npm run check              # Run all quality checks
+npm run fix                # Auto-fix all formatting and lint issues
 
 # Version management
-pnpm run version:patch      # Bump patch version (1.0.0-0 -> 1.0.1-0)
-pnpm run version:minor      # Bump minor version (1.0.0-0 -> 1.1.0-0)
-pnpm run version:major      # Bump major version (1.0.0-0 -> 2.0.0-0)
-pnpm run release            # Release current dev version and tag
-pnpm run release:patch      # Direct patch release from a stable version
-pnpm run release:minor      # Direct minor release from a stable version
-pnpm run release:major      # Direct major release from a stable version
-pnpm run retag              # Re-push current tag to trigger CI rebuild
+npm run version:patch      # Bump patch version (1.0.0-0 -> 1.0.1-0)
+npm run version:minor      # Bump minor version (1.0.0-0 -> 1.1.0-0)
+npm run version:major      # Bump major version (1.0.0-0 -> 2.0.0-0)
+npm run release            # Release current dev version and tag
+npm run release:patch      # Direct patch release from a stable version
+npm run release:minor      # Direct minor release from a stable version
+npm run release:major      # Direct major release from a stable version
+npm run retag              # Re-push current tag to trigger CI rebuild
 
 # Cleanup Rust build artifacts
 cargo clean --manifest-path src-tauri/Cargo.toml
@@ -225,14 +225,14 @@ bing-wallpaper-now/
 
 ## Testing instructions
 
-- Run `pnpm run check` to run all quality checks (format, lint, types, tests) before committing
-- Run `pnpm test` to run all tests (Rust + frontend)
-- Run `pnpm run test:frontend` for Vitest (React/TypeScript tests)
-- Run `pnpm run test:rust` for Cargo test (Rust tests)
-- Run `pnpm run test:e2e:web` for local Playwright UI smoke tests after installing Chromium with `pnpm run test:e2e:web:install`
+- Run `npm run check` to run all quality checks (format, lint, types, tests) before committing
+- Run `npm test` to run all tests (Rust + frontend)
+- Run `npm run test:frontend` for Vitest (React/TypeScript tests)
+- Run `npm run test:rust` for Cargo test (Rust tests)
+- Run `npm run test:e2e:web` for local Playwright UI smoke tests after installing Chromium with `npm run test:e2e:web:install`
 - Fix any test or type errors until the whole suite passes
-- After moving files or changing imports, run `pnpm run lint` and
-  `pnpm run typecheck` to ensure Oxlint and TypeScript rules still pass
+- After moving files or changing imports, run `npm run lint` and
+  `npm run typecheck` to ensure Oxlint and TypeScript rules still pass
 - Add or update tests for the code you change, even if nobody asked
 - Frontend tests: `src/**/*.{test,spec}.{ts,tsx}`, coverage thresholds: Lines
   70%, Functions 40%, Branches 60%, Statements 70%
@@ -240,8 +240,8 @@ bing-wallpaper-now/
 
 ## PR instructions
 
-- Always run `pnpm run check` before committing
-- Run `pnpm run lint` and `pnpm run typecheck` before submitting PR
+- Always run `npm run check` before committing
+- Run `npm run lint` and `npm run typecheck` before submitting PR
 - Keep commits focused and atomic
 - Write clear commit messages
 - Add tests for new features
@@ -354,13 +354,13 @@ Verify these paths after structural refactoring or event-related changes:
 2. Before committing, run quality checks:
 
    ```bash
-   pnpm run check
+   npm run check
    ```
 
 3. When ready to release from a stable version, choose the release level:
 
    ```bash
-   pnpm run release:patch  # Or release:minor / release:major
+   npm run release:patch  # Or release:minor / release:major
    ```
 
    This updates directly to the target stable version, creates one release
@@ -370,7 +370,7 @@ Verify these paths after structural refactoring or event-related changes:
 4. If the project is already on a development version, release it directly:
 
    ```bash
-   pnpm run release  # Removes -0 suffix, creates git tag, pushes
+   npm run release  # Removes -0 suffix, creates git tag, pushes
    ```
 
 ### Version Format
@@ -461,17 +461,17 @@ Verify these paths after structural refactoring or event-related changes:
 
 ### Development Tips
 
-1. **Hot Reload**: Use `pnpm run tauri dev` for full app hot reload including Rust changes
-2. **Faster Frontend Iteration**: Use `pnpm run dev` for Vite-only mode when working on UI
-3. **Type Safety**: Run `pnpm run typecheck` frequently to catch TypeScript errors early
-4. **Pre-commit**: Always run `pnpm run check` before committing to catch issues
+1. **Hot Reload**: Use `npm run tauri dev` for full app hot reload including Rust changes
+2. **Faster Frontend Iteration**: Use `npm run dev` for Vite-only mode when working on UI
+3. **Type Safety**: Run `npm run typecheck` frequently to catch TypeScript errors early
+4. **Pre-commit**: Always run `npm run check` before committing to catch issues
 5. **Debugging Rust**: Use `log::debug!()` and enable Tauri logs in settings
 6. **测试更新流程**: 通过环境变量 `DEV_OVERRIDE_VERSION`
    模拟旧版本来触发更新检测，
    无需修改任何配置文件。底层通过环境变量 `DEV_OVERRIDE_VERSION` 覆盖编译期
    版本号，仅在 debug 构建中生效，release 构建中完全移除。常用场景：
-   - PowerShell: `$env:DEV_OVERRIDE_VERSION="0.0.1"; pnpm run tauri dev`
-   - Bash: `DEV_OVERRIDE_VERSION=0.0.1 pnpm run tauri dev`
+   - PowerShell: `$env:DEV_OVERRIDE_VERSION="0.0.1"; npm run tauri dev`
+   - Bash: `DEV_OVERRIDE_VERSION=0.0.1 npm run tauri dev`
    - 不设置环境变量时，使用真实版本号
 7. **遇到问题先搜索**: 遇到平台特性、Tauri API、系统行为等问题时，**先联网
    搜索**相关问题及已知解决方案，再动手修复。很多问题（如 macOS Dock 行为、
@@ -517,7 +517,7 @@ Notes:
 1. Fork and create a feature branch
 2. Follow code style conventions
 3. Add tests for new features
-4. Run `pnpm run check` before submitting PR
+4. Run `npm run check` before submitting PR
 5. Update documentation if needed
 6. Keep commits focused and atomic
 7. Write clear commit messages

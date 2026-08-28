@@ -25,32 +25,29 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v6
-
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "pnpm"
+          cache: "npm"
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: npm ci
 
       - name: TypeScript type check
-        run: pnpm run typecheck
+        run: npm run typecheck
 
       - name: Oxlint
-        run: pnpm run lint
+        run: npm run lint
 
       - name: Prettier format check
-        run: pnpm run format:check
+        run: npm run format:check
 
       - name: Frontend tests
-        run: pnpm run test:frontend
+        run: npm run test:frontend
 
       - name: Markdown lint
-        run: pnpm run lint:md
+        run: npm run lint:md
 
   rust:
     name: Rust (fmt, clippy, test)
