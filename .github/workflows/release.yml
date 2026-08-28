@@ -185,7 +185,6 @@ jobs:
         with:
           workspaces: src-tauri
           shared-key: release
-          save-if: false
 
       - name: Import macOS signing certificate
         env:
@@ -318,7 +317,6 @@ jobs:
         with:
           workspaces: src-tauri
           shared-key: release
-          save-if: false
 
       - name: Patch tauri.conf.json
         shell: bash
@@ -385,7 +383,6 @@ jobs:
         with:
           workspaces: src-tauri
           shared-key: release
-          save-if: false
 
       - name: Patch tauri.conf.json
         shell: bash

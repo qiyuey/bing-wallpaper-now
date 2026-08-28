@@ -168,7 +168,7 @@ bing-wallpaper-now/
 │   ├── tauri.conf.json              # Tauri configuration
 │   └── Info.plist                   # macOS bundle config (LSUIElement etc.)
 ├── .github/workflows/               # CI/CD
-│   ├── ci.yml                       # PR/push checks + multi-platform cache warming
+│   ├── ci.yml                       # PR/push frontend and Rust checks
 │   └── release.yml                  # Tag-triggered release builds
 ├── .agents/skills/                  # Codex project skills
 │   ├── bump-version/               # Version bump workflow
@@ -391,9 +391,6 @@ Verify these paths after structural refactoring or event-related changes:
 
 - Triggered on PR and push to `main`
 - Jobs: frontend checks (lint, typecheck, test), Rust checks (fmt, clippy, test)
-- Multi-platform release cache warming (push to `main` only):
-  builds `cargo build --release` on all 5 platforms to populate
-  Rust cache for subsequent release builds
 
 **Release workflow** (`.github/workflows/release.yml`):
 
@@ -404,10 +401,9 @@ Verify these paths after structural refactoring or event-related changes:
 - `latest.json` is generated from release assets for the in-app updater
 - macOS `.app.tar.gz` files are renamed to include architecture (`_aarch64`)
 
-**Cache strategy**: CI saves Rust release-profile cache on `main`
-(`shared-key: release`). Release workflow reads this cache
-(`save-if: false`). Different tags cannot share cache with each other
-(GitHub Actions ref-scoping), but all tags can read from `main`.
+**Cache strategy**: CI caches the development/test Rust graph. Release jobs use
+the separate `shared-key: release` cache and save it after real tag builds, so
+ordinary pushes do not perform three redundant release-profile compilations.
 
 ## Important Files
 
