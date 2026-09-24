@@ -4,6 +4,7 @@ version = "1.6.0"
 description = "A Bing Wallpaper App"
 authors = ["qiyuey"]
 edition = "2024"
+rust-version = "1.90"
 
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -31,10 +32,11 @@ reqwest = { version = "0.13", features = ["json", "stream", "rustls"], default-f
 tokio = { version = "1", features = ["rt", "rt-multi-thread", "fs", "time", "sync", "io-util", "macros", "test-util"] }
 chrono = { version = "0.4", features = ["serde"] }
 anyhow = "1"
-dirs = "6"
+dirs = "7"
 log = "0.4"
 tauri-plugin-single-instance = "2"
-image = { version = "0.25", features = ["png"] }
+# JPEG wallpapers and PNG tray icons; avoid unused codecs and Rayon.
+image = { version = "0.25", default-features = false, features = ["jpeg", "png"] }
 indexmap = { version = "2", features = ["serde"] }
 tauri-plugin-updater = "2"
 tauri-plugin-process = "2"

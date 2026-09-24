@@ -349,6 +349,33 @@ mod tests {
         Ok(())
     }
 
+    #[test]
+    fn test_jpeg_wallpaper_dimensions_with_minimal_codecs() {
+        let mut bytes = std::io::Cursor::new(Vec::new());
+        image::RgbImage::new(16, 9)
+            .write_to(&mut bytes, image::ImageFormat::Jpeg)
+            .unwrap();
+        bytes.set_position(0);
+        // Downloads use a temporary filename, so detection must use the header.
+        let reader = image::ImageReader::new(bytes)
+            .with_guessed_format()
+            .unwrap();
+        assert_eq!(reader.format(), Some(image::ImageFormat::Jpeg));
+        assert_eq!(reader.into_dimensions().unwrap(), (16, 9));
+    }
+
+    #[test]
+    fn test_all_bundled_tray_pngs_decode_with_minimal_codecs() {
+        for bytes in [
+            include_bytes!("../icons/tray-icon-macos@2x.png").as_slice(),
+            include_bytes!("../icons/tray-icon-windows-light.png").as_slice(),
+            include_bytes!("../icons/tray-icon-windows-dark.png").as_slice(),
+        ] {
+            let icon = image::load_from_memory(bytes).unwrap().into_rgba8();
+            assert!(icon.width() > 0 && icon.height() > 0);
+        }
+    }
+
     #[tokio::test]
     async fn test_download_image_creates_file() {
         let unique = SystemTime::now()
