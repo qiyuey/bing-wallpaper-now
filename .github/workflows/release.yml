@@ -614,11 +614,14 @@ jobs:
     timeout-minutes: 10
     continue-on-error: true
     steps:
-      - uses: vedantmgoyal9/winget-releaser@v2
+      # Includes automatic fork synchronization; pin the reviewed revision.
+      - uses: vedantmgoyal9/winget-releaser@a8fff44b123f115ce4c21543edf8b677376fc7e0
         with:
           identifier: Qiyuey.BingWallpaperNow
           # 仅提交 MSI：Tauri NSIS .exe 的 WebView2 兜底文案会被 komac 误判为
           # "aborting entry" 而拒绝提交（"Failed to install WebView2!"）。
           # MSI 是 winget 推荐格式，且足以覆盖 x64/arm64 安装场景。
           installers-regex: '\.msi$'
+          # Classic PAT with public_repo + workflow scopes. Upstream workflow
+          # changes require workflow permission when synchronizing the fork.
           token: ${{ secrets.WINGET_TOKEN }}
