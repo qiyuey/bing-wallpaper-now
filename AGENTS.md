@@ -12,7 +12,7 @@
 ## Prerequisites
 
 - **Node.js**: 26+
-- **Rust**: 1.80+ (Edition 2024)
+- **Rust**: 1.90+ (Edition 2024; minimum declared in `src-tauri/Cargo.toml`)
 - **npm**: 11+
 
 ## Project Overview
@@ -52,12 +52,14 @@ npm run lint               # Oxlint check
 npm run lint:fix           # Oxlint auto-fix
 npm run lint:md            # Markdown linting
 npm run lint:md:fix        # Markdown auto-fix
-npm run format             # Prettier format code
-npm run format:check       # Prettier check formatting
+npm run format             # Oxfmt format code
+npm run format:check       # Oxfmt check formatting
 
 # Testing
 npm test                   # Run all tests (Rust + frontend)
-npm run test:frontend      # Vitest (React/TypeScript tests)
+npm run test:frontend      # Vitest (jsdom + Chromium, combined coverage)
+npm run test:browser       # Browser component tests only
+npm run test:browser:install # Install Chromium for component tests
 npm run test:rust          # Cargo test (Rust tests)
 npm run test:e2e:web       # Playwright web smoke tests with Tauri IPC mock
 npm run test:e2e:web:install # Install Chromium for Playwright E2E tests
@@ -192,7 +194,7 @@ bing-wallpaper-now/
 
 ## Code style
 
-- **TypeScript**: Strict mode enabled, follows Prettier defaults for quotes and semicolons
+- **TypeScript**: Strict mode enabled, follows Oxfmt defaults for quotes and semicolons
 - **TypeScript/React naming**:
   - Components: PascalCase (`WallpaperCard.tsx`)
   - Hooks: camelCase with "use" prefix (`useBingWallpapers.ts`)
@@ -228,6 +230,9 @@ bing-wallpaper-now/
 - Run `npm run check` to run all quality checks (format, lint, types, tests) before committing
 - Run `npm test` to run all tests (Rust + frontend)
 - Run `npm run test:frontend` for Vitest (React/TypeScript tests)
+- Install Chromium once with `npm run test:browser:install` before frontend
+  tests. Layout-sensitive tests use `*.browser.test.tsx` and real browser APIs;
+  other tests use jsdom. See `docs/testing.md` for setup and coverage behavior.
 - Run `npm run test:rust` for Cargo test (Rust tests)
 - Run `npm run test:e2e:web` for local Playwright UI smoke tests after installing Chromium with `npm run test:e2e:web:install`
 - Fix any test or type errors until the whole suite passes
@@ -427,7 +432,7 @@ ordinary pushes do not perform three redundant release-profile compilations.
 
 **Issue**: Rust compilation errors
 
-- **Solution**: Update Rust: `rustup update`. Ensure 1.80+ with edition 2024 support.
+- **Solution**: Update Rust: `rustup update`. Ensure 1.90+ with edition 2024 support.
 
 **Issue**: Tauri dev fails on macOS
 
