@@ -25,6 +25,7 @@ project_get_root() {
 
 # Project file paths (relative to project root)
 export PROJECT_PACKAGE_JSON="package.json"
+export PROJECT_PACKAGE_LOCK="package-lock.json"
 export PROJECT_CARGO_TOML="src-tauri/Cargo.toml"
 export PROJECT_TAURI_CONF="src-tauri/tauri.conf.json"
 export PROJECT_CARGO_LOCK="src-tauri/Cargo.lock"
@@ -157,6 +158,15 @@ project_update_package_json_version() {
 
     jq --arg v "$new_version" '.version = $v' "$file" > "$temp_file"
     mv "$temp_file" "$file"
+
+    # npm records the root version in both lockfile locations.
+    local lock_file=$(project_get_file_path "$PROJECT_PACKAGE_LOCK")
+    if [[ -f "$lock_file" ]]; then
+        local lock_temp="${lock_file}.tmp"
+        jq --arg v "$new_version" '.version = $v | .packages[""].version = $v' \
+            "$lock_file" > "$lock_temp"
+        mv "$lock_temp" "$lock_file"
+    fi
 }
 
 # Update version in Cargo.toml

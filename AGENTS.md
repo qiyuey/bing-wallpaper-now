@@ -386,6 +386,7 @@ Verify these paths after structural refactoring or event-related changes:
   direct releases are the default workflow.
 - Version is synchronized across:
   - `package.json`
+  - `package-lock.json`
   - `src-tauri/Cargo.toml`
   - `src-tauri/Cargo.lock`
   - `src-tauri/tauri.conf.json`

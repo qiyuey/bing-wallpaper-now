@@ -83,7 +83,7 @@ create_snapshot() {
 
     # Check for other uncommitted files before updating version
     # git status --porcelain outputs: " M file" (modified), "M  file" (staged), "?? file" (untracked)
-    local other_changes=$(git status --porcelain 2>/dev/null | grep -v -E "(package\.json|src-tauri/Cargo\.toml|src-tauri/tauri\.conf\.json|src-tauri/Cargo\.lock)" || true)
+    local other_changes=$(git status --porcelain 2>/dev/null | grep -v -E "(package\.json|package-lock\.json|src-tauri/Cargo\.toml|src-tauri/tauri\.conf\.json|src-tauri/Cargo\.lock)" || true)
     
     # Update all version files
     project_update_all_versions "$dev_version"
@@ -107,7 +107,7 @@ create_snapshot() {
         # No other changes, auto-commit version files
         print_info "No other uncommitted changes detected"
         print_info "Staging version files..."
-        git_stage "$PROJECT_PACKAGE_JSON" "$PROJECT_CARGO_TOML" "$PROJECT_TAURI_CONF" "$PROJECT_CARGO_LOCK"
+        git_stage "$PROJECT_PACKAGE_JSON" "$PROJECT_PACKAGE_LOCK" "$PROJECT_CARGO_TOML" "$PROJECT_TAURI_CONF" "$PROJECT_CARGO_LOCK"
         
         # Generate commit message based on bump type
         local commit_msg
@@ -219,7 +219,7 @@ release_version() {
 
     # Commit version changes
     print_info "Creating release commit..."
-    git_stage "$PROJECT_PACKAGE_JSON" "$PROJECT_CARGO_TOML" "$PROJECT_TAURI_CONF" "$PROJECT_CARGO_LOCK"
+    git_stage "$PROJECT_PACKAGE_JSON" "$PROJECT_PACKAGE_LOCK" "$PROJECT_CARGO_TOML" "$PROJECT_TAURI_CONF" "$PROJECT_CARGO_LOCK"
     git_commit "chore(release): $release_version"
     print_success "Created release version: $release_version"
 
