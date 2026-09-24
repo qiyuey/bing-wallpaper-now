@@ -553,25 +553,49 @@ mod tests {
 
     #[tokio::test]
     async fn test_http_client_reuse() {
-        // 测试 HTTP 客户端可以被多次调用 - 使用快速超时
-        let unique = SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
-        let temp_dir = std::env::temp_dir().join(format!("bw_reuse_{unique}"));
-        fs::create_dir_all(&temp_dir).await.unwrap();
+        use tokio::io::{AsyncBufReadExt, BufReader};
+        use tokio::net::TcpListener;
 
-        // 进行多次下载以测试连接池复用
-        for i in 0..3 {
-            let save_path = temp_dir.join(format!("test_{}.jpg", i));
-            let url = "https://invalid-url.com/test.jpg";
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let url = format!("http://{}/test.jpg", listener.local_addr().unwrap());
+        let server = tokio::spawn(async move {
+            // Accept exactly one connection: all three requests must reuse it.
+            let (stream, _) = listener.accept().await.unwrap();
+            let mut stream = BufReader::new(stream);
+            for _ in 0..3 {
+                let mut request = String::new();
+                loop {
+                    let mut line = String::new();
+                    assert!(stream.read_line(&mut line).await.unwrap() > 0);
+                    if line == "\r\n" {
+                        break;
+                    }
+                    request.push_str(&line);
+                }
+                assert!(request.starts_with("GET /test.jpg HTTP/1.1\r\n"));
+                stream
+                    .get_mut()
+                    .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nok")
+                    .await
+                    .unwrap();
+            }
+        });
 
-            let result = download_image_fast_timeout(url, &save_path).await;
-            // 所有请求应该都失败但不会 panic
-            assert!(result.is_err());
+        // Exercise the production client and consume each body to release the
+        // connection back to its pool. No external DNS or server is involved.
+        for _ in 0..3 {
+            let response = HTTP_CLIENT
+                .get(&url)
+                .timeout(Duration::from_secs(5))
+                .send()
+                .await
+                .unwrap();
+            assert_eq!(response.status(), reqwest::StatusCode::OK);
+            assert_eq!(response.text().await.unwrap(), "ok");
         }
-
-        // 清理
-        let _ = fs::remove_dir_all(&temp_dir).await;
+        tokio::time::timeout(Duration::from_secs(5), server)
+            .await
+            .unwrap()
+            .unwrap();
     }
 }
