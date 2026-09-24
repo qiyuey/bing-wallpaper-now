@@ -1,40 +1,36 @@
 import { defineConfig } from "vitest/config";
+import react from "@vitejs/plugin-react";
+import { playwright } from "@vitest/browser-playwright";
 
-/**
- * Vitest configuration for Bing Wallpaper Now
- *
- * Centralizes test + coverage settings so CI and local runs
- * use the same defaults. This mirrors the inline flags previously
- * passed via the coverage script, making maintenance easier.
- *
- * Recommended usage:
- *   npx vitest
- *   npx vitest run
- *   npx vitest run --coverage
- *
- * Coverage thresholds here are initial (soft) targets; CI currently
- * runs in continue-on-error mode for the coverage job, so failing
- * thresholds will not block merges until we raise the gate.
- */
+// Run DOM logic in jsdom and layout-sensitive components in Chromium.
 export default defineConfig({
   test: {
-    // Use jsdom so React component tests can run without a browser.
-    environment: "jsdom",
-    // Enable globals (describe, it, expect) without importing from vitest everywhere.
     globals: true,
-    // Setup file for test utilities and mocks
-    setupFiles: ["./src/test/setup.ts"],
-
-    // File patterns
-    include: ["src/**/*.{test,spec}.{ts,tsx}"],
-    exclude: [
-      "node_modules",
-      "dist",
-      "coverage",
-      "coverage-frontend",
-      "src-tauri",
-      "**/__fixtures__/**",
-      "**/__mocks__/**",
+    projects: [
+      {
+        test: {
+          name: "unit",
+          environment: "jsdom",
+          setupFiles: ["./src/test/setup.ts"],
+          include: ["src/**/*.{test,spec}.{ts,tsx}"],
+          exclude: ["src/**/*.browser.test.{ts,tsx}"],
+        },
+      },
+      {
+        plugins: [react()],
+        test: {
+          name: "browser",
+          setupFiles: ["./src/test/setup.browser.ts"],
+          include: ["src/**/*.browser.test.{ts,tsx}"],
+          browser: {
+            enabled: true,
+            provider: playwright({ contextOptions: { locale: "zh-CN" } }),
+            headless: true,
+            viewport: { width: 1280, height: 800 },
+            instances: [{ browser: "chromium" }],
+          },
+        },
+      },
     ],
 
     // Reporting & coverage
@@ -43,8 +39,7 @@ export default defineConfig({
       provider: "v8", // fast, built-in V8 instrumentation
       reportsDirectory: "coverage-frontend",
       reporter: ["text", "lcov", "json"],
-      // Initial soft thresholds (match README / quality baseline plan)
-      // 根据当前实际覆盖率设置合理阈值，避免阻塞开发流程
+      // Enforced across unit and browser projects together.
       thresholds: {
         lines: 70, // 当前 81.86%，保持 70%
         functions: 40, // 当前 47.05%，设为 40%（Settings 组件函数较多）
@@ -62,6 +57,7 @@ export default defineConfig({
         "**/out/**", // 生成的文件
         "**/*-script.js", // 生成的脚本
         "src/types/**", // 类型定义文件（纯接口，无可执行代码）
+        "src/test/**", // Test setup and render helpers, not application code
         "src/vite-env.d.ts", // Vite 类型定义
       ],
     },

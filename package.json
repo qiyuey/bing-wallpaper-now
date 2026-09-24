@@ -16,8 +16,7 @@
     "flat-cache@>=4.0.0 <5.0.0-0": "4.0.1",
     "micromark-util-character@>=2.0.0 <3.0.0-0": "2.1.1",
     "micromark-util-symbol@>=2.0.0 <3.0.0-0": "2.0.1",
-    "micromark-util-types@>=2.0.0 <3.0.0-0": "2.0.2",
-    "vite@>=8.1.3 <9.0.0-0": "8.1.3"
+    "micromark-util-types@>=2.0.0 <3.0.0-0": "2.0.2"
   },
   "scripts": {
     "dev": "vite",
@@ -33,8 +32,8 @@
     "lint:fix": "oxlint src scripts/run-bash.mjs --fix",
     "lint:md": "markdownlint \"*.md\" \"docs/**/*.md\" --ignore node_modules --ignore src-tauri/target",
     "lint:md:fix": "markdownlint \"*.md\" \"docs/**/*.md\" --ignore node_modules --ignore src-tauri/target --fix",
-    "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"scripts/run-bash.mjs\"",
-    "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"scripts/run-bash.mjs\"",
+    "format": "oxfmt --write \"src/**/*.{ts,tsx,css}\" \"scripts/run-bash.mjs\"",
+    "format:check": "oxfmt --check \"src/**/*.{ts,tsx,css}\" \"scripts/run-bash.mjs\"",
     "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
     "test:frontend": "vitest run --pool=threads --maxWorkers=1",
     "test:e2e:web": "playwright test",
@@ -51,7 +50,9 @@
     "release:minor": "node scripts/run-bash.mjs scripts/manage-version.sh release minor",
     "release:major": "node scripts/run-bash.mjs scripts/manage-version.sh release major",
     "retag": "node scripts/run-bash.mjs scripts/manage-version.sh retag",
-    "icons": "node scripts/generate-icons.mjs"
+    "icons": "node scripts/generate-icons.mjs",
+    "test:browser": "vitest run --project=browser --coverage.enabled=false",
+    "test:browser:install": "playwright install chromium"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.11.1",
@@ -73,14 +74,15 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.4",
-    "@vitest/coverage-v8": "^4.1.10",
-    "jsdom": "^29.1.1",
+    "@vitest/browser-playwright": "^5.0.1",
+    "@vitest/coverage-v8": "^5.0.1",
+    "jsdom": "^30.1.1",
     "markdownlint-cli": "^0.49.1",
+    "oxfmt": "^0.70.0",
     "oxlint": "^1.75.0",
     "pngjs": "^7.0.0",
-    "prettier": "^3.9.6",
     "typescript": "^7.0.2",
-    "vite": "8.1.3",
-    "vitest": "^4.1.10"
+    "vite": "8.3.0",
+    "vitest": "^5.0.1"
   }
 }

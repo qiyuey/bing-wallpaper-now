@@ -1,30 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
-import { renderWithI18n } from "../test/test-utils";
+import { renderWithI18n } from "../test/browser-utils";
+import gridStyles from "./WallpaperGrid.module.css";
+import fixtureStyles from "../test/browser-fixture.module.css";
 import { WallpaperGrid } from "./WallpaperGrid";
 import { LocalWallpaper } from "../types";
-
-// Mock window size and element dimensions for virtual list
-beforeEach(() => {
-  Object.defineProperty(window, "innerHeight", {
-    writable: true,
-    configurable: true,
-    value: 800,
-  });
-
-  // Mock offsetWidth and offsetHeight for container
-  Object.defineProperty(HTMLElement.prototype, "offsetWidth", {
-    writable: true,
-    configurable: true,
-    value: 1200,
-  });
-
-  Object.defineProperty(HTMLElement.prototype, "offsetHeight", {
-    writable: true,
-    configurable: true,
-    value: 600,
-  });
-});
 
 describe("WallpaperGrid", () => {
   const mockWallpapers: LocalWallpaper[] = [
@@ -46,6 +26,67 @@ describe("WallpaperGrid", () => {
 
   const mockOnSetWallpaper = vi.fn();
   const mockWallpaperDirectory = "/path/to/wallpapers";
+
+  const manyWallpapers = Array.from({ length: 90 }, (_, index) => ({
+    ...mockWallpapers[0],
+    end_date: String(20240101 + index),
+    title: `Wallpaper ${index + 1}`,
+  }));
+
+  it("remeasures rows across container breakpoints without overlapping cards", async () => {
+    const { container } = renderWithI18n(
+      <WallpaperGrid
+        wallpapers={manyWallpapers}
+        onSetWallpaper={mockOnSetWallpaper}
+        wallpaperDirectory={mockWallpaperDirectory}
+      />,
+    );
+
+    // Change only the container width: native ResizeObserver must drive this.
+    for (const [className, columns] of [
+      [fixtureStyles.viewport, 3],
+      [`${fixtureStyles.viewport} ${fixtureStyles.narrow}`, 1],
+      [`${fixtureStyles.viewport} ${fixtureStyles.medium}`, 2],
+      [fixtureStyles.viewport, 3],
+    ] as const) {
+      container.className = className;
+      await waitFor(() => {
+        const rows = container.querySelectorAll(`.${gridStyles.row}`);
+        expect(rows.length).toBeGreaterThan(1);
+        expect(rows[0].querySelectorAll("h3")).toHaveLength(columns);
+        const firstCard = rows[0].firstElementChild!.getBoundingClientRect();
+        const nextCard = rows[1].firstElementChild!.getBoundingClientRect();
+        expect(firstCard.height).toBeGreaterThan(200);
+        expect(nextCard.top).toBeGreaterThanOrEqual(firstCard.bottom);
+      });
+    }
+  });
+
+  it("virtualizes a large collection and renders the last card after scrolling", async () => {
+    const { container } = renderWithI18n(
+      <WallpaperGrid
+        wallpapers={manyWallpapers}
+        onSetWallpaper={mockOnSetWallpaper}
+        wallpaperDirectory={mockWallpaperDirectory}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Wallpaper 1")).toBeVisible();
+      expect(container.querySelectorAll("h3").length).toBeLessThan(90);
+    });
+    expect(screen.queryByText("Wallpaper 90")).not.toBeInTheDocument();
+    const list = container.querySelector<HTMLElement>(
+      `.${gridStyles.virtualList}`,
+    )!;
+    // Dynamic measurement may refine the scroll height while scrolling.
+    await waitFor(() => {
+      list.scrollTo({ top: list.scrollHeight, behavior: "instant" });
+      expect(screen.getByText("Wallpaper 90")).toBeVisible();
+    });
+    expect(container.querySelectorAll("h3").length).toBeLessThan(90);
+    expect(screen.queryByText("Wallpaper 1")).not.toBeInTheDocument();
+  });
 
   it("should render loading state when loading is true", () => {
     const { container } = renderWithI18n(

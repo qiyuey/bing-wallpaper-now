@@ -40,8 +40,11 @@ jobs:
       - name: Oxlint
         run: npm run lint
 
-      - name: Prettier format check
+      - name: Oxfmt format check
         run: npm run format:check
+
+      - name: Install Chromium for component tests
+        run: npm exec -- playwright install --with-deps chromium
 
       - name: Frontend tests
         run: npm run test:frontend

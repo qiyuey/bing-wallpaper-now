@@ -1,0 +1,14 @@
+.viewport {
+  display: flex;
+  flex-direction: column;
+  width: 1200px;
+  height: 600px;
+}
+
+.narrow {
+  width: 700px;
+}
+
+.medium {
+  width: 900px;
+}

@@ -294,11 +294,11 @@ validate_oxlint() {
     fi
 }
 
-# Run Prettier format check
+# Run Oxfmt format check
 # Args: $1 - package manager (optional)
 # Returns: 0 if passed, 1 otherwise
-# Usage: if validate_prettier "$PKG_MANAGER"; then ... fi
-validate_prettier() {
+# Usage: if validate_format "$PKG_MANAGER"; then ... fi
+validate_format() {
     local pkg_manager="${1:-}"
 
     if [[ -z "$pkg_manager" ]]; then
@@ -306,17 +306,17 @@ validate_prettier() {
     fi
 
     if type print_info &>/dev/null; then
-        print_info "Running Prettier format check..."
+        print_info "Running Oxfmt format check..."
     fi
 
     if $pkg_manager run format:check; then
         if type print_success &>/dev/null; then
-            print_success "Prettier format check passed"
+            print_success "Oxfmt format check passed"
         fi
         return 0
     else
         if type print_error &>/dev/null; then
-            print_error "Prettier format check failed"
+            print_error "Oxfmt format check failed"
             print_info "Run: $pkg_manager run format"
         fi
         return 1
@@ -403,7 +403,7 @@ validate_all_quality_checks() {
     validate_rust_tests || failed=$((failed + 1))
     validate_typescript_types "$pkg_manager" || failed=$((failed + 1))
     validate_oxlint "$pkg_manager" || failed=$((failed + 1))
-    validate_prettier "$pkg_manager" || failed=$((failed + 1))
+    validate_format "$pkg_manager" || failed=$((failed + 1))
     validate_frontend_tests "$pkg_manager" || failed=$((failed + 1))
 
     return $failed
