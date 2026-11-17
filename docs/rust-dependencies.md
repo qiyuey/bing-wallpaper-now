@@ -4,10 +4,11 @@ Reviewed on 2026-09-24.
 
 ## Minimum Rust version
 
-The application declares Rust 1.90 in `src-tauri/Cargo.toml`. The locked dependency
-graph's highest declared requirement is `mac-usernotifications 0.3.1` (1.90),
-followed by `notify-rust 4.18.0` (1.89). `image 0.25.10` requires 1.88.
-Edition 2024 alone requires 1.85, so it does not determine this project's minimum.
+The application declares Rust 1.90 in `src-tauri/Cargo.toml`. Rust 1.90 is also
+the highest declared requirement in the locked dependency graphs for macOS
+Apple Silicon and Windows x64 and ARM64. Tauri 2.12.6 declares Rust 1.90,
+`notify-rust 4.19.0` declares 1.89, and `image 0.25.10` declares 1.88.
+Edition 2024 requires Rust 1.85.
 
 Check the minimum toolchain locally with:
 

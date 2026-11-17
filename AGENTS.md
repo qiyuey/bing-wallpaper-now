@@ -13,7 +13,7 @@
 
 - **Node.js**: 26+
 - **Rust**: 1.90+ (Edition 2024; minimum declared in `src-tauri/Cargo.toml`)
-- **npm**: 11+
+- **npm**: 12+
 
 ## Project Overview
 

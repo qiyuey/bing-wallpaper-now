@@ -1,6 +1,6 @@
 # Frontend quality checks
 
-Use Node.js 26+ and npm 11+:
+Use Node.js 26+ and npm 12+:
 
 ```bash
 npm ci
@@ -47,3 +47,20 @@ neither browser suite replaces native macOS/Windows regression checks.
 `npm run format` and `npm run format:check` use Oxfmt. `.oxfmtrc.json` retains
 80-column formatting and disables automatic import and package field sorting.
 Oxlint continues to handle linting, and markdownlint checks Markdown separately.
+
+## Dependency overrides
+
+The version-scoped overrides in `package.json` keep the current Markdown tooling
+on patched transitive dependencies while upstream packages still pin older
+versions:
+
+- `markdownlint@0.42.0`: RE2JS 2.10.0 includes the lookbehind matching
+  denial-of-service fix.
+- `markdownlint-cli@^0.50.0`: minimatch 11.0.9 includes the glob-pattern amplification
+  fix. The repository's Markdown file selection and exclusions are checked by
+  `npm run lint:md`.
+- `micromark-extension-math@3.1.0`: KaTeX 0.19.1 includes the trust-restriction bypass fix.
+
+Revisit these overrides when upgrading the parent packages. Keep the existing
+micromark and flat-cache overrides until their affected dependency paths no
+longer need them; do not replace the overrides with `--legacy-peer-deps`.

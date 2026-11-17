@@ -17,38 +17,38 @@ name = "bing_wallpaper_now_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
-tauri-build = { version = "2", features = [] }
+tauri-build = { version = "2.7.5", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = ["protocol-asset", "tray-icon"] }
-tauri-plugin-opener = "2"
-tauri-plugin-store = "2"
-tauri-plugin-autostart = "2"
-tauri-plugin-dialog = "2"
-tauri-plugin-log = "2"
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-reqwest = { version = "0.13", features = ["json", "stream", "rustls"], default-features = false }
-tokio = { version = "1", features = ["rt", "rt-multi-thread", "fs", "time", "sync", "io-util", "macros", "test-util"] }
-chrono = { version = "0.4", features = ["serde"] }
-anyhow = "1"
-dirs = "7"
-log = "0.4"
-tauri-plugin-single-instance = "2"
+tauri = { version = "2.12.6", features = ["protocol-asset", "tray-icon"] }
+tauri-plugin-opener = "2.7.3"
+tauri-plugin-store = "2.5.1"
+tauri-plugin-autostart = "2.7.0"
+tauri-plugin-dialog = "2.8.4"
+tauri-plugin-log = "2.10.2"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+reqwest = { version = "0.13.5", features = ["json", "stream", "rustls"], default-features = false }
+tokio = { version = "1.54.1", features = ["rt", "rt-multi-thread", "fs", "time", "sync", "io-util", "macros", "test-util"] }
+chrono = { version = "0.4.45", features = ["serde"] }
+anyhow = "1.0.104"
+dirs = "7.0.0"
+log = "0.4.35"
+tauri-plugin-single-instance = "2.5.5"
 # JPEG wallpapers and PNG tray icons; avoid unused codecs and Rayon.
-image = { version = "0.25", default-features = false, features = ["jpeg", "png"] }
-indexmap = { version = "2", features = ["serde"] }
-tauri-plugin-updater = "2"
-tauri-plugin-process = "2"
-semver = "1"
+image = { version = "0.25.10", default-features = false, features = ["jpeg", "png"] }
+indexmap = { version = "2.14.2", features = ["serde"] }
+tauri-plugin-updater = "2.14.1"
+tauri-plugin-process = "2.4.0"
+semver = "1.0.28"
 sys-locale = "0.3.2"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 mac-usernotifications = "0.3.1"
-objc2 = "0.6.4"
+objc2 = "0.6.5"
 objc2-foundation = { version = "0.3.2", features = ["NSString", "NSDictionary", "NSArray", "NSURL", "NSError", "NSNotification"] }
 objc2-app-kit = { version = "0.3.2", features = ["NSWorkspace", "NSScreen", "NSApplication", "NSResponder", "NSRunningApplication"] }
 
 [target.'cfg(windows)'.dependencies]
-notify-rust = "4.18"
+notify-rust = "4.19.0"
 windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_System_Registry", "Win32_UI_WindowsAndMessaging"] }
