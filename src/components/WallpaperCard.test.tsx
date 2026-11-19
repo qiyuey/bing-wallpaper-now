@@ -92,10 +92,12 @@ describe("WallpaperCard", () => {
   });
 
   it("should parse copyright correctly", () => {
+    const description =
+      "雕塑《知识之躯》，由豪梅·普兰萨创作，位于德国法兰克福的法兰克福歌德大学";
     const wallpaperWithCopyright = {
       ...mockWallpaper,
-      title: "美景",
-      copyright: "巴黎，法国 (摄影师名字)",
+      title: "知识之躯",
+      copyright: `${description} (摄影师名字)`,
     };
 
     renderWithI18n(
@@ -106,8 +108,8 @@ describe("WallpaperCard", () => {
       />,
     );
 
-    expect(screen.getByText("美景")).toBeInTheDocument();
-    expect(screen.getByText("巴黎，法国")).toBeInTheDocument();
+    expect(screen.getByText("知识之躯")).toBeInTheDocument();
+    expect(screen.getByText(description)).toHaveAttribute("title", description);
   });
 
   it("should call openUrl when image container is clicked", async () => {

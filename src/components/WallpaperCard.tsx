@@ -218,7 +218,11 @@ export const WallpaperCard = memo(
           </div>
           <div className={styles.info}>
             <h3 className={styles.title}>{title}</h3>
-            {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
+            {subtitle && (
+              <p className={styles.subtitle} title={subtitle}>
+                {subtitle}
+              </p>
+            )}
           </div>
         </div>
       </div>
